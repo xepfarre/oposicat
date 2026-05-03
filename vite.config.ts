@@ -11,8 +11,9 @@ export default defineConfig(({mode}) => {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
     },
     resolve: {
+      // Ara el "@" apunta directament a la nostra interfície d'usuari a la carpeta Frontend
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(__dirname, './Codi_Font/Frontend'),
       },
     },
     server: {

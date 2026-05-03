@@ -16,11 +16,13 @@
     "allowJs": true,
     "jsx": "react-jsx",
     "paths": {
+      // Ara el "@" busca dins de Frontend per defecte
       "@/*": [
-        "./*"
+        "./Codi_Font/Frontend/*"
       ]
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": ["Codi_Font/**/*", "vite.config.ts"]
 }

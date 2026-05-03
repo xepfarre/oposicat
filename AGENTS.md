@@ -9,3 +9,9 @@ Aquest fitxer conté les regles i criteris que s'han de mantenir durant tot el d
 
 ## 2. Idioma
 - Tota la comunicació i els comentaris es faran en català.
+
+## 3. Modularitat i Separació (Arquitectura de "Lego")
+- L'aplicació ha d'estar clarament dividida entre Frontend (el que veu l'usuari) i Backend (la lògica del servidor).
+- Cada funcionalitat ha de tenir la seva pròpia classe o component. No volem fitxers gegants que ho facin tot.
+- L'assistent decidirà automàticament si una nova peça ha d'anar a la carpeta `Backend` o `Frontend` i l'ubicarà correctament.
+- Prioritzarem la creació de components petits i fàcils de testejar per separat.

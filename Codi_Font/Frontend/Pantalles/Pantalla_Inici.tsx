@@ -1,0 +1,131 @@
+import { useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
+/**
+ * PANTALLA D'INICI (FRONTEND)
+ * Disseny rígid per a mòbil: sense scroll, colors canviants i jerarquia clara.
+ */
+export default function Pantalla_Inici() {
+  const [index, setIndex] = useState(0);
+
+  const dades = [
+    { 
+      nom: "Mossos", 
+      linia1: "MOSSOS", 
+      linia2: "D'ESQUADRA", 
+      color: "bg-[#00274d]", 
+      actiu: true 
+    },
+    { 
+      nom: "Bombers", 
+      linia1: "BOMBERS", 
+      linia2: "DE CATALUNYA", 
+      color: "bg-[#BE1E2D]", 
+      actiu: false 
+    },
+    { 
+      nom: "Agents Rurals", 
+      linia1: "AGENTS", 
+      linia2: "RURALS", 
+      color: "bg-[#277A44]", 
+      actiu: false 
+    },
+    { 
+      nom: "Protecció Civil", 
+      linia1: "PROTECCIÓ", 
+      linia2: "CIVIL", 
+      color: "bg-[#F37021]", 
+      actiu: false, 
+      dark: false 
+    }
+  ];
+
+  const cos = dades[index];
+
+  const següent = () => setIndex((i) => (i + 1) % dades.length);
+  const anterior = () => setIndex((i) => (i - 1 + dades.length) % dades.length);
+
+  return (
+    <div className={`flex h-screen w-full flex-col items-center justify-between pb-12 px-10 transition-colors duration-700 overflow-hidden ${cos.color}`}>
+      
+      {/* CAPÇALERA: Amb contenidor protector suau per garantir contrast permanent del logotip */}
+      <header className="pt-14 w-full flex justify-center">
+        <div className="bg-black/30 backdrop-blur-md px-10 py-4 rounded-3xl shadow-xl border border-white/10">
+          <h1 className="text-4xl font-black italic tracking-tighter select-none">
+            <span className="text-white">Oposi</span>
+            <span className="text-[#FFDF00]">CAT</span>
+          </h1>
+        </div>
+      </header>
+
+      {/* CARRUSEL CENTRAL (ESTÀTIC) */}
+      <div className="flex flex-col items-center">
+        <div className="relative">
+          {/* Fletxa Esquerra: Ara fora del quadrat i centrada verticalment amb ell */}
+          <button 
+            onClick={anterior} 
+            className={`absolute -left-16 top-1/2 -translate-y-1/2 z-20 p-2 cursor-pointer transition-opacity hover:opacity-100 ${cos.dark ? 'text-black/20' : 'text-white/20'}`}
+          >
+            <ChevronLeft size={60} strokeWidth={3} />
+          </button>
+
+          {/* Quadrat Central */}
+          <div className={`flex flex-col h-72 w-56 items-center justify-center rounded-[3.5rem] border-2 shadow-2xl transition-all p-4 ${cos.dark ? 'border-black/10 bg-black/5' : 'border-white/20 bg-white/5'}`}>
+            <span className={`text-4xl font-black italic tracking-tighter leading-none text-center ${cos.dark ? 'text-black/90' : 'text-white/90'}`}>
+              {cos.linia1}
+            </span>
+            <div className={`my-2 h-1 w-12 rounded-full ${cos.dark ? 'bg-black/20' : 'bg-white/20'}`} />
+            <span className={`text-2xl font-black italic tracking-tighter leading-none text-center ${cos.dark ? 'text-black/70' : 'text-white/70'}`}>
+              {cos.linia2}
+            </span>
+          </div>
+
+          {/* Fletxa Dreta: Ara fora del quadrat i centrada verticalment amb ell */}
+          <button 
+            onClick={següent} 
+            className={`absolute -right-16 top-1/2 -translate-y-1/2 z-20 p-2 cursor-pointer transition-opacity hover:opacity-100 ${cos.dark ? 'text-black/20' : 'text-white/20'}`}
+          >
+            <ChevronRight size={60} strokeWidth={3} />
+          </button>
+        </div>
+
+      </div>
+
+      {/* ACCIÓ INFERIOR: El botó ara està més avall i més a prop del text informatiu */}
+      <footer className="w-full max-w-xs flex flex-col items-center gap-6">
+        
+        {/* INDICADORS DE MINIATURES (PAGINACIÓ) */}
+        <div className="flex gap-4 mb-2">
+          {dades.map((d, i) => (
+            <div 
+              key={i}
+              onClick={() => setIndex(i)}
+              className={`h-3 rounded-full transition-all duration-300 cursor-pointer border border-white/10 ${
+                index === i 
+                  ? 'w-12 bg-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' 
+                  : `w-4 ${d.color} opacity-60 hover:opacity-100`
+              }`}
+              title={d.nom}
+            />
+          ))}
+        </div>
+
+        <button 
+          disabled={!cos.actiu}
+          className={`w-full rounded-2xl py-6 text-sm font-black uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 
+            ${cos.actiu 
+              ? 'bg-[#12192C] text-white hover:bg-black cursor-pointer shadow-black/40' 
+              : 'bg-white/10 text-white/30 cursor-not-allowed shadow-none'
+            }`}
+        >
+          {cos.actiu ? "Entrar a l'App" : "Proximament"}
+        </button>
+        
+        <p className={`text-[11px] font-black uppercase tracking-[0.2em] opacity-80 select-none ${cos.dark ? 'text-black' : 'text-white'}`}>
+          ISPC • PREPARACIÓ ACADÈMICA 2026
+        </p>
+      </footer>
+
+    </div>
+  );
+}
