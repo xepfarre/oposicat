@@ -4,6 +4,7 @@
  */
 
 // Importem les eines bàsiques de React (el "motor" de l'aplicació)
+// Versió 1.1.0 - Actualització de rutes i estructura (OposiCAT)
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
