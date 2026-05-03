@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/Backend/Servidor_Principal.ts",
+    "dev": "tsx src/backend/Servidor_Principal.ts",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",

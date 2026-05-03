@@ -13,7 +13,7 @@ export default defineConfig(({mode}) => {
     resolve: {
       // Ara el "@" apunta directament a la nostra interfície d'usuari a la carpeta Frontend
       alias: {
-        '@': path.resolve(__dirname, './src/Frontend'),
+        '@': path.resolve(__dirname, './src'),
       },
     },
     server: {
