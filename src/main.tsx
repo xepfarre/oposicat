@@ -8,10 +8,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 // Importem la pantalla que veiem al principi
-import Pantalla_Inici from './pantalles/Pantalla_Inici.tsx';
+import Pantalla_Inici from './pantalles/pantalla_inici.tsx';
 
 // Importem el disseny i els estils globals (colors, mides, etc.)
-import './estils/Estils_Globals.css';
+import './estils/estils_globals.css';
 
 /**
  * Aquesta és la funció que engega realment l'aplicació en el navegador.
