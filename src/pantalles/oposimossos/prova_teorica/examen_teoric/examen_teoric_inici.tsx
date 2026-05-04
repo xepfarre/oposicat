@@ -22,7 +22,7 @@ export default function ExamenTeoricInici({ onTornar }: { onTornar: () => void }
     <div className="flex h-screen w-full flex-col items-center pb-6 px-10 bg-[#00274d] overflow-y-auto">
       
       {/* CAPÇALERA */}
-      <header className="pt-14 w-full flex flex-col items-center gap-6 shrink-0 text-center mb-8">
+      <header className="pt-14 w-full flex flex-col items-center gap-6 shrink-0 text-center mb-2">
         <div className="bg-black/30 backdrop-blur-md px-10 py-4 rounded-3xl shadow-xl border border-white/10">
           <h1 className="text-3xl font-black italic tracking-tighter select-none">
             <span className="text-white">Oposi </span>
@@ -39,7 +39,7 @@ export default function ExamenTeoricInici({ onTornar }: { onTornar: () => void }
       </header>
 
       {/* CONTINGUT: Botons en graella en tauletes */}
-      <main className="w-full max-w-sm md:max-w-2xl flex flex-col items-center flex-1 py-10 md:py-16">
+      <main className="w-full max-w-sm md:max-w-2xl flex flex-col items-center flex-1 py-4 md:py-6">
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
           {botons.map((text, idx) => (
             <button 

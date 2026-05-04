@@ -35,7 +35,7 @@ export default function ProvaTeoricaInici({ onTornar, onExamenTeoric, onEmCostaE
           CONTINGUT PRINCIPAL: 
           En tauletes els botons es divideixen en dues columnes (md:grid-cols-2).
       */}
-      <main className="w-full max-w-sm md:max-w-2xl flex flex-col items-center flex-1 py-4 md:py-6">
+      <main className="w-full max-w-sm md:max-w-2xl flex flex-col items-center flex-1 py-2 md:py-4">
         {/* Botons de la secció Teòrica en grid per a Tablet */}
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
           <button className="w-full md:col-span-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl py-6 md:py-10 text-amber-100 font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg">
@@ -43,7 +43,7 @@ export default function ProvaTeoricaInici({ onTornar, onExamenTeoric, onEmCostaE
           </button>
 
           {/* Línia de separació gris entre Informació i Exàmens */}
-          <div className="md:col-span-2 flex items-center py-1">
+          <div className="md:col-span-2 flex items-center">
             <div className="flex-1 h-px bg-white/10" />
           </div>
 
@@ -61,14 +61,13 @@ export default function ProvaTeoricaInici({ onTornar, onExamenTeoric, onEmCostaE
           </button>
           
           {/* Línia de separació gris entre blocs */}
-          <div className="md:col-span-2 flex items-center py-1">
+          <div className="md:col-span-2 flex items-center">
             <div className="flex-1 h-px bg-white/10" />
           </div>
           
-          {/* Botó especial de suport: "Em costa estudiar" */}
           <button 
             onClick={onEmCostaEstudiar}
-            className="w-full md:col-span-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl py-6 md:py-10 text-emerald-100 font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg shadow-emerald-900/20 mt-2"
+            className="w-full md:col-span-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl py-6 md:py-10 text-emerald-100 font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg shadow-emerald-900/20"
           >
             Em costa estudiar
           </button>

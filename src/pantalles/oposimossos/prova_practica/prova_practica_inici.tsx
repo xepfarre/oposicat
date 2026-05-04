@@ -30,7 +30,7 @@ export default function ProvaPracticaInici({ onTornar }: { onTornar: () => void 
           CONTINGUT PRINCIPAL: 
           Disseny adaptat a tauletes (md:grid-cols-2 o similar).
       */}
-      <main className="w-full max-w-sm md:max-w-2xl flex flex-col items-center flex-1 py-4 md:py-6">
+      <main className="w-full max-w-sm md:max-w-2xl flex flex-col items-center flex-1 py-2 md:py-4">
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
           
           {/* Bloc 1: Informació Oficial */}
@@ -39,7 +39,7 @@ export default function ProvaPracticaInici({ onTornar }: { onTornar: () => void 
           </button>
 
           {/* Línia de separació */}
-          <div className="md:col-span-2 flex items-center py-1">
+          <div className="md:col-span-2 flex items-center">
             <div className="flex-1 h-px bg-white/10" />
           </div>
 
@@ -55,7 +55,7 @@ export default function ProvaPracticaInici({ onTornar }: { onTornar: () => void 
           </button>
 
           {/* Línia de separació */}
-          <div className="md:col-span-2 flex items-center py-1">
+          <div className="md:col-span-2 flex items-center">
             <div className="flex-1 h-px bg-white/10" />
           </div>
 
