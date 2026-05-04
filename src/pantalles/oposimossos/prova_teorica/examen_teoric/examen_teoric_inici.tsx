@@ -19,10 +19,10 @@ export default function ExamenTeoricInici({ onTornar }: { onTornar: () => void }
 
   return (
     // Fons blau fosc corporatiu i gestió de l'scroll
-    <div className="flex min-h-screen w-full flex-col items-center justify-between pb-6 px-10 bg-[#00274d] overflow-y-auto">
+    <div className="flex h-screen w-full flex-col items-center pb-6 px-10 bg-[#00274d] overflow-y-auto">
       
       {/* CAPÇALERA */}
-      <header className="pt-14 w-full flex flex-col items-center gap-6 shrink-0 text-center">
+      <header className="pt-14 w-full flex flex-col items-center gap-6 shrink-0 text-center mb-8">
         <div className="bg-black/30 backdrop-blur-md px-10 py-4 rounded-3xl shadow-xl border border-white/10">
           <h1 className="text-3xl font-black italic tracking-tighter select-none">
             <span className="text-white">Oposi </span>
@@ -38,13 +38,13 @@ export default function ExamenTeoricInici({ onTornar }: { onTornar: () => void }
         </div>
       </header>
 
-      {/* CONTINGUT: Botons alts i amb bona separació */}
-      <main className="w-full max-w-xs flex flex-col items-center flex-1 py-10">
-        <div className="w-full flex flex-col gap-4">
+      {/* CONTINGUT: Botons en graella en tauletes */}
+      <main className="w-full max-w-sm md:max-w-2xl flex flex-col items-center flex-1 py-10 md:py-16">
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
           {botons.map((text, idx) => (
             <button 
               key={idx}
-              className="w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-6 text-white font-black italic uppercase text-[11px] tracking-widest transition-all active:scale-95 shadow-lg"
+              className="w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-6 md:py-10 text-white font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg"
             >
               {text}
             </button>

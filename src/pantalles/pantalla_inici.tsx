@@ -62,38 +62,38 @@ export default function Pantalla_Inici({ onEntrar }: { onEntrar: (nom: string) =
       {/* CARRUSEL CENTRAL (ESTÀTIC) */}
       <div className="flex flex-col items-center">
         <div className="relative">
-          {/* Fletxa Esquerra: Ara fora del quadrat i centrada verticalment amb ell */}
+          {/* Fletxa Esquerra */}
           <button 
             onClick={anterior} 
-            className={`absolute -left-16 top-1/2 -translate-y-1/2 z-20 p-2 cursor-pointer transition-opacity hover:opacity-100 ${cos.dark ? 'text-black/20' : 'text-white/20'}`}
+            className={`absolute -left-16 md:-left-24 top-1/2 -translate-y-1/2 z-20 p-2 cursor-pointer transition-opacity hover:opacity-100 ${cos.dark ? 'text-black/20' : 'text-white/20'}`}
           >
-            <ChevronLeft size={60} strokeWidth={3} />
+            <ChevronLeft className="size-16 md:size-24" strokeWidth={3} />
           </button>
 
           {/* Quadrat Central */}
-          <div className={`flex flex-col h-72 w-56 items-center justify-center rounded-[3.5rem] border-2 shadow-2xl transition-all p-4 ${cos.dark ? 'border-black/10 bg-black/5' : 'border-white/20 bg-white/5'}`}>
-            <span className={`text-4xl font-black italic tracking-tighter leading-none text-center ${cos.dark ? 'text-black/90' : 'text-white/90'}`}>
+          <div className={`flex flex-col h-72 w-56 md:h-96 md:w-80 items-center justify-center rounded-[3.5rem] md:rounded-[5rem] border-2 shadow-2xl transition-all p-4 ${cos.dark ? 'border-black/10 bg-black/5' : 'border-white/20 bg-white/5'}`}>
+            <span className={`text-4xl md:text-6xl font-black italic tracking-tighter leading-none text-center ${cos.dark ? 'text-black/90' : 'text-white/90'}`}>
               {cos.linia1}
             </span>
-            <div className={`my-2 h-1 w-12 rounded-full ${cos.dark ? 'bg-black/20' : 'bg-white/20'}`} />
-            <span className={`text-2xl font-black italic tracking-tighter leading-none text-center ${cos.dark ? 'text-black/70' : 'text-white/70'}`}>
+            <div className={`my-2 md:my-4 h-1 w-12 md:w-20 rounded-full ${cos.dark ? 'bg-black/20' : 'bg-white/20'}`} />
+            <span className={`text-2xl md:text-4xl font-black italic tracking-tighter leading-none text-center ${cos.dark ? 'text-black/70' : 'text-white/70'}`}>
               {cos.linia2}
             </span>
           </div>
 
-          {/* Fletxa Dreta: Ara fora del quadrat i centrada verticalment amb ell */}
+          {/* Fletxa Dreta */}
           <button 
             onClick={següent} 
-            className={`absolute -right-16 top-1/2 -translate-y-1/2 z-20 p-2 cursor-pointer transition-opacity hover:opacity-100 ${cos.dark ? 'text-black/20' : 'text-white/20'}`}
+            className={`absolute -right-16 md:-right-24 top-1/2 -translate-y-1/2 z-20 p-2 cursor-pointer transition-opacity hover:opacity-100 ${cos.dark ? 'text-black/20' : 'text-white/20'}`}
           >
-            <ChevronRight size={60} strokeWidth={3} />
+            <ChevronRight className="size-16 md:size-24" strokeWidth={3} />
           </button>
         </div>
 
       </div>
 
-      {/* ACCIÓ INFERIOR: El botó ara està més avall i més a prop del text informatiu */}
-      <footer className="w-full max-w-xs flex flex-col items-center gap-6">
+      {/* ACCIÓ INFERIOR */}
+      <footer className="w-full max-w-xs md:max-w-md flex flex-col items-center gap-6">
         
         {/* INDICADORS DE MINIATURES (PAGINACIÓ) */}
         <div className="flex gap-4 mb-2">
@@ -101,10 +101,10 @@ export default function Pantalla_Inici({ onEntrar }: { onEntrar: (nom: string) =
             <div 
               key={i}
               onClick={() => setIndex(i)}
-              className={`h-3 rounded-full transition-all duration-300 cursor-pointer border border-white/10 ${
+              className={`h-3 md:h-4 rounded-full transition-all duration-300 cursor-pointer border border-white/10 ${
                 index === i 
-                  ? 'w-12 bg-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' 
-                  : `w-4 ${d.color} opacity-60 hover:opacity-100`
+                  ? 'w-12 md:w-20 bg-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' 
+                  : `w-4 md:w-6 ${d.color} opacity-60 hover:opacity-100`
               }`}
               title={d.nom}
             />
@@ -114,7 +114,7 @@ export default function Pantalla_Inici({ onEntrar }: { onEntrar: (nom: string) =
         <button 
           disabled={!cos.actiu}
           onClick={() => onEntrar(cos.nom)}
-          className={`w-full rounded-2xl py-6 text-sm font-black uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 
+          className={`w-full rounded-2xl py-6 md:py-8 text-sm md:text-lg font-black uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 
             ${cos.actiu 
               ? 'bg-[#12192C] text-white hover:bg-black cursor-pointer shadow-black/40' 
               : 'bg-white/10 text-white/30 cursor-not-allowed shadow-none'
