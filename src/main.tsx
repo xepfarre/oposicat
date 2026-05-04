@@ -8,7 +8,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 // Importem la pantalla que veiem al principi (Ruta senzilla com a la imatge)
-import Pantalla_Inici from './pantalles/pantalla_inici.tsx';
+import App from './App.tsx';
 
 // Importem el disseny i els estils globals (Ruta senzilla com a la imatge)
 import './estils/estils_globals.css';
@@ -23,7 +23,7 @@ if (rootElement) {
   const root = createRoot(rootElement);
   root.render(
     <StrictMode>
-      <Pantalla_Inici />
+      <App />
     </StrictMode>
   );
 }

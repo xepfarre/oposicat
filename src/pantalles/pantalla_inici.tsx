@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
  * Versió: 1.1.0
  * Disseny rígid per a mòbil: sense scroll, colors canviants i jerarquia clara.
  */
-export default function Pantalla_Inici() {
+export default function Pantalla_Inici({ onEntrar }: { onEntrar: (nom: string) => void }) {
   const [index, setIndex] = useState(0);
 
   const dades = [
@@ -47,7 +47,7 @@ export default function Pantalla_Inici() {
   const anterior = () => setIndex((i) => (i - 1 + dades.length) % dades.length);
 
   return (
-    <div className={`flex h-screen w-full flex-col items-center justify-between pb-12 px-10 transition-colors duration-700 overflow-hidden ${cos.color}`}>
+    <div className={`flex h-screen w-full flex-col items-center justify-between pb-6 px-10 transition-colors duration-700 overflow-hidden ${cos.color}`}>
       
       {/* CAPÇALERA: Amb contenidor protector suau per garantir contrast permanent del logotip */}
       <header className="pt-14 w-full flex justify-center">
@@ -113,6 +113,7 @@ export default function Pantalla_Inici() {
 
         <button 
           disabled={!cos.actiu}
+          onClick={() => onEntrar(cos.nom)}
           className={`w-full rounded-2xl py-6 text-sm font-black uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 
             ${cos.actiu 
               ? 'bg-[#12192C] text-white hover:bg-black cursor-pointer shadow-black/40' 
@@ -122,8 +123,8 @@ export default function Pantalla_Inici() {
           {cos.actiu ? "Entrar a l'App" : "Proximament"}
         </button>
         
-        <p className={`text-[11px] font-black uppercase tracking-[0.2em] opacity-80 select-none ${cos.dark ? 'text-black' : 'text-white'}`}>
-          ISPC • PREPARACIÓ ACADÈMICA 2026
+        <p className={`text-[9px] font-black uppercase tracking-wider opacity-80 select-none whitespace-nowrap ${cos.dark ? 'text-black' : 'text-white'}`}>
+          Preparació acadèmica per a oposicions de l'ISPC
         </p>
       </footer>
 
