@@ -9,7 +9,7 @@ export default function ProvaTeoricaInici({ onTornar, onExamenTeoric, onEmCostaE
   
   return (
     // Mantenim el fons blau fosc corporatiu i permetem l'scroll si hi ha molt contingut
-    <div className="flex h-screen w-full flex-col items-center pb-6 px-10 bg-[#00274d] overflow-y-auto">
+    <div className="flex min-h-screen w-full flex-col items-center pb-6 px-10 bg-[#00274d] overflow-y-auto">
       
       {/* CAPÇALERA */}
       <header className="pt-14 w-full flex flex-col items-center gap-6 shrink-0 mb-2">

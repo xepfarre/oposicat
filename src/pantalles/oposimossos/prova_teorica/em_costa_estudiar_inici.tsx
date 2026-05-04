@@ -26,7 +26,7 @@ export default function EmCostaEstudiarInici({ onTornar }: { onTornar: () => voi
   ];
 
   return (
-    <div className="flex h-screen w-full flex-col items-center pb-6 px-10 bg-[#00274d] overflow-y-auto">
+    <div className="flex min-h-screen w-full flex-col items-center pb-6 px-10 bg-[#00274d] overflow-y-auto">
       
       {/* CAPÇALERA */}
       <header className="pt-14 w-full flex flex-col items-center gap-6 shrink-0 mb-8 text-center">
