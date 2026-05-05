@@ -5,16 +5,22 @@ import { ChevronLeft } from "lucide-react";
  * Secció específica per a la prova teòrica de coneixements.
  * Ubicació: /src/pantalles/oposimossos/prova_teorica/examen_teoric/examen_teoric_inici.tsx
  */
-export default function ExamenTeoricInici({ onTornar }: { onTornar: () => void }) {
+export default function ExamenTeoricInici({ 
+  onTornar,
+  onTemariOficial
+}: { 
+  onTornar: () => void,
+  onTemariOficial: () => void 
+}) {
   
   // Llista de botons demanats
   const botons = [
-    "Temari oficial",
-    "Temari d'OposiMossos",
-    "Classes premium",
-    "Classes en directe",
-    "Examens d'OposiMossos",
-    "Examens Oficials passats"
+    { text: "Temari oficial", action: onTemariOficial },
+    { text: "Temari d'OposiMossos", action: null },
+    { text: "Classes premium", action: null },
+    { text: "Classes en directe", action: null },
+    { text: "Examens d'OposiMossos", action: null },
+    { text: "Examens Oficials passats", action: null }
   ];
 
   return (
@@ -41,12 +47,13 @@ export default function ExamenTeoricInici({ onTornar }: { onTornar: () => void }
       {/* CONTINGUT: Botons en graella en tauletes */}
       <main className="w-full max-w-sm md:max-w-2xl flex flex-col items-center flex-1 py-4 md:py-6">
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
-          {botons.map((text, idx) => (
+          {botons.map((boto, idx) => (
             <button 
               key={idx}
-              className="w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-6 md:py-10 text-white font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg"
+              onClick={() => boto.action && boto.action()}
+              className="w-full bg-white/10 border-white/20 hover:bg-white/20 border rounded-xl py-6 md:py-10 text-white font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg"
             >
-              {text}
+              {boto.text}
             </button>
           ))}
         </div>

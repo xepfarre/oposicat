@@ -9,12 +9,14 @@ export default function OposiMossosInici({
   onTornar, 
   onProvaTeorica,
   onProvaPractica,
-  onProvaPsicologica
+  onProvaPsicologica,
+  onLaMevaOposicio
 }: { 
   onTornar: () => void, 
   onProvaTeorica: () => void,
   onProvaPractica?: () => void,
-  onProvaPsicologica?: () => void
+  onProvaPsicologica?: () => void,
+  onLaMevaOposicio: () => void
 }) {
   
   return (
@@ -40,15 +42,26 @@ export default function OposiMossosInici({
       */}
       <main className="w-full max-w-sm md:max-w-2xl flex flex-col gap-3">
         
-        {/* Bloc 0: Accés directe a la convocatòria (A dalt de tot) */}
-        <button 
-          onClick={() => window.open('https://mossos.gencat.cat/ca/els_mossos_desquadra/acces_al_cos/Mosso_a/mosso-a-convocatoria-46-25-de-maig-de-2025/', '_blank')}
-          className="w-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-2xl py-4 md:py-5 flex items-center justify-center shadow-lg shadow-amber-900/10 transition-all active:scale-95 group"
-        >
-          <span className="text-amber-100 font-black italic text-sm md:text-base uppercase tracking-widest group-hover:scale-105 transition-transform">
-            La meva oposició
-          </span>
-        </button>
+        {/* Bloc 0: Accés directe (Dividit en 2: 60% Oposició / 40% Web) */}
+        <div className="flex w-full gap-3">
+          <button 
+            onClick={onLaMevaOposicio}
+            className="basis-[60%] bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-2xl py-4 md:py-5 flex items-center justify-center shadow-lg shadow-amber-900/10 transition-all active:scale-95 group"
+          >
+            <span className="text-amber-100 font-black italic text-[11px] sm:text-sm md:text-base uppercase tracking-widest group-hover:scale-105 transition-transform truncate px-2 text-center">
+              La meva oposició
+            </span>
+          </button>
+          
+          <button 
+            onClick={() => window.open('https://mossos.gencat.cat/', '_blank')}
+            className="basis-[40%] bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-2xl py-4 md:py-5 flex items-center justify-center shadow-lg shadow-amber-900/10 transition-all active:scale-95 group"
+          >
+            <span className="text-amber-100 font-black italic text-sm md:text-base uppercase tracking-widest group-hover:scale-105 transition-transform">
+              Web
+            </span>
+          </button>
+        </div>
 
         {/* Línia de separació gris */}
         <div className="flex items-center py-1">

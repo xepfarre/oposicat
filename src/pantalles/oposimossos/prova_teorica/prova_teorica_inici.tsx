@@ -5,7 +5,15 @@ import { ChevronLeft, BookOpen } from "lucide-react";
  * Secció dedicada a la preparació de la prova de coneixements.
  * Ubicació: /src/pantalles/oposimossos/prova_teorica/prova_teorica_inici.tsx
  */
-export default function ProvaTeoricaInici({ onTornar, onExamenTeoric, onEmCostaEstudiar }: { onTornar: () => void, onExamenTeoric: () => void, onEmCostaEstudiar: () => void }) {
+export default function ProvaTeoricaInici({ 
+  onTornar, 
+  onExamenTeoric, 
+  onEmCostaEstudiar
+}: { 
+  onTornar: () => void, 
+  onExamenTeoric: () => void, 
+  onEmCostaEstudiar: () => void
+}) {
   
   return (
     // Mantenim el fons blau fosc corporatiu i permetem l'scroll si hi ha molt contingut
@@ -38,8 +46,11 @@ export default function ProvaTeoricaInici({ onTornar, onExamenTeoric, onEmCostaE
       <main className="w-full max-w-sm md:max-w-2xl flex flex-col items-center flex-1 py-2 md:py-4">
         {/* Botons de la secció Teòrica en grid per a Tablet */}
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
-          <button className="w-full md:col-span-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl py-6 md:py-10 text-amber-100 font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg">
-            Informació oficial
+          <button 
+            onClick={() => window.open('https://tramits.gencat.cat/ca/tramits/tramits-temes/23243_-_Acces-a-1.587-places-de-mosso-a-de-lescala-basica-del-Cos-de-Mossos-dEsquadra-convocatoria-46-25?gestioSite=interior&__disableDirectEdit=true&category=725c8452-a82c-11e3-a972-000c29052e2c&moda=1', '_blank')}
+            className="w-full md:col-span-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl py-6 md:py-10 text-amber-100 font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg"
+          >
+            Informació personal
           </button>
 
           {/* Línia de separació gris entre Informació i Exàmens */}
