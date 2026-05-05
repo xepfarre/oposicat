@@ -62,8 +62,22 @@ export default function App() {
         3: Array(3).fill(false), // C.4: 3 punts
         4: Array(3).fill(false), // C.5: 3 punts
       }
-    }
+    },
+    // Nou magatzem per als textos subratllats (HTML)
+    contingutPersonalitzat: {} as Record<string, string> 
   });
+
+  // Funció per guardar el contingut HTML personalitzat d'un subtema
+  const guardarContingutPersonalitzat = (ambit: string, temaIdx: number, subtemaIdx: number, html: string) => {
+    const clau = `${ambit}-${temaIdx}-${subtemaIdx}`;
+    setProgres(prev => ({
+      ...prev,
+      contingutPersonalitzat: {
+        ...prev.contingutPersonalitzat,
+        [clau]: html
+      }
+    }));
+  };
 
   // Funció per marcar un tema com a llegit/no llegit
   const toggleTemaLlegit = (ambit: 'A' | 'B' | 'C', index: number) => {
@@ -215,9 +229,11 @@ export default function App() {
         <LectorContingut 
           titol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].subtemes[subtemaSeleccionat]}
           subtitol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].titol}
-          contingut={CONTINGUT_TEMARI_TEXTS[temaSeleccionat.ambit]?.[temaSeleccionat.index]?.[subtemaSeleccionat] || ""}
+          contingutOriginal={CONTINGUT_TEMARI_TEXTS[temaSeleccionat.ambit]?.[temaSeleccionat.index]?.[subtemaSeleccionat] || ""}
+          contingutDesat={progres.contingutPersonalitzat[`${temaSeleccionat.ambit}-${temaSeleccionat.index}-${subtemaSeleccionat}`]}
           completat={progres.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A][subtemaSeleccionat]}
           onTornar={handleTornarDeLector}
+          onGuardarContingut={(html) => guardarContingutPersonalitzat(temaSeleccionat.ambit, temaSeleccionat.index, subtemaSeleccionat, html)}
           onMarcarCompletat={() => {
             if (!progres.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A][subtemaSeleccionat]) {
               toggleSubtemaLlegit(temaSeleccionat.ambit, temaSeleccionat.index, subtemaSeleccionat);

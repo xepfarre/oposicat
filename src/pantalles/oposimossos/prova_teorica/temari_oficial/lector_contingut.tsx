@@ -1,29 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, BookOpen, CheckCircle2, Highlighter, Eraser } from 'lucide-react';
 
 /**
  * Component per llegir el contingut literal d'un punt del temari.
- * Inclou funcionalitat de subratllat i goma d'esborrar.
+ * Inclou funcionalitat de subratllat i goma d'esborrar amb persistència.
  */
 interface LectorContingutProps {
   titol: string;
   subtitol: string;
-  contingut: string;
+  contingutOriginal: string;
+  contingutDesat?: string;
   completat: boolean;
   onTornar: () => void;
   onMarcarCompletat: () => void;
+  onGuardarContingut: (html: string) => void;
 }
 
 export default function LectorContingut({ 
   titol, 
   subtitol, 
-  contingut, 
+  contingutOriginal, 
+  contingutDesat,
   completat,
   onTornar, 
-  onMarcarCompletat 
+  onMarcarCompletat,
+  onGuardarContingut
 }: LectorContingutProps) {
   const [einaActiva, setEinaActiva] = useState<'highlighter' | 'eraser' | null>(null);
+  const articleRef = useRef<HTMLDivElement>(null);
+
+  // Formatem el contingut original a HTML (paràgrafs) si no n'hi ha cap de desat
+  const inicialitzarContingut = () => {
+    if (contingutDesat) return contingutDesat;
+    return contingutOriginal.split('\n\n').map(p => 
+      `<p class="text-white/90 text-sm md:text-base leading-relaxed mb-6 font-medium text-justify italic transition-all">${p}</p>`
+    ).join('');
+  };
   
   /**
    * Gestiona el subratllat del text seleccionat.
@@ -42,6 +55,11 @@ export default function LectorContingut({
     try {
       range.surroundContents(span);
       selection.removeAllRanges();
+      
+      // Guardem el nou estat HTML
+      if (articleRef.current) {
+        onGuardarContingut(articleRef.current.innerHTML);
+      }
     } catch (e) {
       console.warn("No es pot subratllar a través de múltiples nodes complexos.");
     }
@@ -62,6 +80,11 @@ export default function LectorContingut({
           parent.insertBefore(target.firstChild, target);
         }
         parent.removeChild(target);
+        
+        // Guardem el nou estat HTML sense el subratllat
+        if (articleRef.current) {
+          onGuardarContingut(articleRef.current.innerHTML);
+        }
       }
     }
   };
@@ -114,20 +137,15 @@ export default function LectorContingut({
             <BookOpen size={24} className="text-white" />
           </div>
 
-          <div className="prose prose-invert max-w-none select-text">
-            {contingut.split('\n\n').map((paragraf, idx) => (
-              <p 
-                key={idx} 
-                className={`text-white/90 text-sm md:text-base leading-relaxed mb-6 font-medium text-justify italic transition-all ${
-                  einaActiva === 'eraser' ? 'cursor-not-allowed opacity-70' : ''
-                }`}
-              >
-                {paragraf}
-              </p>
-            ))}
-          </div>
+          <div 
+            ref={articleRef}
+            className={`prose prose-invert max-w-none select-text ${
+              einaActiva === 'eraser' ? 'cursor-not-allowed opacity-70' : ''
+            }`}
+            dangerouslySetInnerHTML={{ __html: inicialitzarContingut() }}
+          />
 
-          {!contingut && (
+          {!contingutOriginal && (
             <div className="py-12 flex flex-col items-center gap-4 opacity-30 text-center">
               <div className="w-12 h-12 rounded-full border-2 border-dashed border-white" />
               <p className="text-xs uppercase font-black tracking-widest">Pendent d'incorporar el contingut oficial</p>
@@ -136,7 +154,7 @@ export default function LectorContingut({
         </motion.article>
 
         {/* BOTÓ DE COMPLETAT */}
-        {contingut && (
+        {contingutOriginal && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
