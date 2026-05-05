@@ -9,6 +9,7 @@ import { ArrowLeft, BookOpen, CheckCircle2, Highlighter, Eraser } from 'lucide-r
 interface LectorContingutProps {
   titol: string;
   subtitol: string;
+  index: number;
   contingutOriginal: string;
   contingutDesat?: string;
   completat: boolean;
@@ -20,6 +21,7 @@ interface LectorContingutProps {
 export default function LectorContingut({ 
   titol, 
   subtitol, 
+  index,
   contingutOriginal, 
   contingutDesat,
   completat,
@@ -91,52 +93,66 @@ export default function LectorContingut({
 
   return (
     <div className="flex min-h-screen w-full flex-col items-center pb-32 bg-[#00274d] overflow-y-auto relative">
-      {/* CAPÇALERA FIXA */}
-      <header className="sticky top-0 z-30 w-full bg-[#00274d]/80 backdrop-blur-md border-b border-white/10 px-6 py-4 flex items-center gap-4">
+      {/* CAPÇALERA FIXA - MÉS NETA I CENTRADA */}
+      <header className="sticky top-0 z-30 w-full bg-[#00274d]/80 backdrop-blur-md border-b border-white/10 px-6 py-4 flex items-center justify-between">
         <button 
           onClick={onTornar}
           className="p-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-white transition-all active:scale-90"
         >
           <ArrowLeft size={18} />
         </button>
-        <div className="flex-1 min-w-0">
-          <p className="text-[9px] font-black uppercase text-amber-400 tracking-widest mb-0.5 truncate">{subtitol}</p>
-          <h1 className="text-sm font-bold text-white leading-tight truncate">{titol}</h1>
+        
+        <div className="absolute inset-x-0 flex justify-center pointer-events-none">
+          <h1 className="text-[10px] font-black uppercase text-amber-400 tracking-[0.2em] px-12 text-center truncate">
+            {subtitol}
+          </h1>
         </div>
+
+        {/* Espaiador per mantenir el títol centrat si calgués afegir un botó a la dreta en el futur */}
+        <div className="w-9" />
       </header>
 
-      {/* LABEL INFORMATIU SUPERIOR */}
-      <div className="w-full max-w-sm md:max-w-2xl px-6 pt-6 text-center">
+      <main className="w-full max-w-sm md:max-w-2xl px-6 pt-10">
+        {/* 1. EL TÍTOL GRAN DINS LA PÀGINA */}
         <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center gap-3"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="mb-6"
         >
-          <Highlighter size={14} className="text-blue-400 flex-shrink-0" />
-          <p className="text-[10px] text-blue-200/70 font-medium italic">
-            Recorda que pots utilitzar el sistema de <span className="text-amber-400 font-black">subrallat</span> de l'APP per a remarcar allo que mes important et sembli.
+          <h2 className="text-2xl md:text-3xl font-black text-white italic uppercase tracking-tighter leading-none">
+            {index} - {titol}
+          </h2>
+          <div className="h-1 w-12 bg-amber-400 mt-2 rounded-full" />
+        </motion.div>
+
+        {/* 2. EL RECORDATORI DE SUBRATLLAT */}
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center gap-4 mb-8"
+        >
+          <div className="p-2 bg-blue-500/20 rounded-xl text-blue-400">
+            <Highlighter size={16} />
+          </div>
+          <p className="text-[11px] md:text-xs text-blue-100/60 font-medium italic leading-relaxed">
+            Recorda que pots utilitzar el sistema de <span className="text-amber-400 font-bold">subrallat</span> de l'APP per a remarcar allo que mes important et sembli a tu.
           </p>
         </motion.div>
-      </div>
 
-      <main className="w-full max-w-sm md:max-w-2xl px-6 pt-6">
-        {/* ÀREA DE TEXT */}
+        {/* 3. L'ÀREA DE TEXT (EL QUE JA TENÍEM) */}
         <motion.article 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
           onMouseUp={handleSubratllar}
           onTouchEnd={handleSubratllar}
           onClick={handleEsborrarFocus}
-          className={`bg-white/5 border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl relative transition-all duration-500 ${
+          className={`bg-white/5 border border-white/10 rounded-3xl p-6 md:p-10 shadow-2xl relative transition-all duration-500 ${
             einaActiva === 'highlighter' ? 'ring-2 ring-amber-400/30 bg-white/[0.07]' : 
             einaActiva === 'eraser' ? 'ring-2 ring-rose-400/30 bg-white/[0.07]' : ''
           }`}
         >
-          {/* Icona decorativa */}
-          <div className="absolute -top-4 -right-4 w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-900/50">
-            <BookOpen size={24} className="text-white" />
-          </div>
-
           <div 
             ref={articleRef}
             className={`prose prose-invert max-w-none select-text ${
@@ -146,6 +162,7 @@ export default function LectorContingut({
           />
 
           {!contingutOriginal && (
+
             <div className="py-12 flex flex-col items-center gap-4 opacity-30 text-center">
               <div className="w-12 h-12 rounded-full border-2 border-dashed border-white" />
               <p className="text-xs uppercase font-black tracking-widest">Pendent d'incorporar el contingut oficial</p>

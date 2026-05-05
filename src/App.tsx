@@ -229,6 +229,7 @@ export default function App() {
         <LectorContingut 
           titol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].subtemes[subtemaSeleccionat]}
           subtitol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].titol}
+          index={subtemaSeleccionat + 1}
           contingutOriginal={CONTINGUT_TEMARI_TEXTS[temaSeleccionat.ambit]?.[temaSeleccionat.index]?.[subtemaSeleccionat] || ""}
           contingutDesat={progres.contingutPersonalitzat[`${temaSeleccionat.ambit}-${temaSeleccionat.index}-${subtemaSeleccionat}`]}
           completat={progres.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A][subtemaSeleccionat]}
