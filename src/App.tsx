@@ -12,6 +12,15 @@ import TemariAmbitB from './pantalles/oposimossos/prova_teorica/temari_oficial/a
 import TemariAmbitC from './pantalles/oposimossos/prova_teorica/temari_oficial/ambit_c';
 import DetallTemaGeneric from './pantalles/oposimossos/prova_teorica/temari_oficial/detall_tema_generic';
 import LectorContingut from './pantalles/oposimossos/prova_teorica/temari_oficial/lector_contingut';
+
+// Temari Oposimossos (Resums)
+import TemariOposimossosInici from './pantalles/oposimossos/prova_teorica/temari_oposimossos_inici';
+import OposiAmbitA from './pantalles/oposimossos/prova_teorica/temari_oposimossos/ambit_a';
+import OposiAmbitB from './pantalles/oposimossos/prova_teorica/temari_oposimossos/ambit_b';
+import OposiAmbitC from './pantalles/oposimossos/prova_teorica/temari_oposimossos/ambit_c';
+import DetallTemaOposimossos from './pantalles/oposimossos/prova_teorica/temari_oposimossos/detall_tema_generic';
+import LectorOposimossos from './pantalles/oposimossos/prova_teorica/temari_oposimossos/lector_contingut';
+
 import { TEMARI_DETALL } from './constants/temari';
 import { CONTINGUT_TEMARI_TEXTS } from './constants/contingut_textos';
 // @ts-ignore
@@ -23,7 +32,9 @@ import LaMevaOposicio from './pantalles/oposimossos/la_meva_oposicio';
  */
 export default function App() {
   // Estat per saber quina pantalla estem mostrant
-  type Pantalla = 'inici' | 'mossos' | 'prova_teorica' | 'prova_practica' | 'prova_psicologica' | 'examen_teoric' | 'em_costa_estudiar' | 'la_meva_oposicio' | 'temari_oficial' | 'temari_ambit_a' | 'temari_ambit_b' | 'temari_ambit_c' | 'detall_tema' | 'lector_contingut';
+  type Pantalla = 'inici' | 'mossos' | 'prova_teorica' | 'prova_practica' | 'prova_psicologica' | 'examen_teoric' | 'em_costa_estudiar' | 'la_meva_oposicio' | 
+    'temari_oficial' | 'temari_ambit_a' | 'temari_ambit_b' | 'temari_ambit_c' | 'detall_tema' | 'lector_contingut' |
+    'temari_oposimossos' | 'temari_oposimossos_ambit_a' | 'temari_oposimossos_ambit_b' | 'temari_oposimossos_ambit_c' | 'detall_tema_oposimossos' | 'lector_contingut_oposimossos';
   const [pantalla, setPantalla] = useState<Pantalla>('inici');
   
   // Estat per saber quin tema estem visualitzant en detall
@@ -37,13 +48,13 @@ export default function App() {
     C: Array(5).fill(false), // 5 temes a l'Àmbit C
     detall: {
       A: {
-        0: Array(9).fill(false), // A.1: 9 punts
-        1: Array(8).fill(false), // A.2: 8 punts
-        2: Array(5).fill(false), // A.3: 5 punts
-        3: Array(4).fill(false), // A.4: 4 punts
-        4: Array(6).fill(false), // A.5: 6 punts
-        5: Array(5).fill(false), // A.6: 5 punts
-        6: Array(5).fill(false), // A.7: 5 punts
+        0: Array(9).fill(false), // A.1: 9 punts (Història I)
+        1: Array(8).fill(false), // A.2: 8 punts (Història II)
+        2: Array(5).fill(false), // A.3: 5 punts (Policia)
+        3: Array(4).fill(false), // A.4: 4 punts (Sociolingüística)
+        4: Array(6).fill(false), // A.5: 6 punts (Geografia)
+        5: Array(5).fill(false), // A.6: 5 punts (Entorn Social)
+        6: Array(5).fill(false), // A.7: 5 punts (TIC)
       },
       B: {
         0: Array(5).fill(false), // B.1: 5 punts
@@ -57,14 +68,31 @@ export default function App() {
       },
       C: {
         0: Array(2).fill(false), // C.1: 2 punts
-        1: Array(7).fill(false), // C.2: 7 punts
+        1: Array(8).fill(false), // C.2: 8 punts
         2: Array(5).fill(false), // C.3: 5 punts
         3: Array(3).fill(false), // C.4: 3 punts
         4: Array(3).fill(false), // C.5: 3 punts
       }
     },
     // Nou magatzem per als textos subratllats (HTML)
-    contingutPersonalitzat: {} as Record<string, string> 
+    contingutPersonalitzat: {} as Record<string, string>,
+    // Progrés específic pel Temari d'Oposimossos (Resums)
+    oposimossos: {
+      A: Array(7).fill(false),
+      B: Array(8).fill(false),
+      C: Array(5).fill(false),
+      detall: {
+        A: {
+          0: Array(9).fill(false), 1: Array(8).fill(false), 2: Array(5).fill(false), 3: Array(4).fill(false), 4: Array(6).fill(false), 5: Array(5).fill(false), 6: Array(5).fill(false),
+        },
+        B: {
+          0: Array(5).fill(false), 1: Array(5).fill(false), 2: Array(6).fill(false), 3: Array(8).fill(false), 4: Array(4).fill(false), 5: Array(4).fill(false), 6: Array(7).fill(false), 7: Array(3).fill(false),
+        },
+        C: {
+          0: Array(2).fill(false), 1: Array(8).fill(false), 2: Array(5).fill(false), 3: Array(3).fill(false), 4: Array(3).fill(false),
+        }
+      }
+    }
   });
 
   // Funció per guardar el contingut HTML personalitzat d'un subtema
@@ -79,32 +107,52 @@ export default function App() {
     }));
   };
 
-  // Funció per marcar un tema com a llegit/no llegit
-  const toggleTemaLlegit = (ambit: 'A' | 'B' | 'C', index: number) => {
+  // Funció per marcar un subtema com a llegit/no llegit (ARA ADREÇAT A AMBDÓS TEMARIS)
+  const toggleSubtemaLlegit = (ambit: 'A' | 'B' | 'C', temaIndex: number, subIndex: number, tipus: 'oficial' | 'oposimossos' = 'oficial') => {
     setProgres(prev => {
-      const nouAmbit = [...prev[ambit]];
-      nouAmbit[index] = !nouAmbit[index];
-      return { ...prev, [ambit]: nouAmbit };
+      if (tipus === 'oficial') {
+        const nouSub = [...prev.detall[ambit][temaIndex]];
+        nouSub[subIndex] = !nouSub[subIndex];
+        return {
+          ...prev,
+          detall: { ...prev.detall, [ambit]: { ...prev.detall[ambit], [temaIndex]: nouSub } }
+        };
+      } else {
+        // @ts-ignore
+        const nouSub = [...prev.oposimossos.detall[ambit][temaIndex]];
+        nouSub[subIndex] = !nouSub[subIndex];
+        return {
+          ...prev,
+          oposimossos: {
+            ...prev.oposimossos,
+            detall: {
+              ...prev.oposimossos.detall,
+              [ambit]: {
+                // @ts-ignore
+                ...prev.oposimossos.detall[ambit],
+                [temaIndex]: nouSub
+              }
+            }
+          }
+        };
+      }
     });
   };
 
-  // Funció per marcar un subtema com a llegit/no llegit
-  const toggleSubtemaLlegit = (ambit: 'A' | 'B' | 'C', temaIndex: number, subIndex: number) => {
+  const toggleTemaLlegit = (ambit: 'A' | 'B' | 'C', index: number, tipus: 'oficial' | 'oposimossos' = 'oficial') => {
     setProgres(prev => {
-      // @ts-ignore
-      const nouSub = [...prev.detall[ambit][temaIndex]];
-      nouSub[subIndex] = !nouSub[subIndex];
-      
-      return {
-        ...prev,
-        detall: {
-          ...prev.detall,
-          [ambit]: {
-            ...prev.detall[ambit],
-            [temaIndex]: nouSub
-          }
-        }
-      };
+      if (tipus === 'oficial') {
+        const nouAmbit = [...prev[ambit]];
+        nouAmbit[index] = !nouAmbit[index];
+        return { ...prev, [ambit]: nouAmbit };
+      } else {
+        const nouAmbit = [...prev.oposimossos[ambit]];
+        nouAmbit[index] = !nouAmbit[index];
+        return {
+          ...prev,
+          oposimossos: { ...prev.oposimossos, [ambit]: nouAmbit }
+        };
+      }
     });
   };
 
@@ -120,29 +168,37 @@ export default function App() {
   const handleAnarPractica = () => setPantalla('prova_practica');
   const handleAnarPsicologica = () => setPantalla('prova_psicologica');
   const handleAnarTemariOficial = () => setPantalla('temari_oficial');
+  const handleAnarTemariOposimossos = () => setPantalla('temari_oposimossos');
+
   const handleAnarTemariAmbitA = () => setPantalla('temari_ambit_a');
   const handleAnarTemariAmbitB = () => setPantalla('temari_ambit_b');
   const handleAnarTemariAmbitC = () => setPantalla('temari_ambit_c');
   
-  const handleSeleccionarTema = (ambit: 'A' | 'B' | 'C', index: number) => {
+  const handleAnarOposiAmbitA = () => setPantalla('temari_oposimossos_ambit_a');
+  const handleAnarOposiAmbitB = () => setPantalla('temari_oposimossos_ambit_b');
+  const handleAnarOposiAmbitC = () => setPantalla('temari_oposimossos_ambit_c');
+
+  const handleSeleccionarTema = (ambit: 'A' | 'B' | 'C', index: number, tipus: 'oficial' | 'oposimossos' = 'oficial') => {
     setTemaSeleccionat({ ambit, index });
-    setPantalla('detall_tema');
+    setPantalla(tipus === 'oficial' ? 'detall_tema' : 'detall_tema_oposimossos');
   };
 
-  const handleSeleccionarSubtema = (index: number) => {
+  const handleSeleccionarSubtema = (index: number, tipus: 'oficial' | 'oposimossos' = 'oficial') => {
     setSubtemaSeleccionat(index);
-    setPantalla('lector_contingut');
+    setPantalla(tipus === 'oficial' ? 'lector_contingut' : 'lector_contingut_oposimossos');
   };
 
   const handleTornarDeLector = () => {
-    setPantalla('detall_tema');
+    if (pantalla === 'lector_contingut') setPantalla('detall_tema');
+    else setPantalla('detall_tema_oposimossos');
     setSubtemaSeleccionat(null);
   };
 
   const handleTornarDeDetall = () => {
-    if (temaSeleccionat?.ambit === 'A') setPantalla('temari_ambit_a');
-    else if (temaSeleccionat?.ambit === 'B') setPantalla('temari_ambit_b');
-    else setPantalla('temari_ambit_c');
+    const isOposi = pantalla === 'detall_tema_oposimossos';
+    if (temaSeleccionat?.ambit === 'A') setPantalla(isOposi ? 'temari_oposimossos_ambit_a' : 'temari_ambit_a');
+    else if (temaSeleccionat?.ambit === 'B') setPantalla(isOposi ? 'temari_oposimossos_ambit_b' : 'temari_ambit_b');
+    else setPantalla(isOposi ? 'temari_oposimossos_ambit_c' : 'temari_ambit_c');
     setTemaSeleccionat(null);
   };
 
@@ -247,6 +303,79 @@ export default function App() {
         <ExamenTeoricInici 
           onTornar={handleAnarTeorica} 
           onTemariOficial={handleAnarTemariOficial}
+          onTemariOposimossos={handleAnarTemariOposimossos}
+        />
+      )}
+
+      {/* RUTES TEMARI OPOSIMOSSOS */}
+      {pantalla === 'temari_oposimossos' && (
+        <TemariOposimossosInici 
+          onTornar={handleAnarExamenTeoric} 
+          onAmbitA={handleAnarOposiAmbitA}
+          onAmbitB={handleAnarOposiAmbitB}
+          onAmbitC={handleAnarOposiAmbitC}
+          progres={progres.oposimossos}
+        />
+      )}
+
+      {pantalla === 'temari_oposimossos_ambit_a' && (
+        <OposiAmbitA 
+          onTornar={() => setPantalla('temari_oposimossos')} 
+          temes={Object.keys(TEMARI_DETALL.A).map(k => TEMARI_DETALL.A[k as any].titol)}
+          onSeleccionarTema={(i) => handleSeleccionarTema('A', i, 'oposimossos')}
+          progres={progres.oposimossos.A}
+          progresDetallat={Object.values(progres.oposimossos.detall.A)}
+          onToggle={(i) => toggleTemaLlegit('A', i, 'oposimossos')}
+        />
+      )}
+
+      {pantalla === 'temari_oposimossos_ambit_b' && (
+        <OposiAmbitB 
+          onTornar={() => setPantalla('temari_oposimossos')} 
+          temes={Object.keys(TEMARI_DETALL.B).map(k => TEMARI_DETALL.B[k as any].titol)}
+          onSeleccionarTema={(i) => handleSeleccionarTema('B', i, 'oposimossos')}
+          progres={progres.oposimossos.B}
+          progresDetallat={Object.values(progres.oposimossos.detall.B)}
+          onToggle={(i) => toggleTemaLlegit('B', i, 'oposimossos')}
+        />
+      )}
+
+      {pantalla === 'temari_oposimossos_ambit_c' && (
+        <OposiAmbitC 
+          onTornar={() => setPantalla('temari_oposimossos')} 
+          temes={Object.keys(TEMARI_DETALL.C).map(k => TEMARI_DETALL.C[k as any].titol)}
+          onSeleccionarTema={(i) => handleSeleccionarTema('C', i, 'oposimossos')}
+          progres={progres.oposimossos.C}
+          progresDetallat={Object.values(progres.oposimossos.detall.C)}
+          onToggle={(i) => toggleTemaLlegit('C', i, 'oposimossos')}
+        />
+      )}
+
+      {pantalla === 'detall_tema_oposimossos' && temaSeleccionat && (
+        <DetallTemaOposimossos 
+          ambitNom={`ÀMBIT ${temaSeleccionat.ambit}`}
+          temaTitol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].titol}
+          subtemes={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].subtemes}
+          progres={progres.oposimossos.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A]}
+          onTornar={handleTornarDeDetall}
+          onToggle={(subIdx) => toggleSubtemaLlegit(temaSeleccionat.ambit, temaSeleccionat.index, subIdx, 'oposimossos')}
+          onSeleccionarSubtema={(subIdx) => handleSeleccionarSubtema(subIdx, 'oposimossos')}
+        />
+      )}
+
+      {pantalla === 'lector_contingut_oposimossos' && temaSeleccionat && subtemaSeleccionat !== null && (
+        <LectorOposimossos 
+          ambitNom={`ÀMBIT ${temaSeleccionat.ambit}`}
+          temaTitol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].titol}
+          puntTitol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].subtemes[subtemaSeleccionat]}
+          contingutMd={CONTINGUT_TEMARI_TEXTS[temaSeleccionat.ambit]?.[temaSeleccionat.index]?.[subtemaSeleccionat] || "*Properament el resum blindat...*"}
+          completat={progres.oposimossos.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A][subtemaSeleccionat]}
+          onTornar={handleTornarDeLector}
+          onMarcarCompletat={() => {
+            if (!progres.oposimossos.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A][subtemaSeleccionat]) {
+              toggleSubtemaLlegit(temaSeleccionat.ambit, temaSeleccionat.index, subtemaSeleccionat, 'oposimossos');
+            }
+          }}
         />
       )}
 
@@ -263,7 +392,10 @@ export default function App() {
       )}
 
       {pantalla === 'la_meva_oposicio' && (
-        <LaMevaOposicio onTornar={handleTornarMossos} />
+        <LaMevaOposicio 
+          onTornar={handleTornarMossos} 
+          progresDetallat={progres.detall}
+        />
       )}
     </>
   );

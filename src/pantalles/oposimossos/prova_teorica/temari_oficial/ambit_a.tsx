@@ -74,54 +74,53 @@ export default function TemariAmbitA({
                 >
                   {/* Número del tema */}
                   <div className={`flex items-center justify-center w-8 h-8 rounded-lg font-black italic text-sm transition-colors mt-0.5 ${
-                    progres[i] ? 'bg-emerald-500 text-white' : 'bg-blue-500/20 text-blue-400'
+                    progres[i] ? 'bg-blue-600 text-white' : 'bg-blue-500/20 text-blue-400'
                   }`}>
                     {i + 1}
                   </div>
 
-                  {/* Contingut Central */}
-                  <div className="flex-1 flex flex-col gap-2">
-                    <span className={`text-sm md:text-base font-bold transition-colors ${
+                  <div className="flex-1 flex flex-col justify-center gap-1">
+                    <span className={`text-sm md:text-base font-bold leading-tight transition-colors ${
                       progres[i] ? 'text-white' : 'text-white/80 group-hover:text-white'
                     }`}>
                       {tema}
                     </span>
 
-                    {/* Milestone Detallat (si n'hi ha) */}
-                    {progresDetallat[i] && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-[8px] font-black uppercase text-white/30 tracking-widest">Llegit:</span>
-                        <div className="flex gap-1.5">
-                          {progresDetallat[i].map((llegit, idx) => (
-                            <div 
-                              key={idx} 
-                              className={`text-[9px] font-black transition-all ${
-                                llegit 
-                                ? 'text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)] scale-110' 
-                                : 'text-white/5'
-                              }`}
-                            >
-                              {idx + 1}
-                            </div>
-                          ))}
-                        </div>
+                    {/* Milestone Detallat (LLEGIT: 1 2 3...) */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[8px] font-black uppercase text-white/20 tracking-widest">Llegit:</span>
+                      <div className="flex gap-1.5 focus:outline-none">
+                        {progresDetallat[i] && progresDetallat[i].map((llegit, idx) => (
+                          <span 
+                            key={idx} 
+                            className={`text-[9px] font-black transition-all ${
+                              llegit 
+                              ? 'text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]' 
+                              : 'text-white/5'
+                            }`}
+                          >
+                            {idx + 1}
+                          </span>
+                        ))}
                       </div>
-                    )}
+                    </div>
                   </div>
 
                   {/* Separador vertical */}
                   <div className="w-px h-8 bg-white/10 self-center mx-1" />
 
-                  {/* Checkbox visual - Color Verd */}
-                  <div 
-                    onClick={(e) => handleToggle(i, e)}
-                    className={`w-6 h-6 rounded-md border-2 transition-all flex items-center justify-center self-center ${
-                      progres[i] 
-                      ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' 
-                      : 'bg-white/5 border-white/10 group-hover:border-blue-400/50'
-                    }`}
-                  >
-                    {progres[i] && <Check size={14} className="text-white stroke-[4]" />}
+                  {/* Checkbox "Llegit" */}
+                  <div className="flex flex-col items-center gap-1 self-center">
+                    <div 
+                      onClick={(e) => handleToggle(i, e)}
+                      className={`w-6 h-6 rounded-md border-2 transition-all flex items-center justify-center ${
+                        progres[i] 
+                        ? 'bg-blue-500 border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' 
+                        : 'bg-white/5 border-white/10 group-hover:border-blue-400/50'
+                      }`}
+                    >
+                      {progres[i] && <Check size={14} className="text-white stroke-[4]" />}
+                    </div>
                   </div>
                 </motion.li>
                 

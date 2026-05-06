@@ -1,34 +1,32 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Check, BookOpen } from 'lucide-react';
+import { ArrowLeft, BookOpen, Check } from 'lucide-react';
 
 /**
- * Component genèric per mostrar el detall de qualsevol tema.
- * Segueix l'estètica de l'aplicació i l'arquitectura de Lego.
+ * Pantalla Genèrica que llista els Subtemes o Capítols d'un Tema.
+ * Adaptada per al Temari d'OposiMossos (Resums).
  */
-interface DetallTemaProps {
-  titol: string;
-  ambit: string;
-  subtemes: string[];
-  progres: boolean[];
-  onTornar: () => void;
-  onToggle: (index: number) => void;
-  onSubtemaClick?: (index: number) => void;
-}
-
 export default function DetallTemaGeneric({ 
-  titol, 
-  ambit, 
-  subtemes, 
-  progres, 
   onTornar, 
-  onToggle,
-  onSubtemaClick
-}: DetallTemaProps) {
-  
+  ambitNom, 
+  temaTitol, 
+  subtemes, 
+  progres,
+  onSeleccionarSubtema,
+  onToggle 
+}: { 
+  onTornar: () => void,
+  ambitNom: string,
+  temaTitol: string,
+  subtemes: string[],
+  progres: boolean[],
+  onSeleccionarSubtema: (index: number) => void,
+  onToggle: (index: number) => void
+}) {
   return (
     <div className="flex min-h-screen w-full flex-col items-center pb-12 px-6 bg-[#00274d] overflow-y-auto">
-      {/* CAPÇALERA DE TEMA */}
+      
+      {/* CAPÇALERA */}
       <header className="pt-10 w-full max-w-sm md:max-w-2xl flex items-center gap-4 mb-8">
         <button 
           onClick={onTornar}
@@ -37,13 +35,9 @@ export default function DetallTemaGeneric({
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-[8px] font-black uppercase tracking-widest rounded-full border border-blue-500/30">
-              Àmbit {ambit}
-            </span>
-          </div>
+          <span className="text-emerald-400 font-black italic uppercase text-[10px] tracking-widest block mb-1">{ambitNom}</span>
           <h1 className="text-lg md:text-xl font-black italic uppercase text-white tracking-widest leading-tight">
-            {titol}
+            {temaTitol}
           </h1>
         </div>
       </header>
@@ -53,16 +47,16 @@ export default function DetallTemaGeneric({
           {/* Capçalera de secció */}
           <div className="flex px-5 py-4 border-b border-white/5 items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400">
+              <div className="p-2 bg-emerald-500/20 rounded-lg text-emerald-400">
                 <BookOpen size={16} />
               </div>
               <div>
-                <h2 className="text-[10px] font-black uppercase tracking-widest text-white/40">Contingut del tema</h2>
-                <p className="text-xs text-white/60">Marca els punts a mesura que els llegeixis</p>
+                <h2 className="text-[10px] font-black uppercase tracking-widest text-white/40">Punts Clau</h2>
+                <p className="text-xs text-white/60">Resums blindats per a l'estudi</p>
               </div>
             </div>
-            <div className="text-[9px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20">
-              Llegit
+            <div className="text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
+              Estudiat
             </div>
           </div>
 
@@ -70,34 +64,34 @@ export default function DetallTemaGeneric({
             {subtemes.map((tema, i) => (
               <motion.li 
                 key={i} 
-                onClick={() => onSubtemaClick ? onSubtemaClick(i) : onToggle(i)}
+                onClick={() => onSeleccionarSubtema(i)}
                 whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)', x: 4 }}
                 className="flex gap-4 p-4 rounded-2xl cursor-pointer transition-all group border border-transparent hover:border-white/5 active:scale-[0.99]"
               >
                 {/* Indicador de número / Punt */}
                 <div className={`flex items-center justify-center w-8 h-8 rounded-lg font-black italic text-sm transition-colors flex-shrink-0 ${
-                  progres[i] ? 'bg-emerald-500 text-white' : 'bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20'
+                  progres[i] ? 'bg-emerald-500 text-white' : 'bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20'
                 }`}>
                   {i + 1}
                 </div>
 
-                {/* Text descriptiu (Títol del Punt) */}
+                {/* Text descriptiu */}
                 <div className="flex-1 flex flex-col justify-center">
                   <span className={`text-sm md:text-base font-bold transition-all leading-snug ${
                     progres[i] ? 'text-white' : 'text-white/80 group-hover:text-white'
                   }`}>
                     {tema}
                   </span>
-                  {/* Petit indicador d'acció */}
+                  
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[8px] uppercase tracking-widest text-blue-400/60 font-black">
-                      Llegir Resum
+                    <span className="text-[8px] uppercase tracking-widest text-emerald-400/60 font-black">
+                      Obrir Resum
                     </span>
-                    <div className="h-px w-4 bg-blue-400/20" />
+                    <div className="h-px w-4 bg-emerald-400/20" />
                   </div>
                 </div>
 
-                {/* Checkbox "Llegit" */}
+                {/* Checkbox "Estudiat" */}
                 <div className="flex flex-col items-center gap-1 self-center">
                   <div 
                     onClick={(e) => {
@@ -106,8 +100,8 @@ export default function DetallTemaGeneric({
                     }}
                     className={`w-6 h-6 rounded-md border-2 transition-all flex items-center justify-center flex-shrink-0 ${
                       progres[i] 
-                      ? 'bg-blue-500 border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.4)]' 
-                      : 'bg-white/5 border-white/10 group-hover:border-blue-400/50'
+                      ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' 
+                      : 'bg-white/5 border-white/10 group-hover:border-emerald-400/50'
                     }`}
                   >
                     {progres[i] && <Check size={14} className="text-white stroke-[4]" />}
@@ -117,18 +111,12 @@ export default function DetallTemaGeneric({
             ))}
           </ul>
         </div>
-
-        {/* Info adicional */}
-        <div className="mt-6 p-5 bg-white/5 rounded-2xl border border-white/5 text-center">
-          <p className="text-[10px] text-white/30 uppercase tracking-[0.2em] italic">
-            "Recorda que pots tornar a revisar qualsevol punt clicant sobre ell de nou."
-          </p>
-        </div>
       </main>
 
       <footer className="mt-12 text-center text-white/10">
-        <p className="text-[9px] font-black uppercase tracking-[0.3em]">Temari Oficial • OposiCAT 2025</p>
+        <p className="text-[10px] font-black uppercase tracking-widest">Resums OposiMossos v1.0</p>
       </footer>
+
     </div>
   );
 }

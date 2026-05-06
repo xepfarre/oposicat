@@ -36,7 +36,7 @@ export default function LectorContingut({
   const inicialitzarContingut = () => {
     if (contingutDesat) return contingutDesat;
     return contingutOriginal.split('\n\n').map(p => 
-      `<p class="text-white/90 text-sm md:text-base leading-relaxed mb-6 font-medium text-justify italic transition-all">${p}</p>`
+      `<p class="text-white/95 text-base md:text-lg leading-relaxed mb-8 font-medium text-justify transition-all">${p}</p>`
     ).join('');
   };
   

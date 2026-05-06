@@ -7,16 +7,18 @@ import { ChevronLeft } from "lucide-react";
  */
 export default function ExamenTeoricInici({ 
   onTornar,
-  onTemariOficial
+  onTemariOficial,
+  onTemariOposimossos
 }: { 
   onTornar: () => void,
-  onTemariOficial: () => void 
+  onTemariOficial: () => void,
+  onTemariOposimossos: () => void 
 }) {
   
   // Llista de botons demanats
   const botons = [
     { text: "Temari oficial", action: onTemariOficial },
-    { text: "Temari d'OposiMossos", action: null },
+    { text: "Temari d'OposiMossos", action: onTemariOposimossos },
     { text: "Classes premium", action: null },
     { text: "Classes en directe", action: null },
     { text: "Examens d'OposiMossos", action: null },
