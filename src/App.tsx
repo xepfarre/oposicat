@@ -21,6 +21,11 @@ import OposiAmbitC from './pantalles/oposimossos/prova_teorica/temari_oposimosso
 import DetallTemaOposimossos from './pantalles/oposimossos/prova_teorica/temari_oposimossos/detall_tema_generic';
 import LectorOposimossos from './pantalles/oposimossos/prova_teorica/temari_oposimossos/lector_contingut';
 
+import ClassesPremiumInici from './pantalles/oposimossos/prova_teorica/examen_teoric/classes_premium_inici';
+import ClaseLuna from './pantalles/oposimossos/prova_teorica/examen_teoric/clase_luna';
+import ClassesDirecteInici from './pantalles/oposimossos/prova_teorica/examen_teoric/classes_directe_inici';
+import ExamensOficialsPassatsInici from './pantalles/oposimossos/prova_teorica/examen_teoric/examens_oficials_passats_inici';
+
 import { TEMARI_DETALL } from './constants/temari';
 import { CONTINGUT_TEMARI_TEXTS } from './constants/contingut_textos';
 // @ts-ignore
@@ -34,7 +39,8 @@ export default function App() {
   // Estat per saber quina pantalla estem mostrant
   type Pantalla = 'inici' | 'mossos' | 'prova_teorica' | 'prova_practica' | 'prova_psicologica' | 'examen_teoric' | 'em_costa_estudiar' | 'la_meva_oposicio' | 
     'temari_oficial' | 'temari_ambit_a' | 'temari_ambit_b' | 'temari_ambit_c' | 'detall_tema' | 'lector_contingut' |
-    'temari_oposimossos' | 'temari_oposimossos_ambit_a' | 'temari_oposimossos_ambit_b' | 'temari_oposimossos_ambit_c' | 'detall_tema_oposimossos' | 'lector_contingut_oposimossos';
+    'temari_oposimossos' | 'temari_oposimossos_ambit_a' | 'temari_oposimossos_ambit_b' | 'temari_oposimossos_ambit_c' | 'detall_tema_oposimossos' | 'lector_contingut_oposimossos' |
+    'classes_premium' | 'clase_luna' | 'classes_directe' | 'examens_oficials_passats';
   const [pantalla, setPantalla] = useState<Pantalla>('inici');
   
   // Estat per saber quin tema estem visualitzant en detall
@@ -169,6 +175,9 @@ export default function App() {
   const handleAnarPsicologica = () => setPantalla('prova_psicologica');
   const handleAnarTemariOficial = () => setPantalla('temari_oficial');
   const handleAnarTemariOposimossos = () => setPantalla('temari_oposimossos');
+  const handleAnarClassesPremium = () => setPantalla('classes_premium');
+  const handleAnarClassesDirecte = () => setPantalla('classes_directe');
+  const handleAnarExamensOficialsPassats = () => setPantalla('examens_oficials_passats');
 
   const handleAnarTemariAmbitA = () => setPantalla('temari_ambit_a');
   const handleAnarTemariAmbitB = () => setPantalla('temari_ambit_b');
@@ -304,7 +313,31 @@ export default function App() {
           onTornar={handleAnarTeorica} 
           onTemariOficial={handleAnarTemariOficial}
           onTemariOposimossos={handleAnarTemariOposimossos}
+          onClassesPremium={handleAnarClassesPremium}
+          onClassesDirecte={handleAnarClassesDirecte}
+          onExamensOficialsPassats={handleAnarExamensOficialsPassats}
         />
+      )}
+
+      {pantalla === 'classes_premium' && (
+        <ClassesPremiumInici 
+          onTornar={handleAnarExamenTeoric} 
+          onSeleccionarClasse={(id) => {
+            if (id === 'luna') setPantalla('clase_luna');
+          }}
+        />
+      )}
+
+      {pantalla === 'clase_luna' && (
+        <ClaseLuna onTornar={handleAnarClassesPremium} />
+      )}
+
+      {pantalla === 'classes_directe' && (
+        <ClassesDirecteInici onTornar={handleAnarExamenTeoric} />
+      )}
+
+      {pantalla === 'examens_oficials_passats' && (
+        <ExamensOficialsPassatsInici onTornar={handleAnarExamenTeoric} />
       )}
 
       {/* RUTES TEMARI OPOSIMOSSOS */}
