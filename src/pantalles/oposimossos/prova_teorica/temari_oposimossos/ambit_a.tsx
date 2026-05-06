@@ -32,7 +32,7 @@ export default function AmbitA({
           <ChevronLeft size={20} />
         </button>
         <div className="flex-1">
-          <span className="text-emerald-400 font-black italic uppercase text-[10px] tracking-widest block mb-1">Àmbit A</span>
+          <span className="text-blue-400 font-black italic uppercase text-[10px] tracking-widest block mb-1">Àmbit A</span>
           <h1 className="text-xl font-black italic uppercase text-white tracking-widest leading-tight">
             Entorn <span className="text-white/60">Sociopolític</span>
           </h1>
@@ -56,7 +56,7 @@ export default function AmbitA({
                   className="group flex px-4 py-5 cursor-pointer transition-all border-b border-white/5 last:border-0"
                 >
                   <div className={`flex items-center justify-center w-8 h-8 rounded-lg font-black italic text-sm mr-4 transition-colors ${
-                    progres[i] ? 'bg-emerald-600 text-white' : 'bg-white/5 text-white/20 group-hover:bg-emerald-500/20 group-hover:text-emerald-400'
+                    progres[i] ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/20 group-hover:bg-blue-500/20 group-hover:text-blue-400'
                   }`}>
                     {i + 1}
                   </div>
@@ -68,9 +68,9 @@ export default function AmbitA({
                       {tema}
                     </span>
 
-                    {/* Milestone Detallat (ESTUDIAT: 1 2 3...) */}
+                    {/* Milestone Detallat (LLEGIT: 1 2 3...) */}
                     <div className="flex items-center gap-2">
-                      <span className="text-[8px] font-black uppercase text-white/20 tracking-widest">Estudiat:</span>
+                      <span className="text-[8px] font-black uppercase text-white/20 tracking-widest">Llegit:</span>
                       <div className="flex gap-1.5 focus:outline-none">
                         {progresDetallat[i] && progresDetallat[i].map((estudiat, idx) => (
                           <span 
@@ -95,8 +95,8 @@ export default function AmbitA({
                       onClick={(e) => handleToggle(i, e)}
                       className={`w-6 h-6 rounded-md border-2 transition-all flex items-center justify-center ${
                         progres[i] 
-                        ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' 
-                        : 'bg-white/5 border-white/10 group-hover:border-emerald-400/50'
+                        ? 'bg-blue-500 border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' 
+                        : 'bg-white/5 border-white/10 group-hover:border-blue-400/50'
                       }`}
                     >
                       {progres[i] && <Check size={14} className="text-white stroke-[4]" />}
@@ -105,9 +105,9 @@ export default function AmbitA({
                 </motion.li>
                 
                 {progres[i] && (
-                  <div className="bg-emerald-500/5 px-4 py-2 border-b border-white/5 flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[9px] font-black uppercase text-emerald-400/80 tracking-widest">Tema completat amb èxit</span>
+                  <div className="bg-blue-500/5 px-4 py-2 border-b border-white/5 flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                    <span className="text-[9px] font-black uppercase text-blue-400/80 tracking-widest">Tema completat amb èxit</span>
                   </div>
                 )}
               </React.Fragment>

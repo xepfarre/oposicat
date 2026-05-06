@@ -68,9 +68,9 @@ export default function AmbitC({
                       {tema}
                     </span>
 
-                    {/* Milestone Detallat (ESTUDIAT: 1 2 3...) */}
+                    {/* Milestone Detallat (LLEGIT: 1 2 3...) */}
                     <div className="flex items-center gap-2">
-                      <span className="text-[8px] font-black uppercase text-white/20 tracking-widest">Estudiat:</span>
+                      <span className="text-[8px] font-black uppercase text-white/20 tracking-widest">Llegit:</span>
                       <div className="flex gap-1.5 focus:outline-none">
                         {progresDetallat[i] && progresDetallat[i].map((estudiat, idx) => (
                           <span 

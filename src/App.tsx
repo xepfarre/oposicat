@@ -368,7 +368,17 @@ export default function App() {
           ambitNom={`ÀMBIT ${temaSeleccionat.ambit}`}
           temaTitol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].titol}
           puntTitol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].subtemes[subtemaSeleccionat]}
-          contingutMd={CONTINGUT_TEMARI_TEXTS[temaSeleccionat.ambit]?.[temaSeleccionat.index]?.[subtemaSeleccionat] || "*Properament el resum blindat...*"}
+          contingutMd={
+            temaSeleccionat.ambit === 'A' && temaSeleccionat.index === 0 && subtemaSeleccionat === 0
+            ? `### 1.1.1. L'Antiguitat a Catalunya (Context)
+
+*   **Vicens i Vives** defineix Catalunya com → **Redòs i passadís**.
+*   Les dues restes humanes més antigues de Catalunya són ↓
+    *   **La més antiga**: L'home de Talteüll - 450.000 anys.
+    *   **La segona**: La mandíbula de Banyoles.`
+            : "*Estat actual: En fase de blindatge. Properament trobaràs aquí el resum optimitzat d'OposiMossos.*"
+          }
+          contingutOficialHTML={progres.contingutPersonalitzat[`${temaSeleccionat.ambit}-${temaSeleccionat.index}-${subtemaSeleccionat}`]}
           completat={progres.oposimossos.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A][subtemaSeleccionat]}
           onTornar={handleTornarDeLector}
           onMarcarCompletat={() => {
