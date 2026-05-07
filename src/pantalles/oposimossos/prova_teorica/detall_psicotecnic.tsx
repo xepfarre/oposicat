@@ -52,8 +52,6 @@ export default function DetallPsicotecnic({
             Exemple de l'exercici:
           </h3>
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
             className="w-full bg-white rounded-3xl p-6 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden group border border-white/10"
           >
             {/* Aquí aniria la foto que ens has passat */}

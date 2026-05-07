@@ -56,9 +56,6 @@ export default function ExamenPsicotecnicInici({ onTornar }: { onTornar: () => v
         {exercicis.map((ex, index) => (
           <motion.button
             key={ex.id}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.05 }}
             onClick={() => setExerciciSeleccionat({ id: ex.id, titol: ex.titol })}
             className="w-full bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl p-4 flex items-center justify-between group transition-all"
           >

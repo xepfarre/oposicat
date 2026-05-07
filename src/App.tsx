@@ -4,7 +4,7 @@ import OposiMossosInici from './pantalles/oposimossos/oposi_mossos_inici';
 import ProvaTeoricaInici from './pantalles/oposimossos/prova_teorica/prova_teorica_inici';
 import ExamenTeoricInici from './pantalles/oposimossos/prova_teorica/examen_teoric/examen_teoric_inici';
 import EmCostaEstudiarInici from './pantalles/oposimossos/prova_teorica/em_costa_estudiar_inici';
-import ProvaPracticaInici from './pantalles/oposimossos/prova_practica/prova_practica_inici';
+import ProvaFisicaInici from './pantalles/oposimossos/prova_practica/prova_fisica_inici';
 import ProvaPsicologicaInici from './pantalles/oposimossos/prova_psicologica/prova_psicologica_inici';
 import TemariOficialInici from './pantalles/oposimossos/prova_teorica/temari_oficial_inici';
 import TemariAmbitA from './pantalles/oposimossos/prova_teorica/temari_oficial/ambit_a';
@@ -451,7 +451,7 @@ export default function App() {
       )}
 
       {pantalla === 'prova_practica' && (
-        <ProvaPracticaInici onTornar={handleTornarMossos} />
+        <ProvaFisicaInici onTornar={handleTornarMossos} />
       )}
 
       {pantalla === 'prova_psicologica' && (
