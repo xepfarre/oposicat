@@ -27,7 +27,7 @@ export default function ProvaFisicaInici({ onTornar }: { onTornar: () => void })
         nom="Circuit d'Agilitat"
         subtitol="Agilitat i Velocitat"
         descripcio="Has de recórrer un circuit amb tancaments, salts i girs en el menor temps possible."
-        videoUrl="https://www.youtube.com/watch?v=dQw4w9WgXcQ" // Enllaç de prova
+        videoUrl="https://youtu.be/mrnciH-f1Kc?si=Is8UU2tn-Ch4emyh"
         onTornar={() => setSeccio('menu')}
         color="emerald-400"
       />
@@ -40,7 +40,7 @@ export default function ProvaFisicaInici({ onTornar }: { onTornar: () => void })
         nom="Press de Banca"
         subtitol="Força Tren Superior"
         descripcio="Aixecament d'un pes determinat (40kg homes / 25kg dones) el màxim nombre de repeticions."
-        videoUrl="https://www.youtube.com/watch?v=dQw4w9WgXcQ" // Enllaç de prova
+        videoUrl="https://youtu.be/mrnciH-f1Kc?si=Is8UU2tn-Ch4emyh"
         onTornar={() => setSeccio('menu')}
         color="emerald-400"
       />
@@ -53,7 +53,7 @@ export default function ProvaFisicaInici({ onTornar }: { onTornar: () => void })
         nom="Course Navette"
         subtitol="Resistència Aeròbica"
         descripcio="Cursa d'anada i tornada sobre 20 metres seguint el ritme marcat per un senyal acústic."
-        videoUrl="https://www.youtube.com/watch?v=dQw4w9WgXcQ" // Enllaç de prova
+        videoUrl="https://youtu.be/mrnciH-f1Kc?si=Is8UU2tn-Ch4emyh"
         onTornar={() => setSeccio('menu')}
         color="emerald-400"
       />

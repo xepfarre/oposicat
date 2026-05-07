@@ -117,10 +117,15 @@ export default function CalculadoraNavette({ onTancar }: { onTancar: () => void 
 
   const parlar = (text: string) => {
     if ('speechSynthesis' in window) {
+      // Netegem qualsevol veu pendent per evitar cues que bloquegin el sistema
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
       
-      // Intentem trobar la millor veu catalana disponible al sistema
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ca-ES';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+
+      // Millora per a iOS: Forçar la cerca de veus de nou cada vegada
       const voices = window.speechSynthesis.getVoices();
       const veuCatalana = voices.find(v => v.lang.includes('ca-') || v.lang === 'ca-ES') 
                          || voices.find(v => v.name.toLowerCase().includes('català'));
@@ -128,13 +133,53 @@ export default function CalculadoraNavette({ onTancar }: { onTancar: () => void 
       if (veuCatalana) {
         utterance.voice = veuCatalana;
       }
-      
-      utterance.lang = 'ca-ES';
-      utterance.rate = 1.0; // Velocitat natural
-      utterance.pitch = 1.0;
-      window.speechSynthesis.speak(utterance);
+
+      // En iOS a vegades cal un petit retard entre el cancel i el speak
+      setTimeout(() => {
+        window.speechSynthesis.speak(utterance);
+      }, 50);
     }
   };
+
+  /**
+   * FUNCIÓ CRÍTICA PER A iOS: 
+   * Desbloqueja els sistemes d'audio i veu en la primera interacció oficial
+   */
+  const desbloquejarAudioiOS = async () => {
+    // 1. Desbloquejar AudioContext
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+      // Fem sonar un silenci per inicialitzar el maquinari
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.1);
+    } catch (e) {
+      console.warn("No s'ha pogut desbloquejar l'AudioContext", e);
+    }
+
+    // 2. Desbloquejar SpeechSynthesis amb una frase buida
+    if ('speechSynthesis' in window) {
+      const emptyUtterance = new SpeechSynthesisUtterance("");
+      window.speechSynthesis.speak(emptyUtterance);
+    }
+  };
+
+  // Carregar veus tan bon punt el component està llest (específic per a Safari/Chrome iOS)
+  useEffect(() => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.getVoices();
+      const handleVoices = () => window.speechSynthesis.getVoices();
+      window.speechSynthesis.addEventListener('voiceschanged', handleVoices);
+      return () => window.speechSynthesis.removeEventListener('voiceschanged', handleVoices);
+    }
+  }, []);
 
   // COMPTE ENRERE PREVI
   useEffect(() => {
@@ -287,7 +332,11 @@ export default function CalculadoraNavette({ onTancar }: { onTancar: () => void 
                 
                 {/* BOTÓ D'INICI */}
                 <button 
-                  onClick={() => { setIsCountingDown(true); playPip('soft'); }} 
+                  onClick={async () => { 
+                    await desbloquejarAudioiOS();
+                    setIsCountingDown(true); 
+                    playPip('soft'); 
+                  }} 
                   className={`w-full py-6 rounded-[2rem] flex items-center justify-center gap-3 font-black uppercase italic tracking-widest transition-all shadow-xl active:scale-95 ${isCountingDown ? 'bg-red-500 text-white' : themeBg + ' text-[#00274d]'}`}
                 >
                   {isCountingDown ? <Square size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
