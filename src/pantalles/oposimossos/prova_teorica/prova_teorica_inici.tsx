@@ -8,10 +8,14 @@ import { ChevronLeft, BookOpen } from "lucide-react";
 export default function ProvaTeoricaInici({ 
   onTornar, 
   onExamenTeoric, 
+  onExamenPsicotecnic,
+  onActualitat,
   onEmCostaEstudiar
 }: { 
   onTornar: () => void, 
   onExamenTeoric: () => void, 
+  onExamenPsicotecnic: () => void,
+  onActualitat: () => void,
   onEmCostaEstudiar: () => void
 }) {
   
@@ -64,10 +68,16 @@ export default function ProvaTeoricaInici({
           >
             Exàmen teòric
           </button>
-          <button className="w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-6 md:py-12 text-white font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg">
+          <button 
+            onClick={onExamenPsicotecnic}
+            className="w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-6 md:py-12 text-white font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg"
+          >
             Exàmen psicotècnic
           </button>
-          <button className="w-full md:col-span-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-6 md:py-12 text-white font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg">
+          <button 
+            onClick={onActualitat}
+            className="w-full md:col-span-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-6 md:py-12 text-white font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg"
+          >
             Actualitat
           </button>
           

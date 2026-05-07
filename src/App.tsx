@@ -25,6 +25,9 @@ import ClassesPremiumInici from './pantalles/oposimossos/prova_teorica/examen_te
 import ClaseLuna from './pantalles/oposimossos/prova_teorica/examen_teoric/clase_luna';
 import ClassesDirecteInici from './pantalles/oposimossos/prova_teorica/examen_teoric/classes_directe_inici';
 import ExamensOficialsPassatsInici from './pantalles/oposimossos/prova_teorica/examen_teoric/examens_oficials_passats_inici';
+import ExamenPsicotecnicInici from './pantalles/oposimossos/prova_teorica/examen_psicotecnic_inici';
+import ActualitatInici from './pantalles/oposimossos/prova_teorica/actualitat_inici';
+import EmCostaEstudiarInici from './pantalles/oposimossos/prova_teorica/em_costa_estudiar_inici';
 
 import { TEMARI_DETALL } from './constants/temari';
 import { CONTINGUT_TEMARI_TEXTS } from './constants/contingut_textos';
@@ -40,8 +43,11 @@ export default function App() {
   type Pantalla = 'inici' | 'mossos' | 'prova_teorica' | 'prova_practica' | 'prova_psicologica' | 'examen_teoric' | 'em_costa_estudiar' | 'la_meva_oposicio' | 
     'temari_oficial' | 'temari_ambit_a' | 'temari_ambit_b' | 'temari_ambit_c' | 'detall_tema' | 'lector_contingut' |
     'temari_oposimossos' | 'temari_oposimossos_ambit_a' | 'temari_oposimossos_ambit_b' | 'temari_oposimossos_ambit_c' | 'detall_tema_oposimossos' | 'lector_contingut_oposimossos' |
-    'classes_premium' | 'clase_luna' | 'classes_directe' | 'examens_oficials_passats';
+    'classes_premium' | 'clase_luna' | 'classes_directe' | 'examens_oficials_passats' | 'examen_psicotecnic' | 'actualitat';
   const [pantalla, setPantalla] = useState<Pantalla>('inici');
+  
+  // Estat per a la classe premium seleccionada
+  const [classeSeleccionada, setClasseSeleccionada] = useState<{ bloc: string, tema: string, subtema: string } | null>(null);
   
   // Estat per saber quin tema estem visualitzant en detall
   const [temaSeleccionat, setTemaSeleccionat] = useState<{ ambit: 'A' | 'B' | 'C', index: number } | null>(null);
@@ -186,6 +192,8 @@ export default function App() {
   const handleAnarOposiAmbitA = () => setPantalla('temari_oposimossos_ambit_a');
   const handleAnarOposiAmbitB = () => setPantalla('temari_oposimossos_ambit_b');
   const handleAnarOposiAmbitC = () => setPantalla('temari_oposimossos_ambit_c');
+  const handleAnarExamenPsicotecnic = () => setPantalla('examen_psicotecnic');
+  const handleAnarActualitat = () => setPantalla('actualitat');
 
   const handleSeleccionarTema = (ambit: 'A' | 'B' | 'C', index: number, tipus: 'oficial' | 'oposimossos' = 'oficial') => {
     setTemaSeleccionat({ ambit, index });
@@ -234,6 +242,8 @@ export default function App() {
         <ProvaTeoricaInici 
           onTornar={handleTornarMossos} 
           onExamenTeoric={handleAnarExamenTeoric}
+          onExamenPsicotecnic={handleAnarExamenPsicotecnic}
+          onActualitat={handleAnarActualitat}
           onEmCostaEstudiar={handleAnarEmCostaEstudiar}
         />
       )}
@@ -322,14 +332,20 @@ export default function App() {
       {pantalla === 'classes_premium' && (
         <ClassesPremiumInici 
           onTornar={handleAnarExamenTeoric} 
-          onSeleccionarClasse={(id) => {
-            if (id === 'luna') setPantalla('clase_luna');
+          onSeleccionarClasse={(classeInfo) => {
+            setClasseSeleccionada(classeInfo);
+            setPantalla('clase_luna');
           }}
         />
       )}
 
-      {pantalla === 'clase_luna' && (
-        <ClaseLuna onTornar={handleAnarClassesPremium} />
+      {pantalla === 'clase_luna' && classeSeleccionada && (
+        <ClaseLuna 
+          onTornar={handleAnarClassesPremium} 
+          bloc={classeSeleccionada.bloc}
+          tema={classeSeleccionada.tema}
+          subtema={classeSeleccionada.subtema}
+        />
       )}
 
       {pantalla === 'classes_directe' && (
@@ -338,6 +354,14 @@ export default function App() {
 
       {pantalla === 'examens_oficials_passats' && (
         <ExamensOficialsPassatsInici onTornar={handleAnarExamenTeoric} />
+      )}
+
+      {pantalla === 'examen_psicotecnic' && (
+        <ExamenPsicotecnicInici onTornar={handleAnarTeorica} />
+      )}
+
+      {pantalla === 'actualitat' && (
+        <ActualitatInici onTornar={handleAnarTeorica} />
       )}
 
       {/* RUTES TEMARI OPOSIMOSSOS */}

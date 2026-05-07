@@ -39,7 +39,7 @@ export default function ClassesDirecteInici({ onTornar }: { onTornar: () => void
         <div className="bg-emerald-500/10 backdrop-blur-md px-8 py-4 rounded-3xl shadow-xl border border-emerald-500/20">
           <h1 className="text-2xl font-black italic tracking-tighter uppercase">
             <span className="text-white">Classes en </span>
-            <span className="text-emerald-400">Directe</span>
+            <span className="text-red-500">Directe</span>
           </h1>
         </div>
         
@@ -130,7 +130,20 @@ export default function ClassesDirecteInici({ onTornar }: { onTornar: () => void
                   <span className="text-[9px] font-bold text-white/70">20:00h</span>
                 </div>
               </div>
-              <button className="bg-white text-black hover:bg-amber-400 transition-colors px-6 py-2 rounded-xl font-black italic uppercase text-[10px] tracking-widest shadow-lg shadow-black/20 active:scale-95">
+              <button 
+                onClick={() => {
+                  if (clase.bloc === 'Bloc A') {
+                    window.open('https://meet.google.com/vux-apjg-vmv', '_blank');
+                  } else if (clase.bloc === 'Bloc B') {
+                    window.open('https://meet.google.com/zmw-cqmr-fyx', '_blank');
+                  } else if (clase.bloc === 'Bloc C') {
+                    window.open('https://meet.google.com/xyj-kvxf-hhf', '_blank');
+                  } else if (clase.bloc === 'Psicotècnics') {
+                    window.open('https://meet.google.com/vnm-bppt-thj', '_blank');
+                  }
+                }}
+                className="bg-white text-black hover:bg-amber-400 transition-colors px-6 py-2 rounded-xl font-black italic uppercase text-[10px] tracking-widest shadow-lg shadow-black/20 active:scale-95"
+              >
                 Entrar
               </button>
             </div>
