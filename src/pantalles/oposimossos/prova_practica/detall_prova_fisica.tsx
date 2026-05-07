@@ -4,6 +4,7 @@ import { useState } from "react";
 import CalculadoraCircuit from "./calculadora_circuit";
 import CalculadoraPress from "./calculadora_press";
 import CalculadoraNavette from "./calculadora_navette";
+import { PlaCourseNavette, PlaCircuitAgilitat, PlaPressBanca } from "./plans_entrenament";
 
 interface DetallProvaFisicaProps {
   nom: string;
@@ -27,7 +28,47 @@ export default function DetallProvaFisica({
   color = "emerald-400" 
 }: DetallProvaFisicaProps) {
 
-  const [seccioInterna, setSeccioInterna] = useState<'principal' | 'calculadora'>('principal');
+  const [seccioInterna, setSeccioInterna] = useState<'principal' | 'calculadora' | 'pla'>('principal');
+
+  /* 
+    Funció que renderitza la vista detallada del pla d'entrenament.
+  */
+  const renderContingutPla = () => {
+    const props = { 
+      color, 
+      onSelectSetmana: (pla: any) => console.log("Setmana seleccionada:", pla) 
+    };
+
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 flex flex-col items-center text-center gap-6 shadow-2xl">
+          <div className={`w-20 h-20 rounded-3xl bg-${color}/10 flex items-center justify-center text-${color}`}>
+            <Calendar size={40} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <h2 className="text-2xl font-black italic uppercase text-white tracking-widest">Pla d'Entrenament</h2>
+            <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em]">Guia setmanal personalitzada</p>
+          </div>
+          <p className="text-[11px] text-white/50 leading-relaxed max-w-[250px]">
+            Selecciona la setmana d'entrenament per carregar la teva rutina específica per a la prova de {nom}.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {nom.toLocaleLowerCase().includes('circuit') && <PlaCircuitAgilitat {...props} />}
+          {nom.toLocaleLowerCase().includes('press') && <PlaPressBanca {...props} />}
+          {nom.toLocaleLowerCase().includes('navette') && <PlaCourseNavette {...props} />}
+        </div>
+
+        <button 
+          onClick={() => setSeccioInterna('principal')}
+          className="mt-4 w-full py-5 rounded-2xl bg-white/5 border border-white/10 text-white/50 font-black uppercase italic tracking-widest hover:text-white transition-all active:scale-95 flex items-center justify-center gap-3"
+        >
+          <ChevronLeft size={20} /> Tornar a la prova
+        </button>
+      </div>
+    );
+  };
   
   return (
     <div className="flex min-h-screen w-full flex-col items-center bg-[#00274d] overflow-y-auto pb-12">
@@ -111,7 +152,10 @@ export default function DetallProvaFisica({
               </button>
 
               {/* 4. PLA D'ENTRENAMENT */}
-              <button className="w-full bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-4 flex items-center gap-5 group transition-all active:scale-95">
+              <button 
+                onClick={() => setSeccioInterna('pla')}
+                className="w-full bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-4 flex items-center gap-5 group transition-all active:scale-95"
+              >
                 <div className={`w-10 h-10 rounded-xl bg-${color}/10 flex items-center justify-center text-${color} group-hover:rotate-12 transition-transform`}>
                   <Calendar size={20} />
                 </div>
@@ -123,12 +167,21 @@ export default function DetallProvaFisica({
 
             </div>
           </>
-        ) : (
-          <>
+        ) : seccioInterna === 'calculadora' ? (
+          <div className="flex flex-col gap-6">
             {nom.toLocaleLowerCase().includes('circuit') && <CalculadoraCircuit onTancar={() => setSeccioInterna('principal')} />}
             {nom.toLocaleLowerCase().includes('press') && <CalculadoraPress onTancar={() => setSeccioInterna('principal')} />}
             {nom.toLocaleLowerCase().includes('navette') && <CalculadoraNavette onTancar={() => setSeccioInterna('principal')} />}
-          </>
+            
+            <button 
+              onClick={() => setSeccioInterna('principal')}
+              className="w-full py-5 rounded-2xl bg-white/5 border border-white/10 text-white/50 font-black uppercase italic tracking-widest hover:text-white transition-all active:scale-95 flex items-center justify-center gap-3"
+            >
+              <ChevronLeft size={20} /> Tornar a la prova
+            </button>
+          </div>
+        ) : (
+          renderContingutPla()
         )}
 
       </main>
