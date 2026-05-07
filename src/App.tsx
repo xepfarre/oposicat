@@ -27,7 +27,6 @@ import ClassesDirecteInici from './pantalles/oposimossos/prova_teorica/examen_te
 import ExamensOficialsPassatsInici from './pantalles/oposimossos/prova_teorica/examen_teoric/examens_oficials_passats_inici';
 import ExamenPsicotecnicInici from './pantalles/oposimossos/prova_teorica/examen_psicotecnic_inici';
 import ActualitatInici from './pantalles/oposimossos/prova_teorica/actualitat_inici';
-import EmCostaEstudiarInici from './pantalles/oposimossos/prova_teorica/em_costa_estudiar_inici';
 
 import { TEMARI_DETALL } from './constants/temari';
 import { CONTINGUT_TEMARI_TEXTS } from './constants/contingut_textos';
