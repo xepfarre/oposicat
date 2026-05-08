@@ -53,13 +53,13 @@ export default function ExamenTeoricInici({
       </header>
 
       {/* CONTINGUT: Botons en graella en tauletes */}
-      <main className="w-full max-w-sm md:max-w-2xl flex flex-col items-center flex-1 py-4 md:py-6">
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+      <main className="w-full max-w-sm md:max-w-4xl flex flex-col items-center flex-1 py-4 md:py-10">
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {botons.map((boto, idx) => (
             <button 
               key={idx}
               onClick={() => boto.action && boto.action()}
-              className="w-full bg-white/10 border-white/20 hover:bg-white/20 border rounded-xl py-6 md:py-10 text-white font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg"
+              className="w-full bg-white/10 border-white/20 hover:bg-white/20 border rounded-xl py-6 md:py-16 text-white font-black italic uppercase text-[11px] md:text-base tracking-widest transition-all active:scale-95 shadow-lg"
             >
               {boto.text}
             </button>

@@ -123,7 +123,7 @@ export default function ExamenActualitat({ onTornar }: { onTornar: () => void })
         </div>
       </header>
 
-      <main className="w-full max-w-md px-6 flex flex-col gap-6">
+      <main className="w-full max-w-md md:max-w-4xl px-6 flex flex-col gap-6 md:py-8">
         
         <AnimatePresence mode="wait">
           {!finalitzat ? (

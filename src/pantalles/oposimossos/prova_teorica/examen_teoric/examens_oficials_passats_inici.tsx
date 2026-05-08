@@ -14,34 +14,34 @@ export default function ExamensOficialsPassatsInici({ onTornar }: { onTornar: ()
     <div className="flex min-h-screen w-full flex-col items-center pb-12 px-6 bg-[#00274d] overflow-y-auto">
       
       {/* CAPÇALERA */}
-      <header className="pt-14 w-full flex flex-col items-center gap-6 shrink-0 text-center mb-8">
-        <div className="bg-white/5 backdrop-blur-md px-8 py-4 rounded-3xl border border-white/10 shadow-2xl">
-          <h1 className="text-2xl font-black italic tracking-tighter uppercase">
+      <header className="pt-14 w-full flex flex-col items-center gap-6 shrink-0 text-center mb-8 md:max-w-4xl">
+        <div className="bg-white/5 backdrop-blur-md px-8 py-4 md:py-8 md:px-16 rounded-3xl border border-white/10 shadow-2xl">
+          <h1 className="text-2xl md:text-5xl font-black italic tracking-tighter uppercase">
             <span className="text-white">Exàmens </span>
             <span className="text-blue-400">Oficials Passats</span>
           </h1>
         </div>
         
-        <p className="text-white/60 text-xs font-medium max-w-sm leading-relaxed">
+        <p className="text-white/60 text-xs md:text-lg font-medium max-w-sm md:max-w-xl leading-relaxed">
           Mira i posa't a prova amb els exàmens oficials d'altres anys.
         </p>
       </header>
 
       {/* LLISTAT DE BOTONS D'EXÀMENS */}
-      <main className="w-full max-w-md flex flex-col gap-3">
+      <main className="w-full max-w-md md:max-w-4xl flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-4">
         {anys.map((any, idx) => (
           <motion.button
             key={any}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.05 }}
-            className="w-full bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-4 flex items-center justify-between group transition-all active:scale-[0.98]"
+            className="w-full bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-4 md:p-6 flex items-center justify-between group transition-all active:scale-[0.98]"
           >
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-all">
-                <FileText size={20} />
+              <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                <FileText size={20} className="md:size-6" />
               </div>
-              <span className="text-white font-black italic uppercase tracking-wider text-sm">
+              <span className="text-white font-black italic uppercase tracking-wider text-sm md:text-lg">
                 Examen oficial de l'any {any}
               </span>
             </div>

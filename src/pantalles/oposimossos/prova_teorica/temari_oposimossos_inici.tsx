@@ -38,17 +38,17 @@ export default function TemariOposimossosInici({
         </div>
       </header>
 
-      <main className="w-full max-w-sm md:max-w-2xl flex flex-col gap-6">
+      <main className="w-full max-w-sm md:max-w-6xl flex flex-col gap-6">
         
         {/* Label: Informació de la secció */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl py-3 px-5 shadow-xl">
-          <p className="text-amber-400/90 text-xs md:text-sm font-medium leading-relaxed text-center italic">
+        <div className="bg-white/5 border border-white/10 rounded-2xl py-3 md:py-6 px-5 shadow-xl">
+          <p className="text-amber-400/90 text-xs md:text-lg font-medium leading-relaxed text-center italic">
             "Resums blindats i estructurats per a un estudi eficaç. Tot el que necessites saber, sense palla."
           </p>
         </div>
 
         {/* Llistat d'Àmbits */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col md:grid md:grid-cols-3 gap-6">
           
           {/* Àmbit A */}
           <motion.button 

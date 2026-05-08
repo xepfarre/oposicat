@@ -49,7 +49,7 @@ export default function ClassesPremiumInici({
       </header>
 
       {/* LLISTAT DE BLOCS / TEMES / CAPÍTOLS */}
-      <main className="w-full max-w-lg flex flex-col gap-4 py-4">
+      <main className="w-full max-w-lg md:max-w-4xl flex flex-col gap-4 py-4 md:py-10">
         
         {blocs.map((bloc) => (
           <div key={bloc.id} className="flex flex-col gap-2">

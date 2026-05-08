@@ -40,35 +40,37 @@ export default function ExamenPsicotecnicInici({ onTornar }: { onTornar: () => v
     <div className="flex min-h-screen w-full flex-col items-center bg-[#00274d] overflow-y-auto pb-12">
       
       {/* CAPÇALERA */}
-      <header className="pt-14 w-full flex flex-col items-center gap-6 pb-6 text-center">
-        <div className="bg-white/10 backdrop-blur-md px-10 py-4 rounded-3xl shadow-xl border border-white/10">
-          <h1 className="text-2xl font-black italic tracking-tighter uppercase text-white">
+      <header className="pt-14 w-full flex flex-col items-center gap-6 pb-6 text-center md:max-w-4xl shrink-0">
+        <div className="bg-white/10 backdrop-blur-md px-10 py-4 md:py-8 md:px-20 rounded-3xl shadow-xl border border-white/10">
+          <h1 className="text-2xl md:text-5xl font-black italic tracking-tighter uppercase text-white">
             Exàmen <span className="text-red-500">Psicotècnic</span>
           </h1>
         </div>
-        <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] max-w-[250px] leading-relaxed">
+        <p className="text-white/40 text-[10px] md:text-base font-black uppercase tracking-[0.2em] max-w-[250px] md:max-w-xl leading-relaxed">
           Selecciona el tipus d'entrenament mental que vols realitzar avui.
         </p>
       </header>
 
       {/* QUADRÍCULA D'EXERCICIS */}
-      <main className="w-full max-w-md px-6 grid grid-cols-1 gap-3">
+      <main className="w-full max-w-md md:max-w-6xl px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5">
         {exercicis.map((ex, index) => (
           <motion.button
             key={ex.id}
             onClick={() => setExerciciSeleccionat({ id: ex.id, titol: ex.titol })}
-            className="w-full bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl p-4 flex items-center justify-between group transition-all"
+            className="w-full bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl p-4 md:p-8 flex items-center justify-between group transition-all"
           >
-            <div className="flex items-center gap-4">
-              <div className={`p-3 ${ex.color} rounded-xl text-white shadow-lg shadow-black/20 group-hover:scale-110 transition-transform`}>
-                {ex.icona}
+            <div className="flex items-center gap-4 md:gap-6">
+              <div className={`p-3 md:p-5 ${ex.color} rounded-xl md:rounded-2xl text-white shadow-lg shadow-black/20 group-hover:scale-110 transition-transform`}>
+                <div className="md:scale-150">
+                  {ex.icona}
+                </div>
               </div>
-              <span className="text-white font-black italic uppercase tracking-wider text-sm">
+              <span className="text-white font-black italic uppercase tracking-wider text-sm md:text-lg text-left">
                 {ex.titol}
               </span>
             </div>
-            <div className="bg-white/10 p-2 rounded-lg text-white/20 group-hover:text-white transition-colors">
-              <ChevronLeft className="rotate-180" size={16} />
+            <div className="bg-white/10 p-2 md:p-3 rounded-lg text-white/20 group-hover:text-white transition-colors">
+              <ChevronLeft className="rotate-180 md:size-5" size={16} />
             </div>
           </motion.button>
         ))}

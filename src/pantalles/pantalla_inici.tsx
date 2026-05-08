@@ -93,7 +93,7 @@ export default function Pantalla_Inici({ onEntrar }: { onEntrar: (nom: string) =
       </div>
 
       {/* ACCIÓ INFERIOR */}
-      <footer className="w-full max-w-xs md:max-w-md flex flex-col items-center gap-6">
+      <footer className="w-full max-w-xs md:max-w-2xl flex flex-col items-center gap-6">
         
         {/* INDICADORS DE MINIATURES (PAGINACIÓ) */}
         <div className="flex gap-4 mb-2">
@@ -103,8 +103,8 @@ export default function Pantalla_Inici({ onEntrar }: { onEntrar: (nom: string) =
               onClick={() => setIndex(i)}
               className={`h-3 md:h-4 rounded-full transition-all duration-300 cursor-pointer border border-white/10 ${
                 index === i 
-                  ? 'w-12 md:w-20 bg-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' 
-                  : `w-4 md:w-6 ${d.color} opacity-60 hover:opacity-100`
+                  ? 'w-12 md:w-32 bg-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' 
+                  : `w-4 md:w-8 ${d.color} opacity-60 hover:opacity-100`
               }`}
               title={d.nom}
             />
@@ -114,7 +114,7 @@ export default function Pantalla_Inici({ onEntrar }: { onEntrar: (nom: string) =
         <button 
           disabled={!cos.actiu}
           onClick={() => onEntrar(cos.nom)}
-          className={`w-full rounded-2xl py-6 md:py-8 text-sm md:text-lg font-black uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 
+          className={`w-full rounded-2xl py-6 md:py-8 text-sm md:text-xl font-black uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 
             ${cos.actiu 
               ? 'bg-[#12192C] text-white hover:bg-black cursor-pointer shadow-black/40' 
               : 'bg-white/10 text-white/30 cursor-not-allowed shadow-none'

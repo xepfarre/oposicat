@@ -174,58 +174,58 @@ export const EntrevistaGuia = ({ onBack }: { onBack: () => void }) => {
     <div className="flex flex-col flex-1 gap-6 w-full animate-in fade-in duration-500 pb-20">
       
       {/* Intro Label Section */}
-      <div className="bg-[#1a3a5a]/30 border border-white/10 rounded-[2rem] pt-6 px-6 pb-8 -mx-4 shadow-2xl backdrop-blur-sm">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="w-12 h-12 rounded-full bg-cyan-400/20 flex items-center justify-center text-cyan-400">
-            <MessageSquare size={24} />
+      <div className="bg-[#1a3a5a]/30 border border-white/10 rounded-[2rem] md:rounded-[4rem] pt-6 md:pt-16 px-6 md:px-16 pb-8 md:pb-20 -mx-4 md:mx-0 shadow-2xl backdrop-blur-sm">
+        <div className="flex flex-col items-center gap-4 md:gap-10 text-center">
+          <div className="w-12 h-12 md:w-24 md:h-24 rounded-full bg-cyan-400/20 flex items-center justify-center text-cyan-400">
+            <MessageSquare size={24} className="md:size-12" />
           </div>
-          <p className="text-[11px] text-white/80 font-bold leading-relaxed italic px-2">
+          <p className="text-[11px] md:text-2xl text-white/80 font-bold leading-relaxed italic px-2 md:max-w-3xl">
             "Llistat de preguntes que múltiples psicòlegs de forma oficial han avaluat durant anys a les entrevistes de la fase d'oposició"
           </p>
           
-          <div className="w-full h-[1px] bg-white/5 my-2" />
+          <div className="w-full h-[1px] bg-white/5 my-2 md:my-6" />
           
-          <div className="flex items-center gap-2">
-            <ListCheck size={14} className="text-cyan-400/60" />
-            <span className="text-cyan-400/60 font-black italic uppercase text-[9px] tracking-widest text-center">SELECCIONS UNA CATEGORIA PER VEURE LES PREGUNTES</span>
+          <div className="flex items-center gap-2 md:gap-4">
+            <ListCheck size={14} className="text-cyan-400/60 md:size-6" />
+            <span className="text-cyan-400/60 font-black italic uppercase text-[9px] md:text-sm tracking-widest text-center">SELECCIONS UNA CATEGORIA PER VEURE LES PREGUNTES</span>
           </div>
         </div>
       </div>
 
       {/* Accordion Questions Area */}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col md:grid md:grid-cols-2 md:items-start gap-3 md:gap-8">
         {categories.map((cat, idx) => (
           <div key={idx} className="flex flex-col">
              {/* Category Toggle Button */}
              <button 
                 onClick={() => handleToggle(idx)}
-                className={`w-full flex items-center justify-between py-5 px-6 rounded-2xl border transition-all duration-300 ${
+                className={`w-full flex items-center justify-between py-5 px-6 md:py-10 md:px-12 rounded-2xl md:rounded-3xl border transition-all duration-300 ${
                   catOberta === idx 
                   ? 'bg-cyan-400/10 border-cyan-400/30' 
                   : 'bg-[#1a3a5a]/20 border-white/5 hover:bg-[#1a3a5a]/40 hover:border-white/10'
                 }`}
              >
-                <span className={`text-[11px] font-black italic uppercase tracking-widest ${
+                <span className={`text-[11px] md:text-xl font-black italic uppercase tracking-widest ${
                    catOberta === idx ? 'text-cyan-400' : 'text-white/70'
                 }`}>
                   {cat.titol}
                 </span>
                 {catOberta === idx ? (
-                  <ChevronUp size={16} className="text-cyan-400" />
+                  <ChevronUp size={16} className="text-cyan-400 md:size-8" />
                 ) : (
-                  <ChevronDown size={16} className="text-white/30" />
+                  <ChevronDown size={16} className="text-white/30 md:size-8" />
                 )}
              </button>
              
              {/* Questions Content */}
              {catOberta === idx && (
-               <div className="flex flex-col gap-2 mt-2 px-2 animate-in slide-in-from-top-2 duration-300">
+               <div className="flex flex-col gap-2 md:gap-4 mt-2 md:mt-6 px-2 animate-in slide-in-from-top-2 duration-300">
                   {cat.preguntes.map((preg, pIdx) => (
                     <div 
                       key={pIdx} 
-                      className="bg-black/20 border border-white/5 rounded-xl py-3 px-5 shadow-inner"
+                      className="bg-black/20 border border-white/5 rounded-xl md:rounded-2xl py-3 md:py-6 px-5 md:px-10 shadow-inner"
                     >
-                      <p className="text-[11px] text-white/60 italic leading-relaxed">
+                      <p className="text-[11px] md:text-lg text-white/60 italic leading-relaxed">
                         {preg}
                       </p>
                     </div>

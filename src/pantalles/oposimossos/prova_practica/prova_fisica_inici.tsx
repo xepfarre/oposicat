@@ -64,20 +64,20 @@ export default function ProvaFisicaInici({ onTornar }: { onTornar: () => void })
     <div className="flex min-h-screen w-full flex-col items-center bg-[#00274d] overflow-y-auto pb-12">
       
       {/* CAPÇALERA */}
-      <header className="pt-10 w-full flex flex-col items-center gap-4 pb-6 text-center">
-        <div className="bg-white/10 backdrop-blur-md px-8 py-3 rounded-2xl shadow-xl border border-white/10">
-          <h1 className="text-xl font-black italic tracking-tighter uppercase text-white">
+      <header className="pt-10 w-full flex flex-col items-center gap-4 pb-6 text-center md:max-w-4xl md:mx-auto">
+        <div className="bg-white/10 backdrop-blur-md px-8 py-3 md:py-6 md:px-12 rounded-2xl shadow-xl border border-white/10">
+          <h1 className="text-xl md:text-3xl font-black italic tracking-tighter uppercase text-white">
             Prova <span className="text-emerald-400">Física</span>
           </h1>
         </div>
-        <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em] max-w-[250px] leading-relaxed text-center">
+        <p className="text-white/40 text-[9px] md:text-sm font-black uppercase tracking-[0.2em] max-w-[250px] md:max-w-md leading-relaxed text-center">
           Preparació física integral per superar l'accés al cos.
         </p>
         <button 
           onClick={() => window.open('https://mossos.gencat.cat/ca/els_mossos_desquadra/acces_al_cos/Mosso_a/mosso_a_46_23/prova-fisica-acces-cos-mossos/', '_blank')}
-          className="mt-2 bg-yellow-400 hover:bg-yellow-300 rounded-full py-2.5 px-6 transition-all active:scale-95 group flex items-center gap-2 shadow-lg border-none"
+          className="mt-2 bg-yellow-400 hover:bg-yellow-300 rounded-full py-2.5 px-6 md:py-4 md:px-10 transition-all active:scale-95 group flex items-center gap-2 shadow-lg border-none"
         >
-          <span className="text-[#00274d] text-[8px] font-black uppercase tracking-[0.2em]">
+          <span className="text-[#00274d] text-[8px] md:text-xs font-black uppercase tracking-[0.2em]">
             Informació oficial de la prova
           </span>
           <ArrowRight size={12} className="text-[#00274d]/40 group-hover:translate-x-0.5 transition-transform" />
@@ -85,80 +85,80 @@ export default function ProvaFisicaInici({ onTornar }: { onTornar: () => void })
       </header>
 
       {/* BOTONS PRINCIPALS */}
-      <main className="w-full max-w-md px-6 flex flex-col gap-6">
+      <main className="w-full max-w-md md:max-w-4xl px-6 flex flex-col gap-6 md:gap-10">
         
         {/* SECCIÓ SUPERIOR: DIETA I ENTRENAMENT */}
-        <div className="grid grid-cols-2 gap-3">
-          <button className="flex flex-col items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-3 transition-all active:scale-95 group shadow-lg">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
-              <Apple size={20} />
+        <div className="grid grid-cols-2 gap-3 md:gap-6">
+          <button className="flex flex-col items-center justify-center gap-2 md:gap-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-3 md:p-8 transition-all active:scale-95 group shadow-lg">
+            <div className="w-9 h-9 md:w-16 md:h-16 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
+              <Apple size={20} className="md:size-8" />
             </div>
-            <span className="text-white font-black italic uppercase tracking-wider text-[10px]">Dieta</span>
+            <span className="text-white font-black italic uppercase tracking-wider text-[10px] md:text-base">Dieta</span>
           </button>
           
           <button 
             onClick={() => setSeccio('on_entrenar')}
-            className="flex flex-col items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-3 transition-all active:scale-95 group shadow-lg"
+            className="flex flex-col items-center justify-center gap-2 md:gap-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-3 md:p-8 transition-all active:scale-95 group shadow-lg"
           >
-            <div className="w-9 h-9 rounded-xl bg-red-500/20 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
-              <MapPin size={20} />
+            <div className="w-9 h-9 md:w-16 md:h-16 rounded-xl bg-red-500/20 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
+              <MapPin size={20} className="md:size-8" />
             </div>
-            <span className="text-white font-black italic uppercase tracking-wider text-[10px]">On puc entrenar</span>
+            <span className="text-white font-black italic uppercase tracking-wider text-[10px] md:text-base">On puc entrenar</span>
           </button>
         </div>
 
         {/* SECCIÓ DE PROVES ESPECÍFIQUES */}
-        <div className="flex flex-col gap-3">
-          <div className="px-4 text-white/30 text-[9px] font-black uppercase tracking-[0.2em] mb-1">Les 3 proves oficials</div>
+        <div className="flex flex-col gap-3 md:grid md:grid-cols-3 md:gap-6">
+          <div className="px-4 text-white/30 text-[9px] md:text-xs font-black uppercase tracking-[0.2em] mb-1 md:col-span-3 md:text-center md:mb-4">Les 3 proves oficials</div>
           {/* CIRCUIT D'AGILITAT */}
           <button 
             onClick={() => setSeccio('circuit')}
-            className="w-full bg-gradient-to-r from-emerald-500/10 to-transparent hover:bg-emerald-500/20 border border-emerald-500/20 rounded-2xl p-3 flex items-center justify-between group transition-all active:scale-95 shadow-lg"
+            className="w-full bg-gradient-to-r from-emerald-500/10 to-transparent hover:bg-emerald-500/20 border border-emerald-500/20 rounded-2xl p-3 md:p-6 flex items-center md:flex-col md:text-center justify-between md:justify-center gap-4 group transition-all active:scale-95 shadow-lg"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-[#00274d] shrink-0">
-                <Activity size={20} />
+            <div className="flex items-center md:flex-col gap-4">
+              <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl bg-emerald-500 flex items-center justify-center text-[#00274d] shrink-0">
+                <Activity size={20} className="md:size-8" />
               </div>
-              <div className="flex flex-col items-start leading-tight">
-                <span className="text-white font-black italic uppercase tracking-wider text-[11px]">Prova - Circuit agilitat</span>
-                <span className="text-emerald-400/40 text-[8px] font-bold uppercase tracking-widest mt-0.5 whitespace-nowrap">Agilitat i velocitat</span>
+              <div className="flex flex-col items-start md:items-center leading-tight">
+                <span className="text-white font-black italic uppercase tracking-wider text-[11px] md:text-base">Prova - Circuit agilitat</span>
+                <span className="text-emerald-400/40 text-[8px] md:text-xs font-bold uppercase tracking-widest mt-0.5 whitespace-nowrap">Agilitat i velocitat</span>
               </div>
             </div>
-            <ArrowRight size={16} className="text-white/20 mr-2 group-hover:text-white transition-all shrink-0" />
+            <ArrowRight size={16} className="text-white/20 mr-2 md:hidden group-hover:text-white transition-all shrink-0" />
           </button>
 
           {/* PRESS DE BANCA */}
           <button 
             onClick={() => setSeccio('press')}
-            className="w-full bg-gradient-to-r from-emerald-500/10 to-transparent hover:bg-emerald-500/20 border border-emerald-500/20 rounded-2xl p-3 flex items-center justify-between group transition-all active:scale-95 shadow-lg"
+            className="w-full bg-gradient-to-r from-emerald-500/10 to-transparent hover:bg-emerald-500/20 border border-emerald-500/20 rounded-2xl p-3 md:p-6 flex items-center md:flex-col md:text-center justify-between md:justify-center gap-4 group transition-all active:scale-95 shadow-lg"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-[#00274d] shrink-0">
-                <Weight size={20} />
+            <div className="flex items-center md:flex-col gap-4">
+              <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl bg-emerald-500 flex items-center justify-center text-[#00274d] shrink-0">
+                <Weight size={20} className="md:size-8" />
               </div>
-              <div className="flex flex-col items-start leading-tight">
-                <span className="text-white font-black italic uppercase tracking-wider text-[11px]">Prova - Press de Banca</span>
-                <span className="text-emerald-400/40 text-[8px] font-bold uppercase tracking-widest mt-0.5 whitespace-nowrap">Força del tren superior</span>
+              <div className="flex flex-col items-start md:items-center leading-tight">
+                <span className="text-white font-black italic uppercase tracking-wider text-[11px] md:text-base">Prova - Press de Banca</span>
+                <span className="text-emerald-400/40 text-[8px] md:text-xs font-bold uppercase tracking-widest mt-0.5 whitespace-nowrap">Força del tren superior</span>
               </div>
             </div>
-            <ArrowRight size={16} className="text-white/20 mr-2 group-hover:text-white transition-all shrink-0" />
+            <ArrowRight size={16} className="text-white/20 mr-2 md:hidden group-hover:text-white transition-all shrink-0" />
           </button>
 
           {/* CURSE NAVETTE */}
           <button 
             onClick={() => setSeccio('navette')}
-            className="w-full bg-gradient-to-r from-emerald-500/10 to-transparent hover:bg-emerald-500/20 border border-emerald-500/20 rounded-2xl p-3 flex items-center justify-between group transition-all active:scale-95 shadow-lg"
+            className="w-full bg-gradient-to-r from-emerald-500/10 to-transparent hover:bg-emerald-500/20 border border-emerald-500/20 rounded-2xl p-3 md:p-6 flex items-center md:flex-col md:text-center justify-between md:justify-center gap-4 group transition-all active:scale-95 shadow-lg"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-[#00274d] shrink-0">
-                <Timer size={20} />
+            <div className="flex items-center md:flex-col gap-4">
+              <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl bg-emerald-500 flex items-center justify-center text-[#00274d] shrink-0">
+                <Timer size={20} className="md:size-8" />
               </div>
-              <div className="flex flex-col items-start leading-tight">
-                <span className="text-white font-black italic uppercase tracking-wider text-[11px]">Prova - Course navette</span>
-                <span className="text-emerald-400/40 text-[8px] font-bold uppercase tracking-widest mt-0.5 whitespace-nowrap">Resistència aeròbica</span>
+              <div className="flex flex-col items-start md:items-center leading-tight">
+                <span className="text-white font-black italic uppercase tracking-wider text-[11px] md:text-base">Prova - Course navette</span>
+                <span className="text-emerald-400/40 text-[8px] md:text-xs font-bold uppercase tracking-widest mt-0.5 whitespace-nowrap">Resistència aeròbica</span>
               </div>
             </div>
-            <ArrowRight size={16} className="text-white/20 mr-2 group-hover:text-white transition-all shrink-0" />
+            <ArrowRight size={16} className="text-white/20 mr-2 md:hidden group-hover:text-white transition-all shrink-0" />
           </button>
         </div>
 

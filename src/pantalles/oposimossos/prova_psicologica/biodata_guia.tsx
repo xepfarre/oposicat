@@ -106,49 +106,59 @@ export const GuiaBiodata = ({
   }, [seccio]);
 
   const renderMenuPrincipal = () => (
-    <div className="flex flex-col gap-3 w-full animate-in fade-in duration-500">
+    <div className="flex flex-col gap-3 md:gap-6 w-full animate-in fade-in duration-500">
       {/* Botó Vermell de YouTube - Rectangular com els altres */}
       <a 
         href={VIDEO_BIODATA} 
         target="_blank" 
         rel="noopener noreferrer"
-        className="w-full bg-red-600/90 hover:bg-red-600 border border-white/10 rounded-2xl py-4 flex flex-col items-center justify-center transition-all active:scale-95 group shadow-xl mb-2"
+        className="w-full bg-red-600/90 hover:bg-red-600 border border-white/10 rounded-2xl md:rounded-3xl py-4 md:py-10 flex flex-col items-center justify-center transition-all active:scale-95 group shadow-xl mb-2 md:mb-6"
       >
-        <span className="text-white font-black italic uppercase tracking-widest text-xs">EN QUÈ CONSISTEIX LA PROVA?</span>
-        <div className="flex items-center gap-2 mt-1.5">
-           <Youtube size={12} className="text-white" />
-           <span className="text-white/50 text-[7px] font-black uppercase tracking-[0.2em]">GUIA EN VÍDEO</span>
+        <span className="text-white font-black italic uppercase tracking-widest text-xs md:text-2xl leading-none">EN QUÈ CONSISTEIX LA PROVA?</span>
+        <div className="flex items-center gap-2 mt-1.5 md:mt-3">
+           <Youtube size={12} className="text-white md:size-6" />
+           <span className="text-white/50 text-[7px] md:text-sm font-black uppercase tracking-[0.2em]">GUIA EN VÍDEO</span>
         </div>
       </a>
 
       {/* Línia separadora fina */}
-      <div className="h-[1px] bg-white/5 w-full my-2 shadow-sm" />
+      <div className="h-[1px] bg-white/5 w-full my-2 md:my-6 shadow-sm" />
 
-      <div className="flex flex-col gap-3">
-        <MenuButton 
-          titol="TEST DE BIODATA" 
-          subtitol="SIMULACRE DE L'EXAMEN"
+      <div className="flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-6">
+        <button 
           onClick={() => setSeccio('test')}
-        />
+          className="w-full bg-[#1a3a5a]/40 hover:bg-[#1a3a5a]/60 border border-white/10 rounded-2xl md:rounded-[2.5rem] py-6 md:py-16 flex flex-col items-center justify-center transition-all active:scale-95 group text-center md:col-span-2"
+        >
+          <span className="text-white font-black italic uppercase tracking-widest text-xs md:text-2xl leading-none">TEST DE BIODATA</span>
+          <span className="text-white/30 text-[7px] md:text-sm font-black uppercase tracking-[0.2em] mt-1.5 md:mt-3 group-hover:text-white/50 transition-colors uppercase">SIMULACRE DE L'EXAMEN</span>
+        </button>
 
         {/* Segona línia separadora per dividir el Test de les preguntes */}
-        <div className="h-[1px] bg-white/5 w-full my-2 shadow-sm" />
+        <div className="h-[1px] bg-white/5 w-full my-1 md:my-6 shadow-sm md:col-span-2" />
 
-        <MenuButton 
-          titol="PREGUNTES PERSONALS" 
-          subtitol="AUTOCONEIXEMENT I PASSAT"
+        <button 
           onClick={() => setSeccio('personals')}
-        />
-        <MenuButton 
-          titol="PREGUNTES LABORALS" 
-          subtitol="EXPERIÈNCIA I TRAJECTÒRIA"
+          className="w-full bg-[#1a3a5a]/40 hover:bg-[#1a3a5a]/60 border border-white/10 rounded-2xl md:rounded-[2.5rem] py-6 md:py-16 flex flex-col items-center justify-center transition-all active:scale-95 group text-center"
+        >
+          <span className="text-white font-black italic uppercase tracking-widest text-xs md:text-2xl leading-none">PREGUNTES PERSONALS</span>
+          <span className="text-white/30 text-[7px] md:text-sm font-black uppercase tracking-[0.2em] mt-1.5 md:mt-3 group-hover:text-white/50 transition-colors uppercase">AUTOCONEIXEMENT I PASSAT</span>
+        </button>
+
+        <button 
           onClick={() => setSeccio('laborals')}
-        />
-        <MenuButton 
-          titol="PREGUNTES DE PGME" 
-          subtitol="VALORS i CULTURA MOSSO"
+          className="w-full bg-[#1a3a5a]/40 hover:bg-[#1a3a5a]/60 border border-white/10 rounded-2xl md:rounded-[2.5rem] py-6 md:py-16 flex flex-col items-center justify-center transition-all active:scale-95 group text-center"
+        >
+          <span className="text-white font-black italic uppercase tracking-widest text-xs md:text-2xl leading-none">PREGUNTES LABORALS</span>
+          <span className="text-white/30 text-[7px] md:text-sm font-black uppercase tracking-[0.2em] mt-1.5 md:mt-3 group-hover:text-white/50 transition-colors uppercase">EXPERIÈNCIA I TRAJECTÒRIA</span>
+        </button>
+
+        <button 
           onClick={() => setSeccio('pgme')}
-        />
+          className="w-full bg-[#1a3a5a]/40 hover:bg-[#1a3a5a]/60 border border-white/10 rounded-2xl md:rounded-[2.5rem] py-6 md:py-16 flex flex-col items-center justify-center transition-all active:scale-95 group text-center md:col-span-2"
+        >
+          <span className="text-white font-black italic uppercase tracking-widest text-xs md:text-2xl leading-none">PREGUNTES DE PGME</span>
+          <span className="text-white/30 text-[7px] md:text-sm font-black uppercase tracking-[0.2em] mt-1.5 md:mt-3 group-hover:text-white/50 transition-colors uppercase">VALORS i CULTURA MOSSO</span>
+        </button>
       </div>
     </div>
   );
@@ -156,30 +166,30 @@ export const GuiaBiodata = ({
   if (seccio === 'personals') {
     return (
       <div className="flex flex-col flex-1 gap-4 animate-in slide-in-from-right-4 duration-300 w-full mb-10">
-        <div className="bg-[#1a3a5a]/30 border border-white/10 rounded-[2rem] pt-6 px-6 pb-8 -mx-4 shadow-2xl backdrop-blur-sm">
-          <h3 className="text-blue-400 font-[900] italic uppercase text-base mb-6 tracking-[0.1em] text-center">Preguntes Personals</h3>
+        <div className="bg-[#1a3a5a]/30 border border-white/10 rounded-[2rem] md:rounded-[3rem] pt-6 md:pt-12 px-6 md:px-12 pb-8 md:pb-16 -mx-4 md:mx-0 shadow-2xl backdrop-blur-sm">
+          <h3 className="text-blue-400 font-[900] italic uppercase text-base md:text-3xl mb-6 md:mb-12 tracking-[0.1em] text-center">Preguntes Personals</h3>
           
-          <ul className="flex flex-col gap-3">
+          <ul className="flex flex-col md:grid md:grid-cols-2 gap-x-4 gap-y-3 md:gap-x-10 md:gap-y-8">
             {preguntesPersonals.map((item, i) => (
-              <li key={i} className="flex flex-col gap-2">
-                <div className="text-[12px] text-white/90 bg-[#1a3a5a]/60 py-3 px-5 rounded-xl border border-white/5 leading-tight italic text-center shadow-inner w-full">
+              <li key={i} className="flex flex-col gap-2 md:gap-4">
+                <div className="text-[12px] md:text-xl text-white/90 bg-[#1a3a5a]/60 py-3 md:py-8 px-5 md:px-10 rounded-xl md:rounded-3xl border border-white/5 leading-tight italic text-center shadow-inner w-full">
                   "{item.p}"
                 </div>
                 
                 <button 
                   onClick={() => setPreguntaOberta(preguntaOberta === i ? null : i)}
-                  className="flex items-center justify-center gap-2 py-1.5 text-[9px] font-black uppercase tracking-widest text-blue-400/70 hover:text-blue-400 transition-colors"
+                  className="flex items-center justify-center gap-2 py-1.5 md:py-3 text-[9px] md:text-sm font-black uppercase tracking-widest text-blue-400/70 hover:text-blue-400 transition-colors"
                 >
                   {preguntaOberta === i ? (
-                    <>AMAGAR RESPOSTA <ChevronUp size={12} /></>
+                    <>AMAGAR RESPOSTA <ChevronUp size={12} className="md:size-5" /></>
                   ) : (
-                    <>MOSTRA RESPOSTA <ChevronDown size={12} /></>
+                    <>MOSTRA RESPOSTA <ChevronDown size={12} className="md:size-5" /></>
                   )}
                 </button>
 
                 {preguntaOberta === i && (
-                  <div className="bg-black/20 border border-white/5 rounded-xl p-4 mb-2 animate-in fade-in slide-in-from-top-1 duration-300">
-                    <p className="text-[11px] text-white/60 leading-relaxed italic text-center">
+                  <div className="bg-black/20 border border-white/5 rounded-xl md:rounded-3xl p-4 md:p-10 mb-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                    <p className="text-[11px] md:text-lg text-white/60 leading-relaxed italic text-center">
                       {item.r}
                     </p>
                   </div>
@@ -195,37 +205,37 @@ export const GuiaBiodata = ({
   if (seccio === 'laborals') {
     return (
       <div className="flex flex-col flex-1 gap-4 animate-in slide-in-from-right-4 duration-300 w-full mb-10">
-        <div className="bg-[#1a3a5a]/30 border border-white/10 rounded-[2rem] pt-6 px-6 pb-8 -mx-4 shadow-2xl backdrop-blur-sm">
-          <h3 className="text-amber-400 font-[900] italic uppercase text-base mb-4 tracking-[0.1em] text-center">Preguntes Laborals</h3>
+        <div className="bg-[#1a3a5a]/30 border border-white/10 rounded-[2rem] md:rounded-[3rem] pt-6 md:pt-12 px-6 md:px-12 pb-8 md:pb-16 -mx-4 md:mx-0 shadow-2xl backdrop-blur-sm">
+          <h3 className="text-amber-400 font-[900] italic uppercase text-base md:text-3xl mb-4 md:mb-10 tracking-[0.1em] text-center">Preguntes Laborals</h3>
           
           {/* Label introductori */}
-          <div className="bg-amber-400/10 border border-amber-400/20 rounded-2xl p-4 mb-6 text-center">
-            <p className="text-[11px] text-amber-400/90 font-bold leading-relaxed italic">
+          <div className="bg-amber-400/10 border border-amber-400/20 rounded-2xl md:rounded-3xl p-4 md:p-8 mb-6 md:mb-12 text-center">
+            <p className="text-[11px] md:text-xl text-amber-400/90 font-bold leading-relaxed italic">
               "En aquesta secció es repassa la teva trajectòria professional i el teu compromís amb el treball."
             </p>
           </div>
 
-          <ul className="flex flex-col gap-3">
+          <ul className="flex flex-col md:grid md:grid-cols-2 gap-x-4 gap-y-3 md:gap-x-10 md:gap-y-8">
             {preguntesLaborals.map((item, i) => (
-              <li key={i} className="flex flex-col gap-2">
-                <div className="text-[12px] text-white/90 bg-[#1a3a5a]/60 py-3 px-5 rounded-xl border border-white/5 leading-tight italic text-center shadow-inner w-full">
+              <li key={i} className="flex flex-col gap-2 md:gap-4">
+                <div className="text-[12px] md:text-xl text-white/90 bg-[#1a3a5a]/60 py-3 md:py-8 px-5 md:px-10 rounded-xl md:rounded-3xl border border-white/5 leading-tight italic text-center shadow-inner w-full">
                   "{item.p}"
                 </div>
                 
                 <button 
                   onClick={() => setPreguntaOberta(preguntaOberta === i ? null : i)}
-                  className="flex items-center justify-center gap-2 py-1.5 text-[9px] font-black uppercase tracking-widest text-amber-400/70 hover:text-amber-400 transition-colors"
+                  className="flex items-center justify-center gap-2 py-1.5 md:py-3 text-[9px] md:text-sm font-black uppercase tracking-widest text-amber-400/70 hover:text-amber-400 transition-colors"
                 >
                   {preguntaOberta === i ? (
-                    <>AMAGAR RESPOSTA <ChevronUp size={12} /></>
+                    <>AMAGAR RESPOSTA <ChevronUp size={12} className="md:size-5" /></>
                   ) : (
-                    <>MOSTRA RESPOSTA <ChevronDown size={12} /></>
+                    <>MOSTRA RESPOSTA <ChevronDown size={12} className="md:size-5" /></>
                   )}
                 </button>
 
                 {preguntaOberta === i && (
-                  <div className="bg-black/20 border border-white/5 rounded-xl p-4 mb-2 animate-in fade-in slide-in-from-top-1 duration-300">
-                    <p className="text-[11px] text-white/60 leading-relaxed italic text-center">
+                  <div className="bg-black/20 border border-white/5 rounded-xl md:rounded-3xl p-4 md:p-10 mb-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                    <p className="text-[11px] md:text-lg text-white/60 leading-relaxed italic text-center">
                       {item.r}
                     </p>
                   </div>
@@ -241,41 +251,41 @@ export const GuiaBiodata = ({
   if (seccio === 'pgme') {
     return (
       <div className="flex flex-col flex-1 gap-4 animate-in slide-in-from-right-4 duration-300 w-full mb-10">
-        <div className="bg-[#1a3a5a]/30 border border-white/10 rounded-[2rem] pt-6 px-6 pb-8 -mx-4 shadow-2xl backdrop-blur-sm">
-          <h3 className="text-emerald-400 font-[900] italic uppercase text-base mb-4 tracking-[0.1em] text-center">Preguntes de PGME</h3>
+        <div className="bg-[#1a3a5a]/30 border border-white/10 rounded-[2rem] md:rounded-[3rem] pt-6 md:pt-12 px-6 md:px-12 pb-8 md:pb-16 -mx-4 md:mx-0 shadow-2xl backdrop-blur-sm">
+          <h3 className="text-emerald-400 font-[900] italic uppercase text-base md:text-3xl mb-4 md:mb-10 tracking-[0.1em] text-center">Preguntes de PGME</h3>
           
           {/* Label introductori */}
-          <div className="bg-emerald-400/10 border border-emerald-400/20 rounded-2xl p-4 mb-6 text-center">
-            <p className="text-[11px] text-emerald-400/90 font-bold leading-relaxed italic">
+          <div className="bg-emerald-400/10 border border-emerald-400/20 rounded-2xl md:rounded-3xl p-4 md:p-8 mb-6 md:mb-12 text-center">
+            <p className="text-[11px] md:text-xl text-emerald-400/90 font-bold leading-relaxed italic">
               "En aquesta part de l'examen us faran preguntes relacionades amb la Policia de la Generalitat Mossos d'Esquadra (PGME)"
             </p>
           </div>
 
           <div className="flex flex-col items-center mb-4">
-            <span className="text-[9px] text-white/30 font-black uppercase tracking-[0.2em] italic">Exemple de preguntes d'altres anys</span>
+            <span className="text-[9px] md:text-sm text-white/30 font-black uppercase tracking-[0.2em] md:tracking-[0.4em] italic text-center">Exemple de preguntes d'altres anys</span>
           </div>
 
-          <ul className="flex flex-col gap-3">
+          <ul className="flex flex-col md:grid md:grid-cols-2 gap-x-4 gap-y-3 md:gap-x-10 md:gap-y-8">
             {preguntesPGME.map((item, i) => (
-              <li key={i} className="flex flex-col gap-2">
-                <div className="text-[12px] text-white/90 bg-[#1a3a5a]/60 py-3 px-5 rounded-xl border border-white/5 leading-tight italic text-center shadow-inner w-full">
+              <li key={i} className="flex flex-col gap-2 md:gap-4">
+                <div className="text-[12px] md:text-xl text-white/90 bg-[#1a3a5a]/60 py-3 md:py-8 px-5 md:px-10 rounded-xl md:rounded-3xl border border-white/5 leading-tight italic text-center shadow-inner w-full">
                   "{item.p}"
                 </div>
                 
                 <button 
                   onClick={() => setPreguntaOberta(preguntaOberta === i ? null : i)}
-                  className="flex items-center justify-center gap-2 py-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-400/70 hover:text-emerald-400 transition-colors"
+                  className="flex items-center justify-center gap-2 py-1.5 md:py-3 text-[9px] md:text-sm font-black uppercase tracking-widest text-emerald-400/70 hover:text-emerald-400 transition-colors"
                 >
                   {preguntaOberta === i ? (
-                    <>AMAGAR RESPOSTA <ChevronUp size={12} /></>
+                    <>AMAGAR RESPOSTA <ChevronUp size={12} className="md:size-5" /></>
                   ) : (
-                    <>MOSTRA RESPOSTA <ChevronDown size={12} /></>
+                    <>MOSTRA RESPOSTA <ChevronDown size={12} className="md:size-5" /></>
                   )}
                 </button>
 
                 {preguntaOberta === i && (
-                  <div className="bg-black/20 border border-white/5 rounded-xl p-4 mb-2 animate-in fade-in slide-in-from-top-1 duration-300">
-                    <p className="text-[11px] text-white/60 leading-relaxed italic text-center">
+                  <div className="bg-black/20 border border-white/5 rounded-xl md:rounded-3xl p-4 md:p-10 mb-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                    <p className="text-[11px] md:text-lg text-white/60 leading-relaxed italic text-center">
                       {item.r}
                     </p>
                   </div>

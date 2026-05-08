@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { ChevronLeft, Calendar, FileText, Globe, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import NoticiesSetmana from "./noticies_setmana";
@@ -76,7 +76,7 @@ export default function ActualitatInici({ onTornar }: { onTornar: () => void }) 
       </header>
 
       {/* LLISTA DE BOTONS */}
-      <main className="w-full max-w-md px-6 flex flex-col gap-4">
+      <main className="w-full max-w-md md:max-w-6xl px-6 flex flex-col md:grid md:grid-cols-3 gap-4 md:py-8">
         {opcions.map((opc, index) => (
           <motion.button
             key={index}
@@ -92,22 +92,23 @@ export default function ActualitatInici({ onTornar }: { onTornar: () => void }) 
                 setSeccio('examen_actualitat');
               }
             }}
-            className={`w-full bg-gradient-to-br ${opc.color} hover:bg-white/10 border border-white/10 rounded-[2rem] p-6 flex items-center justify-between group transition-all shadow-lg active:scale-95`}
+            className={`w-full bg-gradient-to-br ${opc.color} hover:bg-white/10 border border-white/10 rounded-[2rem] p-6 md:p-10 flex flex-row md:flex-col items-center justify-between md:justify-center gap-4 group transition-all shadow-lg active:scale-95`}
           >
-            <div className="flex items-center gap-5">
-              <div className={`w-12 h-12 rounded-2xl bg-black/20 flex items-center justify-center ${opc.iconColor} group-hover:scale-110 transition-transform`}>
-                {opc.icona}
+            <div className="flex flex-row md:flex-col items-center gap-5">
+              <div className={`w-12 h-12 md:w-20 md:h-20 rounded-2xl bg-black/20 flex items-center justify-center ${opc.iconColor} group-hover:scale-110 transition-transform`}>
+                {/* SVG icon size adjustment for tablet */}
+                {React.cloneElement(opc.icona as React.ReactElement<any>, { size: 32 })}
               </div>
-              <div className="flex flex-col items-start text-left">
-                <span className="text-white font-black italic uppercase tracking-wider text-sm leading-tight">
+              <div className="flex flex-col items-start md:items-center text-left md:text-center">
+                <span className="text-white font-black italic uppercase tracking-wider text-sm md:text-xl leading-tight">
                   {opc.titol}
                 </span>
-                <span className="text-white/40 text-[9px] font-bold uppercase tracking-widest mt-1">
+                <span className="text-white/40 text-[9px] md:text-xs font-bold uppercase tracking-widest mt-1">
                   {opc.desc}
                 </span>
               </div>
             </div>
-            <ArrowRight size={18} className="text-white/20 group-hover:text-white group-hover:translate-x-1 transition-all" />
+            <ArrowRight size={18} className="text-white/20 group-hover:text-white group-hover:translate-x-1 transition-all md:hidden" />
           </motion.button>
         ))}
       </main>

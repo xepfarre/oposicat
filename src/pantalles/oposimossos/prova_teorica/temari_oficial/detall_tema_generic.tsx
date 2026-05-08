@@ -29,7 +29,7 @@ export default function DetallTemaGeneric({
   return (
     <div className="flex min-h-screen w-full flex-col items-center pb-12 px-6 bg-[#00274d] overflow-y-auto">
       {/* CAPÇALERA DE TEMA */}
-      <header className="pt-10 w-full max-w-sm md:max-w-2xl flex items-center gap-4 mb-8">
+      <header className="pt-10 w-full max-w-sm md:max-w-6xl flex items-center gap-4 mb-8">
         <button 
           onClick={onTornar}
           className="p-3 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-white transition-all active:scale-90"
@@ -42,13 +42,13 @@ export default function DetallTemaGeneric({
               Àmbit {ambit}
             </span>
           </div>
-          <h1 className="text-lg md:text-xl font-black italic uppercase text-white tracking-widest leading-tight">
+          <h1 className="text-lg md:text-2xl font-black italic uppercase text-white tracking-widest leading-tight">
             {titol}
           </h1>
         </div>
       </header>
 
-      <main className="w-full max-w-sm md:max-w-2xl">
+      <main className="w-full max-w-sm md:max-w-6xl">
         <div className="bg-black/20 backdrop-blur-sm rounded-3xl border border-white/10 p-2 shadow-2xl">
           {/* Capçalera de secció */}
           <div className="flex px-5 py-4 border-b border-white/5 items-center justify-between gap-3">
@@ -66,7 +66,7 @@ export default function DetallTemaGeneric({
             </div>
           </div>
 
-          <ul className="flex flex-col gap-0.5 mt-2 px-2 pb-2">
+          <ul className="flex flex-col md:grid md:grid-cols-2 gap-0.5 mt-2 px-2 pb-2">
             {subtemes.map((tema, i) => (
               <motion.li 
                 key={i} 

@@ -24,7 +24,7 @@ export default function AmbitB({
 
   return (
     <div className="flex min-h-screen w-full flex-col items-center pb-12 px-6 bg-[#00274d] overflow-y-auto">
-      <header className="pt-10 w-full max-w-sm md:max-w-2xl flex items-center gap-4 mb-8">
+      <header className="pt-10 w-full max-w-sm md:max-w-6xl flex items-center gap-4 mb-8">
         <button 
           onClick={onTornar}
           className="p-3 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-white transition-all active:scale-90"
@@ -32,28 +32,28 @@ export default function AmbitB({
           <ChevronLeft size={20} />
         </button>
         <div className="flex-1">
-          <span className="text-amber-400 font-black italic uppercase text-[10px] tracking-widest block mb-1">Àmbit B</span>
-          <h1 className="text-xl font-black italic uppercase text-white tracking-widest leading-tight">
+          <span className="text-amber-400 font-black italic uppercase text-[10px] md:text-sm tracking-widest block mb-1">Àmbit B</span>
+          <h1 className="text-xl md:text-3xl font-black italic uppercase text-white tracking-widest leading-tight">
             Institucional i <span className="text-white/60">Constitució</span>
           </h1>
         </div>
       </header>
 
-      <main className="w-full max-w-sm md:max-w-2xl flex flex-col gap-4">
+      <main className="w-full max-w-sm md:max-w-6xl flex flex-col gap-4">
         <div className="bg-black/20 backdrop-blur-sm rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
           <div className="flex px-4 py-3 border-b border-white/5 items-center">
-            <div className="w-8 mr-4"></div>
-            <span className="flex-1 text-[10px] font-black uppercase tracking-widest text-white/30">Pla d'Estudi / Capítols</span>
-            <span className="w-6 text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Estudiat</span>
+            <div className="w-8 mr-4 md:hidden"></div>
+            <span className="flex-1 text-[10px] font-black uppercase tracking-widest text-white/30 md:text-center">Pla d'Estudi / Capítols</span>
+            <span className="w-6 text-[10px] font-black uppercase tracking-widest text-white/30 text-center md:hidden">Estudiat</span>
           </div>
 
-          <ul className="flex flex-col mt-1">
+          <ul className="flex flex-col md:grid md:grid-cols-2 mt-1">
             {temes.map((tema, i) => (
               <React.Fragment key={i}>
                 <motion.li 
                   whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
                   onClick={() => onSeleccionarTema(i)}
-                  className="group flex px-4 py-5 cursor-pointer transition-all border-b border-white/5 last:border-0"
+                  className="group flex px-4 py-5 cursor-pointer transition-all border-b border-white/5 last:border-0 md:border-r"
                 >
                   <div className={`flex items-center justify-center w-8 h-8 rounded-lg font-black italic text-sm mr-4 transition-colors ${
                     progres[i] ? 'bg-amber-600 text-white' : 'bg-white/5 text-white/20 group-hover:bg-amber-500/20 group-hover:text-amber-400'

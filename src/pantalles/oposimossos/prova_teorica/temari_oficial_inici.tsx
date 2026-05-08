@@ -38,17 +38,17 @@ export default function TemariOficialInici({
         </div>
       </header>
 
-      <main className="w-full max-w-sm md:max-w-2xl flex flex-col gap-6" id="temari-oficial-main">
+      <main className="w-full max-w-sm md:max-w-6xl flex flex-col gap-6" id="temari-oficial-main">
         
         {/* Label: Text informatiu corregit i ara groc */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl py-3 px-5 shadow-xl">
-          <p className="text-amber-400/90 text-xs md:text-sm font-medium leading-relaxed text-center italic">
+        <div className="bg-white/5 border border-white/10 rounded-2xl py-3 px-5 shadow-xl md:py-6">
+          <p className="text-amber-400/90 text-xs md:text-lg font-medium leading-relaxed text-center italic">
             "Et presentem el temari oficial de l'oposició de Mossos d'Esquadra de l'any 2025-2026 prequè en facis ús en qualsevol lloc."
           </p>
         </div>
 
         {/* Llistat d'Àmbits */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col md:grid md:grid-cols-3 gap-6">
           
           {/* Àmbit A */}
           <motion.button 

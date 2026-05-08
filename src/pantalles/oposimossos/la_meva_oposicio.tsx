@@ -36,8 +36,7 @@ export default function LaMevaOposicio({
   return (
     <div className="flex min-h-screen w-full flex-col items-center pb-12 px-6 bg-[#00274d] overflow-y-auto">
       
-      {/* CAPÇALERA AMB BOTÓ TORNAR */}
-      <header className="pt-10 w-full max-w-2xl flex items-center gap-4 mb-8">
+      <header className="pt-10 w-full max-w-6xl flex items-center gap-4 mb-8 px-6">
         <button 
           onClick={onTornar}
           className="p-3 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-white transition-all active:scale-90"
@@ -45,20 +44,20 @@ export default function LaMevaOposicio({
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1">
-          <h1 className="text-xl font-black italic uppercase text-white tracking-widest">
-            El meu <span className="text-amber-400 text-2xl">Progrés</span>
+          <h1 className="text-xl md:text-3xl font-black italic uppercase text-white tracking-widest">
+            El meu <span className="text-amber-400 text-2xl md:text-5xl">Progrés</span>
           </h1>
-          <p className="text-[10px] text-white/50 uppercase tracking-widest">Estat de la preparació del temari</p>
+          <p className="text-[10px] md:text-sm text-white/50 uppercase tracking-widest">Estat de la preparació del temari</p>
         </div>
       </header>
 
-      <main className="w-full max-w-2xl flex flex-col gap-8">
+      <main className="w-full max-w-6xl flex flex-col md:grid md:grid-cols-2 gap-8 px-6">
         
         {/* BLOC 1: PROGRÉS DEL TEMARI */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full bg-black/30 backdrop-blur-md rounded-3xl border border-white/10 p-6 shadow-xl"
+          className="w-full bg-black/30 backdrop-blur-md rounded-3xl border border-white/10 p-6 md:p-10 shadow-xl md:col-span-2"
         >
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">

@@ -47,48 +47,48 @@ export default function ProvaTeoricaInici({
           CONTINGUT PRINCIPAL: 
           En tauletes els botons es divideixen en dues columnes (md:grid-cols-2).
       */}
-      <main className="w-full max-w-sm md:max-w-2xl flex flex-col items-center flex-1 py-2 md:py-4">
+      <main className="w-full max-w-sm md:max-w-4xl flex flex-col items-center flex-1 py-2 md:py-8">
         {/* Botons de la secció Teòrica en grid per a Tablet */}
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
           <button 
             onClick={() => window.open('https://tramits.gencat.cat/ca/tramits/tramits-temes/23243_-_Acces-a-1.587-places-de-mosso-a-de-lescala-basica-del-Cos-de-Mossos-dEsquadra-convocatoria-46-25?gestioSite=interior&__disableDirectEdit=true&category=725c8452-a82c-11e3-a972-000c29052e2c&moda=1', '_blank')}
-            className="w-full md:col-span-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl py-6 md:py-10 text-amber-100 font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg"
+            className="w-full md:col-span-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl py-6 md:py-14 text-amber-100 font-black italic uppercase text-[11px] md:text-lg tracking-widest transition-all active:scale-95 shadow-lg"
           >
             Informació personal
           </button>
 
           {/* Línia de separació gris entre Informació i Exàmens */}
-          <div className="md:col-span-2 flex items-center">
+          <div className="md:col-span-2 flex items-center py-2">
             <div className="flex-1 h-px bg-white/10" />
           </div>
 
           <button 
             onClick={onExamenTeoric}
-            className="w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-6 md:py-12 text-white font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg"
+            className="w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-6 md:py-20 text-white font-black italic uppercase text-[11px] md:text-lg tracking-widest transition-all active:scale-95 shadow-lg"
           >
             Exàmen teòric
           </button>
           <button 
             onClick={onExamenPsicotecnic}
-            className="w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-6 md:py-12 text-white font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg"
+            className="w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-6 md:py-20 text-white font-black italic uppercase text-[11px] md:text-lg tracking-widest transition-all active:scale-95 shadow-lg"
           >
             Exàmen psicotècnic
           </button>
           <button 
             onClick={onActualitat}
-            className="w-full md:col-span-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-6 md:py-12 text-white font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg"
+            className="w-full md:col-span-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl py-6 md:py-14 text-white font-black italic uppercase text-[11px] md:text-lg tracking-widest transition-all active:scale-95 shadow-lg"
           >
             Actualitat
           </button>
           
           {/* Línia de separació gris entre blocs */}
-          <div className="md:col-span-2 flex items-center">
+          <div className="md:col-span-2 flex items-center py-2">
             <div className="flex-1 h-px bg-white/10" />
           </div>
           
           <button 
             onClick={onEmCostaEstudiar}
-            className="w-full md:col-span-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl py-6 md:py-10 text-emerald-100 font-black italic uppercase text-[11px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg shadow-emerald-900/20"
+            className="w-full md:col-span-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl py-6 md:py-14 text-emerald-100 font-black italic uppercase text-[11px] md:text-lg tracking-widest transition-all active:scale-95 shadow-lg shadow-emerald-900/20"
           >
             Em costa estudiar
           </button>

@@ -316,7 +316,7 @@ export default function OnEntrenarInici({ onTornar }: { onTornar: () => void }) 
     <div className="flex min-h-screen w-full flex-col items-center bg-[#00274d] overflow-y-auto pb-12 text-white">
       
       {/* CAPÇALERA */}
-      <header className="pt-10 w-full flex flex-col items-center gap-4 pb-6 px-6 max-w-2xl mx-auto">
+      <header className="pt-10 w-full flex flex-col items-center gap-4 pb-6 px-6 max-w-6xl mx-auto">
         <div className="flex items-center gap-4 w-full">
           <button 
             onClick={handleTornarSearch}
@@ -325,10 +325,10 @@ export default function OnEntrenarInici({ onTornar }: { onTornar: () => void }) 
             <ChevronLeft size={24} />
           </button>
           <div className="flex flex-col">
-            <span className="text-emerald-400 text-[8px] font-black uppercase tracking-[0.2em] opacity-70">
+            <span className="text-emerald-400 text-[8px] md:text-xs font-black uppercase tracking-[0.2em] opacity-70">
               {view === 'search' ? 'Gimnasos Col·laboradors' : view === 'list' ? 'Llistat de Centres' : 'Fitxa del Centre'}
             </span>
-            <h1 className="text-xl font-black italic tracking-tighter uppercase text-white">
+            <h1 className="text-xl md:text-3xl font-black italic tracking-tighter uppercase text-white">
               {view === 'search' ? (
                 <>On puc <span className="text-red-500">Entrenar?</span></>
               ) : view === 'list' ? (
@@ -342,25 +342,25 @@ export default function OnEntrenarInici({ onTornar }: { onTornar: () => void }) 
       </header>
 
       {/* CONTINGUT DINÀMIC */}
-      <main className="w-full max-w-md px-6 flex flex-col gap-6">
+      <main className="w-full max-w-md md:max-w-6xl px-6 flex flex-col gap-6 md:py-8">
         
         {view === 'search' && (
-          <>
+          <div className="flex flex-col md:grid md:grid-cols-2 gap-6 items-start">
             {/* Missatge introductori */}
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-6 text-center shadow-xl">
-              <p className="text-[11px] text-yellow-400 font-medium leading-relaxed italic px-2">
+            <div className="bg-white/5 border border-white/10 rounded-3xl p-6 md:p-10 text-center shadow-xl md:col-span-2">
+              <p className="text-[11px] md:text-lg text-yellow-400 font-medium leading-relaxed italic px-2">
                 "Des de OposiMossos sabem lo complicat que és trobar centres on entrenar, t'ajudem a crear un cercador on poder buscar, trobar i comunicar-nos a nosaltres nou centres i ajudar als altres companys."
               </p>
             </div>
 
             {/* SECCIÓ AFEGIR CENTRE */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 w-full h-full">
               <button 
                 onClick={() => setShowAfegirOptions(!showAfegirOptions)}
-                className="w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl p-4 flex items-center justify-center gap-3 transition-all active:scale-95 group shadow-xl"
+                className="w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl p-4 md:py-8 flex items-center justify-center gap-3 transition-all active:scale-95 group shadow-xl"
               >
-                <Plus size={20} className={`text-emerald-400 transition-transform duration-500 ${showAfegirOptions ? 'rotate-45' : 'rotate-0'}`} />
-                <span className="text-xs font-black italic uppercase tracking-wider">Afegir centre</span>
+                <Plus size={20} className={`text-emerald-400 md:size-8 transition-transform duration-500 ${showAfegirOptions ? 'rotate-45' : 'rotate-0'}`} />
+                <span className="text-xs md:text-xl font-black italic uppercase tracking-wider">Afegir centre</span>
               </button>
 
               <AnimatePresence>
@@ -371,23 +371,23 @@ export default function OnEntrenarInici({ onTornar }: { onTornar: () => void }) 
                     exit={{ opacity: 0, y: -10 }}
                     className="flex flex-col gap-2"
                   >
-                    <button className="w-full bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 rounded-2xl p-5 flex items-center gap-4 transition-all group">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                        <User size={20} />
+                    <button className="w-full bg-white/5 hover:bg-emerald-500/10 border border-white/10 hover:border-emerald-500/30 rounded-2xl p-5 md:p-8 flex items-center gap-4 transition-all group">
+                      <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                        <User size={20} className="md:size-8" />
                       </div>
                       <div className="flex flex-col items-start leading-tight">
-                        <span className="text-[11px] font-black italic uppercase tracking-wider text-white">Sóc usuari del centre</span>
-                        <span className="text-[9px] font-medium text-white/30 uppercase tracking-widest mt-1">Vull donar-lo a conèixer</span>
+                        <span className="text-[11px] md:text-base font-black italic uppercase tracking-wider text-white">Sóc usuari del centre</span>
+                        <span className="text-[9px] md:text-xs font-medium text-white/30 uppercase tracking-widest mt-1">Vull donar-lo a conèixer</span>
                       </div>
                     </button>
 
-                    <button className="w-full bg-white/5 hover:bg-blue-500/10 border border-white/10 hover:border-blue-500/30 rounded-2xl p-5 flex items-center gap-4 transition-all group">
-                      <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
-                        <Briefcase size={20} />
+                    <button className="w-full bg-white/5 hover:bg-blue-500/10 border border-white/10 hover:border-blue-500/30 rounded-2xl p-5 md:p-8 flex items-center gap-4 transition-all group">
+                      <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
+                        <Briefcase size={20} className="md:size-8" />
                       </div>
                       <div className="flex flex-col items-start leading-tight">
-                        <span className="text-[11px] font-black italic uppercase tracking-wider text-white">Sóc propietari del centre</span>
-                        <span className="text-[9px] font-medium text-white/30 uppercase tracking-widest mt-1">Vull donar-lo a conèixer</span>
+                        <span className="text-[11px] md:text-base font-black italic uppercase tracking-wider text-white">Sóc propietari del centre</span>
+                        <span className="text-[9px] md:text-xs font-medium text-white/30 uppercase tracking-widest mt-1">Vull donar-lo a conèixer</span>
                       </div>
                     </button>
                   </motion.div>
@@ -395,11 +395,11 @@ export default function OnEntrenarInici({ onTornar }: { onTornar: () => void }) 
               </AnimatePresence>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-6 flex flex-col gap-6 shadow-2xl">
+            <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-6 md:p-10 flex flex-col gap-6 shadow-2xl w-full">
               
               <div className="flex items-center gap-3 mb-2">
-                <MapPin size={20} className="text-emerald-400" />
-                <span className="text-xs font-black italic uppercase tracking-wider">Cerca per ubicació</span>
+                <MapPin size={20} className="text-emerald-400 md:size-8" />
+                <span className="text-xs md:text-xl font-black italic uppercase tracking-wider">Cerca per ubicació</span>
               </div>
 
               <SmartSelector 
@@ -433,27 +433,27 @@ export default function OnEntrenarInici({ onTornar }: { onTornar: () => void }) 
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col gap-4 mt-4"
+                  className="flex flex-col gap-4 mt-4 w-full md:col-span-2"
                 >
-                  <div className="bg-emerald-500 text-[#00274d] rounded-3xl p-8 flex flex-col items-center gap-4 shadow-xl shadow-emerald-500/20 text-center">
-                    <div className="w-16 h-16 bg-[#00274d]/10 rounded-full flex items-center justify-center">
-                        <Building2 size={32} />
+                  <div className="bg-emerald-500 text-[#00274d] rounded-3xl p-8 md:p-14 flex flex-col items-center gap-4 md:gap-8 shadow-xl shadow-emerald-500/20 text-center">
+                    <div className="w-16 h-16 md:w-32 md:h-32 bg-[#00274d]/10 rounded-full flex items-center justify-center">
+                        <Building2 size={32} className="md:size-16" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50">Has seleccionat</span>
-                        <h2 className="text-xl font-black italic uppercase tracking-tight">{municipi}</h2>
+                        <span className="text-[10px] md:text-sm font-black uppercase tracking-[0.2em] opacity-50">Has seleccionat</span>
+                        <h2 className="text-xl md:text-5xl font-black italic uppercase tracking-tight">{municipi}</h2>
                     </div>
                     
                     {parseInt(municipi.match(/\((\d+)\)/)?.[1] || "0") > 0 ? (
                         <button 
                           onClick={() => setView('list')}
-                          className="bg-[#00274d] text-white px-8 py-4 rounded-xl font-black italic uppercase text-[12px] tracking-widest mt-2 hover:bg-[#00274d]/80 transition-all shadow-lg active:scale-95"
+                          className="bg-[#00274d] text-white px-8 py-4 md:px-14 md:py-6 rounded-xl font-black italic uppercase text-[12px] md:text-xl tracking-widest mt-2 hover:bg-[#00274d]/80 transition-all shadow-lg active:scale-95"
                         >
                           Veure Llista de Centres
                         </button>
                     ) : (
-                        <div className="bg-[#00274d]/10 border border-[#00274d]/20 p-4 rounded-2xl w-full">
-                          <p className="text-[9px] font-bold uppercase tracking-widest leading-relaxed">
+                        <div className="bg-[#00274d]/10 border border-[#00274d]/20 p-4 rounded-2xl w-full max-w-sm md:max-w-xl">
+                          <p className="text-[9px] md:text-sm font-bold uppercase tracking-widest leading-relaxed">
                             Actualment no disposem de centres col·laboradors en aquest municipi. Estem treballant per ampliar la base de dades.
                           </p>
                         </div>
@@ -462,17 +462,17 @@ export default function OnEntrenarInici({ onTornar }: { onTornar: () => void }) 
                 </motion.div>
               )}
             </AnimatePresence>
-          </>
+          </div>
         )}
 
         {view === 'list' && (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
             
             {/* BARRA DE FILTRES AMB BOTÓ GROC */}
-            <div className="flex flex-col gap-3 sticky top-0 bg-[#00274d] z-20 py-2">
+            <div className="flex flex-col gap-3 sticky top-0 bg-[#00274d] z-20 py-2 md:col-span-2">
                <button 
                  onClick={() => setShowFilters(!showFilters)}
-                 className="w-full bg-yellow-400 hover:bg-yellow-300 text-[#00274d] font-black italic uppercase tracking-[0.1em] text-[10px] py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+                 className="w-full bg-yellow-400 hover:bg-yellow-300 text-[#00274d] font-black italic uppercase tracking-[0.1em] text-[10px] md:text-sm py-3 md:py-5 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
                >
                  <ChevronDown size={14} className={`transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} />
                  Filtrar per
@@ -484,36 +484,36 @@ export default function OnEntrenarInici({ onTornar }: { onTornar: () => void }) 
                      initial={{ height: 0, opacity: 0 }}
                      animate={{ height: 'auto', opacity: 1 }}
                      exit={{ height: 0, opacity: 0 }}
-                     className="overflow-hidden bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col gap-3"
+                     className="overflow-hidden bg-white/5 border border-white/10 rounded-2xl p-3 md:p-6 flex flex-col gap-3"
                    >
-                     <div className="grid grid-cols-2 gap-2">
+                     <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4">
                         <button 
                           onClick={() => setFilterTop(!filterTop)}
-                          className={`px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border text-center ${filterTop ? 'bg-yellow-400 border-yellow-400 text-[#00274d]' : 'bg-white/5 border-white/10 text-white/40'}`}
+                          className={`px-3 py-2 md:py-4 rounded-lg text-[9px] md:text-xs font-black uppercase tracking-wider transition-all border text-center ${filterTop ? 'bg-yellow-400 border-yellow-400 text-[#00274d]' : 'bg-white/5 border-white/10 text-white/40'}`}
                         >
                           Top Valorats (+4.5)
                         </button>
                         <button 
                           onClick={() => setFilterPreu(filterPreu === '€' ? null : '€')}
-                          className={`px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border text-center ${filterPreu === '€' ? 'bg-emerald-400 border-emerald-500 text-[#00274d]' : 'bg-white/5 border-white/10 text-white/40'}`}
+                          className={`px-3 py-2 md:py-4 rounded-lg text-[9px] md:text-xs font-black uppercase tracking-wider transition-all border text-center ${filterPreu === '€' ? 'bg-emerald-400 border-emerald-500 text-[#00274d]' : 'bg-white/5 border-white/10 text-white/40'}`}
                         >
                           Econòmic (€)
                         </button>
                         <button 
                           onClick={() => toggleFilterProva('Circuit Agilitat')}
-                          className={`px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border text-center ${filterProves.includes('Circuit Agilitat') ? 'bg-red-500 border-red-500 text-white' : 'bg-white/5 border-white/10 text-white/40'}`}
+                          className={`px-3 py-2 md:py-4 rounded-lg text-[9px] md:text-xs font-black uppercase tracking-wider transition-all border text-center ${filterProves.includes('Circuit Agilitat') ? 'bg-red-500 border-red-500 text-white' : 'bg-white/5 border-white/10 text-white/40'}`}
                         >
                           Amb Circuit
                         </button>
                         <button 
                           onClick={() => toggleFilterProva('Press de Banca')}
-                          className={`px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border text-center ${filterProves.includes('Press de Banca') ? 'bg-red-500 border-red-500 text-white' : 'bg-white/5 border-white/10 text-white/40'}`}
+                          className={`px-3 py-2 md:py-4 rounded-lg text-[9px] md:text-xs font-black uppercase tracking-wider transition-all border text-center ${filterProves.includes('Press de Banca') ? 'bg-red-500 border-red-500 text-white' : 'bg-white/5 border-white/10 text-white/40'}`}
                         >
                           Amb Press
                         </button>
                         <button 
                           onClick={() => toggleFilterProva('Course Navette')}
-                          className={`col-span-2 px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border text-center ${filterProves.includes('Course Navette') ? 'bg-blue-500 border-blue-500 text-white' : 'bg-white/5 border-white/10 text-white/40'}`}
+                          className={`px-3 py-2 md:py-4 rounded-lg text-[9px] md:text-xs font-black uppercase tracking-wider transition-all border text-center ${filterProves.includes('Course Navette') ? 'bg-blue-500 border-blue-500 text-white' : 'bg-white/5 border-white/10 text-white/40'}`}
                         >
                           Entrenament de Navette
                         </button>
@@ -522,7 +522,7 @@ export default function OnEntrenarInici({ onTornar }: { onTornar: () => void }) 
                  )}
                </AnimatePresence>
                
-               <div className="px-4 text-white/20 text-[8px] font-black uppercase tracking-widest flex justify-between items-center mt-1">
+               <div className="px-4 text-white/20 text-[8px] md:text-xs font-black uppercase tracking-widest flex justify-between items-center mt-1">
                   <span>S'han trobat {gymsInMunicipi.length} centres</span>
                   {(filterTop || filterPreu || filterProves.length > 0) && (
                     <button onClick={() => { setFilterTop(false); setFilterPreu(null); setFilterProves([]); }} className="text-emerald-400 underline">Netejar filtres</button>
@@ -534,28 +534,28 @@ export default function OnEntrenarInici({ onTornar }: { onTornar: () => void }) 
               <button 
                 key={gym.id}
                 onClick={() => { setSelectedGymId(gym.id); setView('detail'); }}
-                className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 flex items-center justify-between group hover:bg-white/10 transition-all active:scale-95"
+                className="w-full bg-white/5 border border-white/10 rounded-3xl p-6 md:p-10 flex items-center justify-between group hover:bg-white/10 transition-all active:scale-95"
               >
                 <div className="flex flex-col items-start gap-1">
                   <div className="flex items-center gap-2 mb-1">
                     <div className="flex items-center text-yellow-400 gap-1 bg-yellow-400/10 px-2 py-0.5 rounded-full">
-                       <span className="text-[10px] font-black">{gym.estrelles}</span>
+                       <span className="text-[10px] md:text-xs font-black">{gym.estrelles}</span>
                     </div>
-                    <span className="text-emerald-400 text-[10px] font-black tracking-widest">{gym.preu}</span>
+                    <span className="text-emerald-400 text-[10px] md:text-xs font-black tracking-widest">{gym.preu}</span>
                   </div>
-                  <span className="text-white font-black italic uppercase tracking-wider text-sm text-left">{gym.nom}</span>
+                  <span className="text-white font-black italic uppercase tracking-wider text-sm md:text-2xl text-left leading-tight">{gym.nom}</span>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {gym.proves.map(p => (
-                      <span key={p} className="text-[7px] text-white/30 border border-white/10 px-1.5 py-0.5 rounded uppercase font-bold">{p}</span>
+                      <span key={p} className="text-[7px] md:text-xs text-white/30 border border-white/10 px-1.5 py-0.5 rounded uppercase font-bold">{p}</span>
                     ))}
                   </div>
                 </div>
-                <ArrowRight size={20} className="text-emerald-400 opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0 ml-4 shrink-0" />
+                <ArrowRight size={20} className="text-emerald-400 md:size-8 md:translate-x-0 opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0 ml-4 shrink-0" />
               </button>
             ))}
             
             {gymsInMunicipi.length === 0 && (
-              <div className="p-12 text-center text-white/20 uppercase font-black tracking-widest text-xs italic">
+              <div className="p-12 md:p-24 text-center text-white/20 uppercase font-black tracking-widest text-xs md:text-2xl italic md:col-span-2">
                 No hi ha gimnasos amb aquests filtres
               </div>
             )}
@@ -563,67 +563,69 @@ export default function OnEntrenarInici({ onTornar }: { onTornar: () => void }) 
         )}
 
         {view === 'detail' && selectedGym && (
-          <div className="flex flex-col gap-6">
-            <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 flex flex-col items-center text-center gap-4 shadow-xl">
-               <div className="w-20 h-20 rounded-3xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                  <Building2 size={40} />
+          <div className="flex flex-col md:grid md:grid-cols-2 gap-6 items-start">
+            <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 md:p-14 flex flex-col items-center text-center gap-4 shadow-xl w-full">
+               <div className="w-20 h-20 md:w-32 md:h-32 rounded-3xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                  <Building2 size={40} className="md:size-16" />
                </div>
                <div className="flex flex-col">
-                  <h2 className="text-2xl font-black italic uppercase tracking-tight text-white mb-1 leading-tight">{selectedGym.nom}</h2>
+                  <h2 className="text-2xl md:text-4xl font-black italic uppercase tracking-tight text-white mb-1 leading-tight">{selectedGym.nom}</h2>
                   <div className="flex items-center justify-center gap-1 text-yellow-400">
                     {[...Array(5)].map((_, i) => (
-                      <span key={i} className={i < Math.floor(selectedGym.estrelles) ? 'opacity-100' : 'opacity-20'}>★</span>
+                      <span key={i} className={`md:text-2xl ${i < Math.floor(selectedGym.estrelles) ? 'opacity-100' : 'opacity-20'}`}>★</span>
                     ))}
-                    <span className="ml-2 text-white/40 text-[10px] font-black uppercase tracking-widest">{selectedGym.estrelles} / 5</span>
-                    <span className="ml-3 text-emerald-400 text-[10px] font-black tracking-widest">({selectedGym.preu})</span>
+                    <span className="ml-2 text-white/40 text-[10px] md:text-sm font-black uppercase tracking-widest">{selectedGym.estrelles} / 5</span>
+                    <span className="ml-3 text-emerald-400 text-[10px] md:text-sm font-black tracking-widest">({selectedGym.preu})</span>
                   </div>
                </div>
-               <p className="text-white/60 text-xs leading-relaxed italic">{selectedGym.descripcio}</p>
+               <p className="text-white/60 text-xs md:text-lg leading-relaxed italic">{selectedGym.descripcio}</p>
             </div>
 
-            <div className="flex flex-col gap-3">
-              <span className="px-4 text-white/30 text-[9px] font-black uppercase tracking-[0.2em]">Instal·lacions per a</span>
-              <div className="flex flex-wrap gap-2 px-2">
-                {selectedGym.proves.map(p => (
-                  <div key={p} className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest">
-                    {p}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <span className="px-4 text-white/30 text-[9px] font-black uppercase tracking-[0.2em]">Darreres referències</span>
+            <div className="flex flex-col gap-6 w-full">
               <div className="flex flex-col gap-3">
-                {selectedGym.referencies.map((ref, i) => (
-                  <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-emerald-400 text-[10px] font-black uppercase tracking-widest italic">{ref.usuari}</span>
-                      <div className="flex gap-0.5 text-[8px]">
-                        {[...Array(5)].map((_, j) => (
-                          <span key={j} className={j < ref.nota ? 'text-yellow-400' : 'text-white/10'}>★</span>
-                        ))}
-                      </div>
+                <span className="px-4 text-white/30 text-[9px] md:text-sm font-black uppercase tracking-[0.2em]">Instal·lacions per a</span>
+                <div className="flex flex-wrap gap-2 px-2">
+                  {selectedGym.proves.map(p => (
+                    <div key={p} className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-2 md:py-4 md:px-8 rounded-full text-[9px] md:text-sm font-black uppercase tracking-widest">
+                      {p}
                     </div>
-                    <p className="text-white/50 text-[11px] leading-snug italic">"{ref.comentari}"</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex items-center gap-4">
-               <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center text-red-400 shrink-0">
-                  <MapPin size={20} />
-               </div>
-               <div className="flex flex-col">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Adreça oficial</span>
-                  <span className="text-[11px] text-white font-medium">{selectedGym.adreca}</span>
-               </div>
+              <div className="flex flex-col gap-3">
+                <span className="px-4 text-white/30 text-[9px] md:text-sm font-black uppercase tracking-[0.2em]">Darreres referències</span>
+                <div className="flex flex-col gap-3">
+                  {selectedGym.referencies.map((ref, i) => (
+                    <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-5 md:p-8 flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-emerald-400 text-[10px] md:text-sm font-black uppercase tracking-widest italic">{ref.usuari}</span>
+                        <div className="flex gap-0.5 text-[8px] md:text-sm">
+                          {[...Array(5)].map((_, j) => (
+                            <span key={j} className={j < ref.nota ? 'text-yellow-400' : 'text-white/10'}>★</span>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-white/50 text-[11px] md:text-base leading-snug italic">"{ref.comentari}"</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-5 md:p-10 flex items-center gap-4">
+                <div className="w-10 h-10 md:w-20 md:h-20 bg-red-500/20 rounded-xl flex items-center justify-center text-red-400 shrink-0">
+                    <MapPin size={20} className="md:size-10" />
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-[9px] md:text-sm font-black uppercase tracking-widest text-white/30">Adreça oficial</span>
+                    <span className="text-[11px] md:text-lg text-white font-medium">{selectedGym.adreca}</span>
+                </div>
+              </div>
+              
+              <button className="w-full bg-emerald-500 text-[#00274d] rounded-2xl py-5 md:py-10 font-black italic uppercase tracking-[0.15em] shadow-xl shadow-emerald-500/10 active:scale-95 transition-all text-sm md:text-xl mb-4">
+                Contactar amb el centre
+              </button>
             </div>
-            
-            <button className="w-full bg-emerald-500 text-[#00274d] rounded-2xl py-5 font-black italic uppercase tracking-[0.15em] shadow-xl shadow-emerald-500/10 active:scale-95 transition-all text-sm mb-4">
-              Contactar amb el centre
-            </button>
           </div>
         )}
 

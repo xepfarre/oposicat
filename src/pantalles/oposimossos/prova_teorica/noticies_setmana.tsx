@@ -103,45 +103,45 @@ export default function NoticiesSetmana({ onTornar }: { onTornar: () => void }) 
       </header>
 
       {/* LLISTA DE NOTÍCIES */}
-      <main className="w-full max-w-md px-6 flex flex-col gap-4">
+      <main className="w-full max-w-md md:max-w-6xl px-6 flex flex-col md:grid md:grid-cols-2 gap-4 md:gap-x-8 md:gap-y-6 md:py-8">
         {noticies.map((n, index) => (
           <motion.div
             key={n.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            className="bg-white/5 border border-white/10 rounded-3xl p-5 flex flex-col gap-3 relative overflow-hidden"
+            className="bg-white/5 border border-white/10 rounded-3xl p-5 md:p-8 flex flex-col gap-3 relative overflow-hidden"
           >
             {/* Indicador lateral de categoria */}
-            <div className="absolute top-0 right-0 p-3">
+            <div className="absolute top-0 right-0 p-3 md:p-5">
               <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full border border-white/10">
                 <Tag size={10} className="text-amber-400" />
-                <span className="text-[8px] font-black uppercase tracking-widest text-white/60">{n.categoria}</span>
+                <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white/60">{n.categoria}</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex flex-col items-center justify-center bg-red-600 px-2 py-1.5 rounded-xl min-w-[50px] shadow-lg shadow-red-900/20">
-                <span className="text-[9px] font-black uppercase tracking-tighter opacity-80 leading-none mb-0.5">MAI</span>
-                <span className="text-lg font-black italic tracking-tighter leading-none">{n.data.split(' ')[0]}</span>
+            <div className="flex items-center gap-3 md:gap-5">
+              <div className="flex flex-col items-center justify-center bg-red-600 px-2 py-1.5 md:py-3 rounded-xl min-w-[50px] md:min-w-[70px] shadow-lg shadow-red-900/20">
+                <span className="text-[9px] md:text-xs font-black uppercase tracking-tighter opacity-80 leading-none mb-0.5">MAI</span>
+                <span className="text-lg md:text-2xl font-black italic tracking-tighter leading-none">{n.data.split(' ')[0]}</span>
               </div>
-              <h2 className="text-sm font-black italic uppercase leading-tight pr-12 tracking-tight">
+              <h2 className="text-sm md:text-xl font-black italic uppercase leading-tight pr-12 tracking-tight">
                 {n.titol}
               </h2>
             </div>
             
-            <p className="text-white/50 text-[11px] leading-relaxed font-medium pl-14">
+            <p className="text-white/50 text-[11px] md:text-sm leading-relaxed font-medium pl-14 md:pl-24">
               {n.resum}
             </p>
 
-            <div className="flex items-center gap-2 pl-14 mt-1 opacity-20">
+            <div className="flex items-center gap-2 pl-14 md:pl-24 mt-1 opacity-20">
               <Clock size={10} />
-              <span className="text-[8px] font-bold uppercase tracking-widest">Publicat fa 2 dies</span>
+              <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest">Publicat fa 2 dies</span>
             </div>
           </motion.div>
         ))}
 
-        <div className="mt-8 p-6 bg-amber-400/10 border border-amber-400/20 rounded-3xl flex flex-col items-center text-center gap-3">
+        <div className="mt-8 p-6 bg-amber-400/10 border border-amber-400/20 rounded-3xl flex flex-col items-center text-center gap-3 md:col-span-2">
           <Newspaper size={32} className="text-amber-400 opacity-50" />
           <p className="text-[10px] text-amber-400 font-bold uppercase tracking-widest leading-relaxed">
             Aquestes notícies són clau per a la part de cultura general i actualitat de l'examen. Repassa-les amb freqüència.

@@ -46,7 +46,7 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
           </div>
         </header>
 
-        <main className="w-full max-w-md flex flex-col items-center flex-1">
+        <main className="w-full max-w-md md:max-w-3xl flex flex-col items-center flex-1">
           <EntrevistaGuia onBack={() => setSeccio('principal')} />
         </main>
       </div>
@@ -66,7 +66,7 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
           </div>
         </header>
 
-        <main className="w-full max-w-md flex flex-col items-center flex-1">
+        <main className="w-full max-w-md md:max-w-3xl flex flex-col items-center flex-1">
           <GuiaBiodata 
             seccio={seccioBiodata} 
             setSeccio={setSeccioBiodata}
@@ -104,7 +104,7 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
           </div>
         </header>
 
-        <main className="w-full max-w-md flex flex-col items-center flex-1">
+        <main className="w-full max-w-md md:max-w-3xl flex flex-col items-center flex-1">
           <CompetenciesClau />
         </main>
 
@@ -130,24 +130,24 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
         </p>
       </header>
 
-      <main className="w-full max-w-md flex flex-col gap-2 flex-1">
+      <main className="w-full max-w-md md:max-w-4xl flex flex-col gap-2 md:grid md:grid-cols-2 md:gap-6 flex-1">
         {/* Botó de YouTube inicial - Ara en una sola línia per igualar tamany */}
         <a 
           href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="w-full h-[63.7898px] bg-red-600/90 hover:bg-red-600 border border-white/10 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 group shadow-xl px-6"
+          className="w-full h-[63.7898px] md:h-24 bg-red-600/90 hover:bg-red-600 border border-white/10 rounded-2xl md:rounded-3xl flex items-center justify-center gap-3 md:gap-6 transition-all active:scale-95 group shadow-xl px-6 md:col-span-2"
         >
-          <Youtube size={20} className="text-white fill-white shrink-0" />
-          <span className="text-white font-[900] italic uppercase tracking-widest text-xs">EN QUÈ CONSISTEIX LA PROVA?</span>
+          <Youtube size={20} className="text-white fill-white shrink-0 md:size-8" />
+          <span className="text-white font-[900] italic uppercase tracking-widest text-xs md:text-xl">EN QUÈ CONSISTEIX LA PROVA?</span>
         </a>
 
         {/* Línia gris de separació - Marges reduïts */}
-        <div className="h-[1px] bg-white/10 w-full my-1" />
+        <div className="h-[1px] bg-white/10 w-full my-1 md:col-span-2 md:my-4" />
 
         {/* Label Importantíssim */}
-        <div className="flex justify-center">
-          <span className="text-[10px] text-red-500 font-black uppercase tracking-[0.4em] italic drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+        <div className="flex justify-center md:col-span-2">
+          <span className="text-[10px] md:text-base text-red-500 font-black uppercase tracking-[0.4em] md:tracking-[0.6em] italic drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]">
             IMPORTANTÍSSIM
           </span>
         </div>
@@ -155,24 +155,24 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
         {/* Botó Competències clau */}
         <button 
           onClick={() => setSeccio('competencies')}
-          className="w-full bg-[#1a3a5a]/60 hover:bg-[#1a3a5a]/80 border border-cyan-400/30 rounded-2xl py-6 text-cyan-400 font-black italic uppercase text-xs tracking-widest transition-all active:scale-95 shadow-xl border-dashed"
+          className="w-full bg-[#1a3a5a]/60 hover:bg-[#1a3a5a]/80 border border-cyan-400/30 rounded-2xl md:rounded-3xl py-6 md:py-12 text-cyan-400 font-black italic uppercase text-xs md:text-2xl tracking-widest transition-all active:scale-95 shadow-xl border-dashed md:col-span-2"
         >
           COMPETÈNCIES CLAU
         </button>
 
         {/* Línia gris de separació sol·licitada entre competències i proves - Marges reduïts */}
-        <div className="h-[1px] bg-white/10 w-full my-1" />
+        <div className="h-[1px] bg-white/10 w-full my-1 md:col-span-2 md:my-4" />
 
         <button 
           onClick={() => setSeccio('biodata')}
-          className="w-full bg-[#1a3a5a]/40 hover:bg-[#1a3a5a]/60 border border-white/10 rounded-2xl py-6 text-white font-black italic uppercase text-xs tracking-widest transition-all active:scale-95 shadow-xl"
+          className="w-full bg-[#1a3a5a]/40 hover:bg-[#1a3a5a]/60 border border-white/10 rounded-2xl md:rounded-[2.5rem] py-6 md:py-16 text-white font-black italic uppercase text-xs md:text-2xl tracking-widest transition-all active:scale-95 shadow-xl"
         >
           PROVA - BIODATA
         </button>
 
         <button 
           onClick={() => setSeccio('entrevista')}
-          className="w-full bg-[#1a3a5a]/40 hover:bg-[#1a3a5a]/60 border border-white/10 rounded-2xl py-6 text-white font-black italic uppercase text-xs tracking-widest transition-all active:scale-95 shadow-xl"
+          className="w-full bg-[#1a3a5a]/40 hover:bg-[#1a3a5a]/60 border border-white/10 rounded-2xl md:rounded-[2.5rem] py-6 md:py-16 text-white font-black italic uppercase text-xs md:text-2xl tracking-widest transition-all active:scale-95 shadow-xl"
         >
           PROVA - ENTREVISTA
         </button>

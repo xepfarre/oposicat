@@ -32,7 +32,7 @@ export default function TemariAmbitC({
 
   return (
     <div className="flex min-h-screen w-full flex-col items-center pb-12 px-6 bg-[#00274d] overflow-y-auto">
-      <header className="pt-10 w-full max-w-sm md:max-w-2xl flex items-center gap-4 mb-8">
+      <header className="pt-10 w-full max-w-sm md:max-w-6xl flex items-center gap-4 mb-8">
         <button 
           onClick={onTornar}
           className="p-3 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-white transition-all active:scale-90"
@@ -47,16 +47,19 @@ export default function TemariAmbitC({
         </div>
       </header>
 
-      <main className="w-full max-w-sm md:max-w-2xl">
+      <main className="w-full max-w-sm md:max-w-6xl">
         <div className="bg-black/20 backdrop-blur-sm rounded-3xl border border-white/10 p-2 shadow-2xl">
           {/* Capçaleres de la llista */}
-          <div className="flex px-4 py-3 border-b border-white/5 items-center">
+          <div className="hidden md:flex px-4 py-3 border-b border-white/5 items-center">
+             <span className="flex-1 text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Llistat de Temes oficials</span>
+          </div>
+          <div className="flex md:hidden px-4 py-3 border-b border-white/5 items-center">
             <div className="w-8 mr-4"></div> 
             <span className="flex-1 text-[10px] font-black uppercase tracking-widest text-white/30">Tema</span>
             <span className="w-6 text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Llegit</span>
           </div>
 
-          <ul className="flex flex-col mt-1">
+          <ul className="flex flex-col md:grid md:grid-cols-2 mt-1">
             {temes.map((tema, i) => (
               <React.Fragment key={i}>
                 <motion.li 
@@ -115,7 +118,7 @@ export default function TemariAmbitC({
                 </motion.li>
 
                 {i < temes.length - 1 && (
-                  <div className="mx-6 border-b border-white/5" />
+                  <div className="mx-6 border-b border-white/5 md:hidden" />
                 )}
               </React.Fragment>
             ))}

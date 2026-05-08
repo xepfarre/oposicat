@@ -55,16 +55,19 @@ export default function TemariAmbitA({
         </div>
       </header>
 
-      <main className="w-full max-w-sm md:max-w-2xl">
+      <main className="w-full max-w-sm md:max-w-6xl">
         <div className="bg-black/20 backdrop-blur-sm rounded-3xl border border-white/10 p-2 shadow-2xl">
           {/* Capçaleres de la llista */}
-          <div className="flex px-4 py-3 border-b border-white/5 items-center">
+          <div className="hidden md:flex px-4 py-3 border-b border-white/5 items-center">
+             <span className="flex-1 text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Llistat de Temes oficials</span>
+          </div>
+          <div className="flex md:hidden px-4 py-3 border-b border-white/5 items-center">
             <div className="w-8 mr-4"></div> {/* Espai per al número */}
             <span className="flex-1 text-[10px] font-black uppercase tracking-widest text-white/30">Tema</span>
             <span className="w-6 text-[10px] font-black uppercase tracking-widest text-white/30 text-center">Llegit</span>
           </div>
 
-          <ul className="flex flex-col mt-1">
+          <ul className="flex flex-col md:grid md:grid-cols-2 mt-1">
             {temes.map((tema, i) => (
               <React.Fragment key={i}>
                 <motion.li 
@@ -126,7 +129,7 @@ export default function TemariAmbitA({
                 
                 {/* Línia de separació gris entre temes (exceptuant l'últim) */}
                 {i < temes.length - 1 && (
-                  <div className="mx-6 border-b border-white/5" />
+                  <div className="mx-6 border-b border-white/5 md:hidden" />
                 )}
               </React.Fragment>
             ))}
