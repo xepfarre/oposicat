@@ -27,3 +27,12 @@ if (rootElement) {
     </StrictMode>
   );
 }
+
+// Registre del Service Worker per habilitar el mode APP en mòbils i tablets
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => console.log('SW registrat amb èxit:', registration.scope))
+      .catch(err => console.log('Error en registrar el SW:', err));
+  });
+}

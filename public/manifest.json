@@ -1,0 +1,17 @@
+{
+  "name": "OposiCAT",
+  "short_name": "OposiCAT",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#00274d",
+  "theme_color": "#00274d",
+  "description": "Plataforma de preparació per a oposicions a Catalunya",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
