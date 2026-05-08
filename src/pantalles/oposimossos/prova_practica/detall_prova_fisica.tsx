@@ -5,6 +5,7 @@ import CalculadoraCircuit from "./calculadora_circuit";
 import CalculadoraPress from "./calculadora_press";
 import CalculadoraNavette from "./calculadora_navette";
 import { PlaCourseNavette, PlaCircuitAgilitat, PlaPressBanca } from "./plans_entrenament";
+import { ConsellsCircuitAgilitat, ConsellsPressBanca, ConsellsCourseNavette } from "./consells_tecnics";
 
 interface DetallProvaFisicaProps {
   nom: string;
@@ -28,7 +29,39 @@ export default function DetallProvaFisica({
   color = "emerald-400" 
 }: DetallProvaFisicaProps) {
 
-  const [seccioInterna, setSeccioInterna] = useState<'principal' | 'calculadora' | 'pla'>('principal');
+  const [seccioInterna, setSeccioInterna] = useState<'principal' | 'calculadora' | 'pla' | 'consells'>('principal');
+
+  /* 
+    Funció que renderitza la vista detallada dels consells tècnics per millorar.
+  */
+  const renderContingutConsells = () => {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="bg-white/5 border border-white/10 rounded-[1.5rem] p-4 flex items-center text-left gap-4 shadow-2xl">
+          <div className={`w-12 h-12 shrink-0 rounded-2xl bg-${color}/10 flex items-center justify-center text-${color}`}>
+            <TrendingUp size={24} />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-sm font-black italic uppercase text-white tracking-widest">Guia de Millora</h2>
+            <p className="text-white/40 text-[8px] font-bold uppercase tracking-[0.2em]">Tècniques i consells d'experts</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {nom.toLocaleLowerCase().includes('circuit') && <ConsellsCircuitAgilitat color={color} />}
+          {nom.toLocaleLowerCase().includes('press') && <ConsellsPressBanca color={color} />}
+          {nom.toLocaleLowerCase().includes('navette') && <ConsellsCourseNavette color={color} />}
+        </div>
+
+        <button 
+          onClick={() => setSeccioInterna('principal')}
+          className="mt-4 w-full py-5 rounded-2xl bg-white/5 border border-white/10 text-white/50 font-black uppercase italic tracking-widest hover:text-white transition-all active:scale-95 flex items-center justify-center gap-3"
+        >
+          <ChevronLeft size={20} /> Tornar a la prova
+        </button>
+      </div>
+    );
+  };
 
   /* 
     Funció que renderitza la vista detallada del pla d'entrenament.
@@ -41,17 +74,14 @@ export default function DetallProvaFisica({
 
     return (
       <div className="flex flex-col gap-6">
-        <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 flex flex-col items-center text-center gap-6 shadow-2xl">
-          <div className={`w-20 h-20 rounded-3xl bg-${color}/10 flex items-center justify-center text-${color}`}>
-            <Calendar size={40} />
+        <div className="bg-white/5 border border-white/10 rounded-[1.5rem] p-4 flex items-center text-left gap-4 shadow-2xl">
+          <div className={`w-12 h-12 shrink-0 rounded-2xl bg-${color}/10 flex items-center justify-center text-${color}`}>
+            <Calendar size={24} />
           </div>
-          <div className="flex flex-col gap-2">
-            <h2 className="text-2xl font-black italic uppercase text-white tracking-widest">Pla d'Entrenament</h2>
-            <p className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em]">Guia setmanal personalitzada</p>
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-sm font-black italic uppercase text-white tracking-widest">Pla d'Entrenament</h2>
+            <p className="text-white/40 text-[8px] font-bold uppercase tracking-[0.2em]">Guia setmanal personalitzada</p>
           </div>
-          <p className="text-[11px] text-white/50 leading-relaxed max-w-[250px]">
-            Selecciona la setmana d'entrenament per carregar la teva rutina específica per a la prova de {nom}.
-          </p>
         </div>
 
         <div className="flex flex-col gap-3">
@@ -123,7 +153,10 @@ export default function DetallProvaFisica({
             <div className="flex flex-col gap-3">
               
               {/* 2. COM MILLORAR */}
-              <button className="w-full bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-4 flex items-center gap-5 group transition-all active:scale-95">
+              <button 
+                onClick={() => setSeccioInterna('consells')}
+                className="w-full bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-4 flex items-center gap-5 group transition-all active:scale-95"
+              >
                 <div className={`w-10 h-10 rounded-xl bg-${color}/10 flex items-center justify-center text-${color} group-hover:rotate-12 transition-transform`}>
                   <TrendingUp size={20} />
                 </div>
@@ -180,8 +213,10 @@ export default function DetallProvaFisica({
               <ChevronLeft size={20} /> Tornar a la prova
             </button>
           </div>
-        ) : (
+        ) : seccioInterna === 'pla' ? (
           renderContingutPla()
+        ) : (
+          renderContingutConsells()
         )}
 
       </main>
