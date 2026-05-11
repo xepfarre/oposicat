@@ -27,7 +27,7 @@ export default function EmCostaEstudiar({ onTornar }: { onTornar: () => void }) 
   ];
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center bg-[#00274d] overflow-y-auto pb-12 text-white">
+    <div className="fixed inset-0 h-full w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-12 text-white">
       
       {/* CAPÇALERA */}
       <header className="w-full p-6 flex items-center gap-4 shrink-0 max-w-2xl mx-auto">

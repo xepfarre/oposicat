@@ -25,6 +25,8 @@ import ClassesPremiumInici from './pantalles/oposimossos/prova_teorica/examen_te
 import ClaseLuna from './pantalles/oposimossos/prova_teorica/examen_teoric/clase_luna';
 import ClassesDirecteInici from './pantalles/oposimossos/prova_teorica/examen_teoric/classes_directe_inici';
 import ExamensOficialsPassatsInici from './pantalles/oposimossos/prova_teorica/examen_teoric/examens_oficials_passats_inici';
+import ExamensOposimossosInici from './pantalles/oposimossos/prova_teorica/examen_teoric/examens_oposimossos_inici';
+import ExamenSimuladorMossos from './pantalles/oposimossos/prova_teorica/examen_teoric/examen_simulador_mossos';
 import ExamenPsicotecnicInici from './pantalles/oposimossos/prova_teorica/examen_psicotecnic_inici';
 import ActualitatInici from './pantalles/oposimossos/prova_teorica/actualitat_inici';
 
@@ -42,8 +44,11 @@ export default function App() {
   type Pantalla = 'inici' | 'mossos' | 'prova_teorica' | 'prova_practica' | 'prova_psicologica' | 'examen_teoric' | 'em_costa_estudiar' | 'la_meva_oposicio' | 
     'temari_oficial' | 'temari_ambit_a' | 'temari_ambit_b' | 'temari_ambit_c' | 'detall_tema' | 'lector_contingut' |
     'temari_oposimossos' | 'temari_oposimossos_ambit_a' | 'temari_oposimossos_ambit_b' | 'temari_oposimossos_ambit_c' | 'detall_tema_oposimossos' | 'lector_contingut_oposimossos' |
-    'classes_premium' | 'clase_luna' | 'classes_directe' | 'examens_oficials_passats' | 'examen_psicotecnic' | 'actualitat';
+    'classes_premium' | 'clase_luna' | 'classes_directe' | 'examens_oficials_passats' | 'examen_psicotecnic' | 'actualitat' | 'examens_oposimossos' | 'examens_oposimossos_simulador';
   const [pantalla, setPantalla] = useState<Pantalla>('inici');
+  
+  // Estat per a la configuració del simulador
+  const [simuladorConfig, setSimuladorConfig] = useState<{ num: number, temps: string }>({ num: 30, temps: '45' });
   
   // Estat per a la classe premium seleccionada
   const [classeSeleccionada, setClasseSeleccionada] = useState<{ bloc: string, tema: string, subtema: string } | null>(null);
@@ -183,6 +188,11 @@ export default function App() {
   const handleAnarClassesPremium = () => setPantalla('classes_premium');
   const handleAnarClassesDirecte = () => setPantalla('classes_directe');
   const handleAnarExamensOficialsPassats = () => setPantalla('examens_oficials_passats');
+  const handleAnarExamensOposimossos = () => setPantalla('examens_oposimossos');
+  const handleComencarSimulador = (num: number, temps: string) => {
+    setSimuladorConfig({ num, temps });
+    setPantalla('examens_oposimossos_simulador');
+  };
 
   const handleAnarTemariAmbitA = () => setPantalla('temari_ambit_a');
   const handleAnarTemariAmbitB = () => setPantalla('temari_ambit_b');
@@ -325,6 +335,22 @@ export default function App() {
           onClassesPremium={handleAnarClassesPremium}
           onClassesDirecte={handleAnarClassesDirecte}
           onExamensOficialsPassats={handleAnarExamensOficialsPassats}
+          onExamensOposimossos={handleAnarExamensOposimossos}
+        />
+      )}
+
+      {pantalla === 'examens_oposimossos' && (
+        <ExamensOposimossosInici 
+          onTornar={handleAnarExamenTeoric} 
+          onComencar={handleComencarSimulador}
+        />
+      )}
+
+      {pantalla === 'examens_oposimossos_simulador' && (
+        <ExamenSimuladorMossos 
+          onTornar={handleAnarExamensOposimossos}
+          numPreguntes={simuladorConfig.num}
+          temps={simuladorConfig.temps}
         />
       )}
 

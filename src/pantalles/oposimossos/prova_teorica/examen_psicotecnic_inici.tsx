@@ -37,7 +37,7 @@ export default function ExamenPsicotecnicInici({ onTornar }: { onTornar: () => v
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center bg-[#00274d] overflow-y-auto pb-12">
+    <div className="fixed inset-0 h-full w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-12">
       
       {/* CAPÇALERA */}
       <header className="pt-14 w-full flex flex-col items-center gap-6 pb-6 text-center md:max-w-4xl shrink-0">

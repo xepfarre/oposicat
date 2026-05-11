@@ -13,14 +13,16 @@ export default function ExamenTeoricInici({
   onTemariOposimossos,
   onClassesPremium,
   onClassesDirecte,
-  onExamensOficialsPassats
+  onExamensOficialsPassats,
+  onExamensOposimossos
 }: { 
   onTornar: () => void,
   onTemariOficial: () => void,
   onTemariOposimossos: () => void,
   onClassesPremium: () => void,
   onClassesDirecte: () => void,
-  onExamensOficialsPassats: () => void
+  onExamensOficialsPassats: () => void,
+  onExamensOposimossos: () => void
 }) {
   const [scrolled, setScrolled] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -38,7 +40,7 @@ export default function ExamenTeoricInici({
     { text: "Temari d'OposiMossos", action: onTemariOposimossos },
     { text: "Classes premium", action: onClassesPremium },
     { text: "Classes en directe", action: onClassesDirecte },
-    { text: "Examens d'OposiMossos", action: null },
+    { text: "Examens d'OposiMossos", action: onExamensOposimossos },
     { text: "Examens Oficials passats", action: onExamensOficialsPassats }
   ];
 

@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
 import { ChevronLeft, Plus, X, Utensils, Coffee, Sun, Moon, Apple, Calculator, Check } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
 
 /**
  * COMPONENT: Calculadora de Nutrients
  * Visualitza les kcal i macros restants i permet afegir aliments.
+ * Versió ESTÀTICA (sense animacions).
  */
 
 interface Aliment {
@@ -80,7 +80,7 @@ export default function CalculadoraDieta({ onTornar }: { onTornar: () => void })
         <div className="flex items-center gap-4">
           <button 
             onClick={onTornar} 
-            className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/60 hover:bg-white/10 hover:text-white transition-all active:scale-90 border border-white/10 shrink-0"
+            className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/60 border border-white/10 shrink-0"
           >
             <ChevronLeft size={24} />
           </button>
@@ -122,7 +122,7 @@ export default function CalculadoraDieta({ onTornar }: { onTornar: () => void })
                     strokeDasharray="691"
                     strokeDashoffset={691 - (691 * percentKcal) / 100}
                     strokeLinecap="round"
-                    className="transition-all duration-1000 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                    className="shadow-[0_0_20px_rgba(16,185,129,0.3)]"
                 />
                 <defs>
                     <linearGradient id="emeraldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -134,19 +134,14 @@ export default function CalculadoraDieta({ onTornar }: { onTornar: () => void })
 
             {/* CONTINGUT CENTRAL */}
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-20">
-                <motion.span 
-                  key={restants.kcal}
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="text-6xl font-black italic tracking-tighter text-white drop-shadow-lg"
-                >
+                <span className="text-6xl font-black italic tracking-tighter text-white drop-shadow-lg">
                     {restants.kcal < 0 ? 0 : restants.kcal}
-                </motion.span>
+                </span>
                 <div className="flex flex-col items-center mt-1">
                   <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 leading-none">Kcal restants</span>
                   <div className="h-px w-10 bg-white/10 my-3" />
                   <div className="flex items-center gap-1.5 bg-white/5 py-1 px-3 rounded-full border border-white/5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     <span className="text-[10px] font-bold text-white/50 italic uppercase tracking-wider">{totals.kcal} consumides</span>
                   </div>
                 </div>
@@ -162,9 +157,8 @@ export default function CalculadoraDieta({ onTornar }: { onTornar: () => void })
                     <span className="text-[10px] font-bold text-blue-400">{totals.carbs}g<span className="text-white/20">/{targets.carbs}g</span></span>
                 </div>
                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.min((totals.carbs / targets.carbs) * 100, 100)}%` }}
+                    <div 
+                        style={{ width: `${Math.min((totals.carbs / targets.carbs) * 100, 100)}%` }}
                         className="h-full bg-blue-400 rounded-full"
                     />
                 </div>
@@ -176,9 +170,8 @@ export default function CalculadoraDieta({ onTornar }: { onTornar: () => void })
                     <span className="text-[10px] font-bold text-emerald-400">{totals.protes}g<span className="text-white/20">/{targets.protes}g</span></span>
                 </div>
                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.min((totals.protes / targets.protes) * 100, 100)}%` }}
+                    <div 
+                        style={{ width: `${Math.min((totals.protes / targets.protes) * 100, 100)}%` }}
                         className="h-full bg-emerald-400 rounded-full"
                     />
                 </div>
@@ -190,9 +183,8 @@ export default function CalculadoraDieta({ onTornar }: { onTornar: () => void })
                     <span className="text-[10px] font-bold text-yellow-400">{totals.greixos}g<span className="text-white/20">/{targets.greixos}g</span></span>
                 </div>
                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                    <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.min((totals.greixos / targets.greixos) * 100, 100)}%` }}
+                    <div 
+                        style={{ width: `${Math.min((totals.greixos / targets.greixos) * 100, 100)}%` }}
                         className="h-full bg-yellow-400 rounded-full"
                     />
                 </div>
@@ -230,30 +222,25 @@ export default function CalculadoraDieta({ onTornar }: { onTornar: () => void })
                                 <span className="text-xs font-bold text-white/60">{apatKcal} cal</span>
                                 <button 
                                     onClick={() => setShowAddModal(apat.key)}
-                                    className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center hover:bg-emerald-500 hover:text-[#00274d] transition-all"
+                                    className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/10"
                                 >
                                     <Plus size={16} />
                                 </button>
                             </div>
                         </div>
                         
-                        {/* Llistat d'aliments inserits a l'àpat */}
-                        <AnimatePresence>
-                            {apatAliments.map(alim => (
-                                <motion.div 
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    key={alim.id} 
-                                    className="px-4 pb-3 flex items-center justify-between group"
-                                >
-                                    <div className="pl-11 text-xs text-white/40 italic">{alim.nom}</div>
-                                    <button onClick={() => removeAliment(alim.id)} className="text-red-400/30 hover:text-red-400 transition-colors">
-                                        <X size={12} />
-                                    </button>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
+                        {/* Llistat d'aliments inserits a l'àpat (Sense AnimatePresence) */}
+                        {apatAliments.map(alim => (
+                            <div 
+                                key={alim.id} 
+                                className="px-4 pb-3 flex items-center justify-between group"
+                            >
+                                <div className="pl-11 text-xs text-white/40 italic">{alim.nom}</div>
+                                <button onClick={() => removeAliment(alim.id)} className="text-red-400/30 hover:text-red-400 transition-colors">
+                                    <X size={12} />
+                                </button>
+                            </div>
+                        ))}
                     </div>
                 );
             })}
@@ -261,40 +248,35 @@ export default function CalculadoraDieta({ onTornar }: { onTornar: () => void })
 
       </main>
 
-      {/* MODAL D'AFEGIR (Simulat per simplicitat) */}
-      <AnimatePresence>
-        {showAddModal && (
-            <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
-                <motion.div 
-                    initial={{ y: "100%" }}
-                    animate={{ y: 0 }}
-                    exit={{ y: "100%" }}
-                    className="w-full max-w-md bg-[#00274d] border border-white/10 rounded-t-3xl p-6 pb-12 flex flex-col gap-6 shadow-2xl"
-                >
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-black italic uppercase text-emerald-400">Afegir aliment</h3>
-                        <button onClick={() => setShowAddModal(null)} className="text-white/20 hover:text-white"><X /></button>
-                    </div>
+      {/* MODAL D'AFEGIR (Simulat) */}
+      {showAddModal && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div 
+                  className="w-full max-w-md bg-[#00274d] border border-white/10 rounded-t-3xl p-6 pb-12 flex flex-col gap-6 shadow-2xl"
+              >
+                  <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-black italic uppercase text-emerald-400">Afegir aliment</h3>
+                      <button onClick={() => setShowAddModal(null)} className="text-white/20 hover:text-white"><X /></button>
+                  </div>
 
-                    <div className="grid grid-cols-1 gap-2">
-                        {ALIMENTS_SUGGERITS.map(alim => (
-                            <button 
-                                key={alim.nom}
-                                onClick={() => addAliment(alim, showAddModal)}
-                                className="w-full p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl flex items-center justify-between group text-left transition-all"
-                            >
-                                <div className="flex flex-col">
-                                    <span className="text-sm font-bold text-white/80">{alim.nom}</span>
-                                    <span className="text-[10px] text-white/30 uppercase tracking-widest">{alim.kcal} kcal | C:{alim.carbs} P:{alim.protes} G:{alim.greixos}</span>
-                                </div>
-                                <Plus size={16} className="text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
-                        ))}
-                    </div>
-                </motion.div>
-            </div>
-        )}
-      </AnimatePresence>
+                  <div className="grid grid-cols-1 gap-2">
+                      {ALIMENTS_SUGGERITS.map(alim => (
+                          <button 
+                              key={alim.nom}
+                              onClick={() => addAliment(alim, showAddModal)}
+                              className="w-full p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl flex items-center justify-between group text-left transition-all"
+                          >
+                              <div className="flex flex-col">
+                                  <span className="text-sm font-bold text-white/80">{alim.nom}</span>
+                                  <span className="text-[10px] text-white/30 uppercase tracking-widest">{alim.kcal} kcal | C:{alim.carbs} P:{alim.protes} G:{alim.greixos}</span>
+                              </div>
+                              <Plus size={16} className="text-emerald-400 opacity-100" />
+                          </button>
+                      ))}
+                  </div>
+              </div>
+          </div>
+      )}
 
     </div>
   );

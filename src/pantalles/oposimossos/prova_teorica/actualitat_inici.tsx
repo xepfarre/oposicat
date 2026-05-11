@@ -69,7 +69,7 @@ export default function ActualitatInici({ onTornar }: { onTornar: () => void }) 
     <div 
       ref={scrollContainerRef}
       onScroll={handleContainerScroll}
-      className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-20 px-6" 
+      className="fixed inset-0 h-full w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-20 px-6" 
       style={{ WebkitOverflowScrolling: "touch" }}
     >
       
