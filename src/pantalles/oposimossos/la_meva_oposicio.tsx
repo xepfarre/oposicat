@@ -34,71 +34,76 @@ export default function LaMevaOposicio({
   const percentatgeGlobal = Math.round((estudiatsTotals / totalsTotals) * 100);
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center pb-12 px-6 bg-[#00274d] overflow-y-auto">
+    <div className="fixed inset-0 h-full w-full flex flex-col items-center pb-20 px-6 bg-[#00274d] overflow-y-auto">
       
-      <header className="pt-10 w-full max-w-6xl flex items-center gap-4 mb-8 px-6">
+      <header className="pt-12 w-full max-w-xl flex items-center gap-5 mb-10 shrink-0">
         <button 
           onClick={onTornar}
-          className="p-3 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-white transition-all active:scale-90"
+          className="w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-white transition-all active:scale-90"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={24} />
         </button>
-        <div className="flex-1">
-          <h1 className="text-xl md:text-3xl font-black italic uppercase text-white tracking-widest">
-            El meu <span className="text-amber-400 text-2xl md:text-5xl">Progrés</span>
+        <div className="flex flex-col">
+          <h1 className="text-2xl md:text-4xl font-black italic uppercase text-white tracking-tighter leading-none">
+            El meu <span className="text-yellow-400">Progrés</span>
           </h1>
-          <p className="text-[10px] md:text-sm text-white/50 uppercase tracking-widest">Estat de la preparació del temari</p>
+          <p className="text-[10px] text-white/40 uppercase font-black tracking-[0.2em] mt-1">Estat de la preparació del temari</p>
         </div>
       </header>
 
-      <main className="w-full max-w-6xl flex flex-col md:grid md:grid-cols-2 gap-8 px-6">
+      <main className="w-full max-w-md flex flex-col gap-6">
         
         {/* BLOC 1: PROGRÉS DEL TEMARI */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full bg-black/30 backdrop-blur-md rounded-3xl border border-white/10 p-6 md:p-10 shadow-xl md:col-span-2"
+          className="w-full bg-[#001a33]/60 backdrop-blur-md rounded-[2.5rem] border border-white/10 p-8 shadow-2xl"
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-500/20 rounded-xl border border-blue-500/30">
-                <BookOpen className="text-blue-400" size={24} />
+              <div className="w-14 h-14 bg-blue-500/10 rounded-2xl border border-blue-500/20 flex items-center justify-center">
+                <BookOpen className="text-blue-400" size={28} />
               </div>
               <div>
-                <span className="text-white font-black italic uppercase text-sm tracking-wider block">Temari Oficial</span>
-                <span className="text-white/40 text-[10px] uppercase tracking-tighter">Àmbits A, B i C</span>
+                <span className="text-white font-black italic uppercase text-base tracking-tighter block">Temari Oficial</span>
+                <span className="text-white/30 text-[10px] font-black uppercase tracking-widest">Àmbits A, B i C</span>
               </div>
             </div>
             <div className="text-right">
-              <span className="text-emerald-400 font-black text-2xl italic">{percentatgeGlobal}%</span>
+              <span className="text-emerald-400 font-black text-3xl italic tracking-tighter">{percentatgeGlobal}%</span>
             </div>
           </div>
           
-          <div className="w-full bg-white/5 h-4 rounded-full overflow-hidden border border-white/10 mb-6">
+          <div className="w-full bg-white/5 h-4 rounded-full overflow-hidden border border-white/5 mb-8">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${percentatgeGlobal}%` }}
               transition={{ duration: 1.5, ease: "easeOut" }}
-              className="bg-gradient-to-r from-emerald-500 to-blue-500 h-full rounded-full shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+              className="bg-gradient-to-r from-emerald-500 to-blue-500 h-full rounded-full shadow-[0_0_20px_rgba(16,185,129,0.3)]"
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-2 mb-6 text-center">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-2 text-[10px] uppercase font-black text-white/40 px-2 tracking-widest">
-              <span>Àmbit A: <span className="text-white">{puntsA.estudiats}/{puntsA.totals}</span> punts</span>
-              <div className="hidden md:block w-px h-3 bg-white/10" />
-              <span>Àmbit B: <span className="text-white">{puntsB.estudiats}/{puntsB.totals}</span> punts</span>
-              <div className="hidden md:block w-px h-3 bg-white/10" />
-              <span>Àmbit C: <span className="text-white">{puntsC.estudiats}/{puntsC.totals}</span> punts</span>
+          <div className="flex flex-col gap-3 mb-8">
+            <div className="flex justify-between items-center px-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/30 italic">Àmbit A:</span>
+              <span className="text-xs font-black italic text-white uppercase"><span className="text-emerald-400">{puntsA.estudiats}</span>/{puntsA.totals} Punts</span>
+            </div>
+            <div className="flex justify-between items-center px-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/30 italic">Àmbit B:</span>
+              <span className="text-xs font-black italic text-white uppercase"><span className="text-emerald-400">{puntsB.estudiats}</span>/{puntsB.totals} Punts</span>
+            </div>
+            <div className="flex justify-between items-center px-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/30 italic">Àmbit C:</span>
+              <span className="text-xs font-black italic text-white uppercase"><span className="text-emerald-400">{puntsC.estudiats}</span>/{puntsC.totals} Punts</span>
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <button className="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white/70 text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 group">
-              <span className="group-hover:text-white transition-colors text-center block">Més informació</span>
+          <div className="grid grid-cols-2 gap-3">
+            <button className="py-5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-white/60 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 text-center">
+              Més informació
             </button>
-            <button className="flex-1 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-400 text-[10px] font-black uppercase tracking-[0.1em] transition-all active:scale-95 group">
-              <span className="group-hover:text-emerald-300 transition-colors text-center block">Ajuda'm a millorar</span>
+            <button className="py-5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-2xl text-emerald-400 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 text-center">
+              Ajuda'm a millorar
             </button>
           </div>
         </motion.div>
@@ -108,34 +113,34 @@ export default function LaMevaOposicio({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="w-full bg-black/30 backdrop-blur-md rounded-3xl border border-white/10 p-6 shadow-xl"
+          className="w-full bg-[#001a33]/60 backdrop-blur-md rounded-[2.5rem] border border-white/10 p-8 shadow-2xl"
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-red-500/20 rounded-xl border border-red-500/30">
-                <Target className="text-red-400" size={24} />
+              <div className="w-14 h-14 bg-red-500/10 rounded-2xl border border-red-500/20 flex items-center justify-center">
+                <Target className="text-red-400" size={28} />
               </div>
               <div>
-                <span className="text-white font-black italic uppercase text-sm tracking-wider block">Procés Físic</span>
-                <span className="text-white/40 text-[10px] uppercase tracking-tighter">Circuit, Navette, Banca</span>
+                <span className="text-white font-black italic uppercase text-base tracking-tighter block">Procés Físic</span>
+                <span className="text-white/30 text-[10px] font-black uppercase tracking-widest">Circuit, Navette, Banca</span>
               </div>
             </div>
             <div className="text-right">
-              <span className="text-blue-400 font-black text-2xl italic">66%</span>
+              <span className="text-blue-400 font-black text-3xl italic tracking-tighter">66%</span>
             </div>
           </div>
           
-          <div className="w-full bg-white/5 h-4 rounded-full overflow-hidden border border-white/10 mb-6">
+          <div className="w-full bg-white/5 h-4 rounded-full overflow-hidden border border-white/5 mb-8">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: '66%' }}
               transition={{ duration: 1.5, ease: "easeOut" }}
-              className="bg-gradient-to-r from-red-500 to-blue-500 h-full rounded-full shadow-[0_0_15px_rgba(59,130,246,0.2)]"
+              className="bg-gradient-to-r from-red-500 to-blue-500 h-full rounded-full shadow-[0_0_20px_rgba(59,130,246,0.3)]"
             />
           </div>
 
-          <button className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white/70 text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 group">
-            <span className="group-hover:text-white transition-colors">Més informació</span>
+          <button className="w-full py-5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-white/60 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95">
+            Més informació
           </button>
         </motion.div>
 
@@ -144,42 +149,41 @@ export default function LaMevaOposicio({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="w-full bg-black/30 backdrop-blur-md rounded-3xl border border-white/10 p-6 shadow-xl"
+          className="w-full bg-[#001a33]/60 backdrop-blur-md rounded-[2.5rem] border border-white/10 p-8 shadow-2xl"
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-amber-500/20 rounded-xl border border-amber-500/30">
-                <Calendar className="text-amber-400" size={24} />
+              <div className="w-14 h-14 bg-amber-500/10 rounded-2xl border border-amber-500/20 flex items-center justify-center">
+                <Calendar className="text-amber-400" size={28} />
               </div>
               <div>
-                <span className="text-white font-black italic uppercase text-sm tracking-wider block">Procés Psicotècnic</span>
-                <span className="text-white/40 text-[10px] uppercase tracking-tighter">Raoament i Personalitat</span>
+                <span className="text-white font-black italic uppercase text-base tracking-tighter block">Procés Psicotècnic</span>
+                <span className="text-white/30 text-[10px] font-black uppercase tracking-widest">Raoament i Personalitat</span>
               </div>
             </div>
             <div className="text-right">
-              <span className="text-amber-500 font-black text-2xl italic">40%</span>
+              <span className="text-amber-400 font-black text-3xl italic tracking-tighter">40%</span>
             </div>
           </div>
           
-          <div className="w-full bg-white/5 h-4 rounded-full overflow-hidden border border-white/10 mb-6">
+          <div className="w-full bg-white/5 h-4 rounded-full overflow-hidden border border-white/5 mb-8">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: '40%' }}
               transition={{ duration: 1.5, ease: "easeOut" }}
-              className="bg-gradient-to-r from-amber-500 to-amber-700 h-full rounded-full shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+              className="bg-gradient-to-r from-amber-400 to-amber-700 h-full rounded-full shadow-[0_0_20px_rgba(251,191,36,0.3)]"
             />
           </div>
 
-          <button className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white/70 text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 group">
-            <span className="group-hover:text-white transition-colors">Més informació</span>
+          <button className="w-full py-5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-white/60 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95">
+            Més informació
           </button>
         </motion.div>
 
       </main>
 
-      {/* PEU DE PÀGINA */}
-      <footer className="mt-12 text-center text-white/10 uppercase italic font-bold">
-        <p className="text-[9px] tracking-[0.2em]">OposiCatalunya Track • ISPC 2025</p>
+      <footer className="mt-12 opacity-20">
+        <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white">OposiMossos • Sistema de Progrés</p>
       </footer>
     </div>
   );
