@@ -61,7 +61,7 @@ export default function ProvaFisicaInici({ onTornar }: { onTornar: () => void })
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center bg-[#00274d] overflow-y-auto pb-12">
+    <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20" style={{ WebkitOverflowScrolling: "touch" }}>
       
       {/* CAPÇALERA */}
       <header className="pt-10 w-full flex flex-col items-center gap-4 pb-6 text-center md:max-w-4xl md:mx-auto">
@@ -164,8 +164,8 @@ export default function ProvaFisicaInici({ onTornar }: { onTornar: () => void })
 
       </main>
 
-      {/* PEU DE PÀGINA */}
-      <footer className="w-full max-w-xs flex flex-col items-center gap-6 pt-12">
+      {/* PEU DE PÀGINA: Compactat */}
+      <footer className="w-full max-w-xs flex flex-col items-center gap-4 pt-6 pb-10">
         <button 
           onClick={onTornar}
           className="flex items-center gap-2 group transition-all"
@@ -175,6 +175,9 @@ export default function ProvaFisicaInici({ onTornar }: { onTornar: () => void })
             Tornar al Menú Principal
           </span>
         </button>
+        <p className="text-[8px] font-black uppercase tracking-wider text-white/20 select-none whitespace-nowrap mt-2">
+          Preparació acadèmica per a oposicions de l'ISPC
+        </p>
       </footer>
 
     </div>

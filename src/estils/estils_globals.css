@@ -7,5 +7,15 @@
 body {
   margin: 0;
   padding: 0;
+  background-color: #00274d; /* Color blau fosc corporatiu des de l'inici */
+  min-height: 100vh;
+  /* Evita el color blanc de fons que surt per defecte als navegadors */
+  color: white;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 

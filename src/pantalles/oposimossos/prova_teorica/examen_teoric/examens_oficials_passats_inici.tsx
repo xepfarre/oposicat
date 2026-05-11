@@ -1,3 +1,4 @@
+import React, { useState, useRef } from 'react';
 import { ChevronLeft, FileText } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -6,29 +7,74 @@ import { motion } from "motion/react";
  * Mostra un llistat dels exàmens oficials d'anys anteriors.
  */
 export default function ExamensOficialsPassatsInici({ onTornar }: { onTornar: () => void }) {
+  const [scrolled, setScrolled] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Detectem l'scroll del contenidor per a l'efecte de la capçalera
+  const handleContainerScroll = () => {
+    if (scrollContainerRef.current) {
+      setScrolled(scrollContainerRef.current.scrollTop > 40);
+    }
+  };
   
   // Llista d'anys segons la petició
   const anys = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center pb-12 px-6 bg-[#00274d] overflow-y-auto">
-      
-      {/* CAPÇALERA */}
-      <header className="pt-14 w-full flex flex-col items-center gap-6 shrink-0 text-center mb-8 md:max-w-4xl">
-        <div className="bg-white/5 backdrop-blur-md px-8 py-4 md:py-8 md:px-16 rounded-3xl border border-white/10 shadow-2xl">
-          <h1 className="text-2xl md:text-5xl font-black italic tracking-tighter uppercase">
-            <span className="text-white">Exàmens </span>
-            <span className="text-blue-400">Oficials Passats</span>
-          </h1>
+    <div 
+      ref={scrollContainerRef}
+      onScroll={handleContainerScroll}
+      className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-20 px-6" 
+      style={{ WebkitOverflowScrolling: "touch" }}
+    >
+      {/* CAPÇALERA DINÀMICA I FIXA */}
+      <header 
+        className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-center px-6 ${
+          scrolled 
+          ? 'bg-[#00274d]/90 backdrop-blur-md h-20 border-b border-white/10 shadow-2xl' 
+          : 'bg-transparent h-40'
+        }`}
+        style={{ 
+          paddingTop: "env(safe-area-inset-top)" 
+        }}
+      >
+        <div className="relative w-full max-w-4xl flex items-center justify-center">
+          <button 
+            onClick={onTornar}
+            className={`absolute left-0 p-3 rounded-full border border-white/10 text-white active:scale-90 ${
+              scrolled ? 'bg-white/5 scale-90' : 'bg-white/5'
+            }`}
+          >
+            <ChevronLeft size={scrolled ? 18 : 20} />
+          </button>
+          
+          <div className={`bg-white/5 backdrop-blur-md px-6 py-2 rounded-2xl border border-white/10 ${
+            scrolled ? 'scale-90' : 'scale-100'
+          }`}>
+            <h1 className={`font-black italic tracking-tighter uppercase ${
+              scrolled ? 'text-lg' : 'text-xl md:text-3xl'
+            }`}>
+              <span className="text-white">Exàmens </span>
+              <span className="text-blue-400">Oficials</span>
+            </h1>
+          </div>
         </div>
-        
-        <p className="text-white/60 text-xs md:text-lg font-medium max-w-sm md:max-w-xl leading-relaxed">
-          Mira i posa't a prova amb els exàmens oficials d'altres anys.
-        </p>
       </header>
 
       {/* LLISTAT DE BOTONS D'EXÀMENS */}
-      <main className="w-full max-w-md md:max-w-4xl flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-4">
+      <main 
+        className="w-full md:max-w-4xl flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-4 px-6"
+        style={{ 
+          paddingTop: scrolled 
+            ? "calc(100px + env(safe-area-inset-top))" 
+            : "calc(160px + env(safe-area-inset-top))" 
+        }}
+      >
+        <div className={`col-span-full mb-6 text-center transition-all ${scrolled ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}>
+          <p className="text-white/60 text-xs md:text-lg font-medium max-w-sm md:max-w-xl mx-auto leading-relaxed">
+            Mira i posa't a prova amb els exàmens oficials d'altres anys.
+          </p>
+        </div>
         {anys.map((any, idx) => (
           <motion.button
             key={any}

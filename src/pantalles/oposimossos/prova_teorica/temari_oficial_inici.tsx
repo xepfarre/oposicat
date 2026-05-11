@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, BookOpen, Shield, Landmark } from 'lucide-react';
+import { ChevronLeft, BookOpen, Shield, Landmark } from 'lucide-react';
 
 /**
  * Pantalla del Temari Oficial de Mossos d'Esquadra 2025-2026.
@@ -19,26 +19,81 @@ export default function TemariOficialInici({
   onAmbitC: () => void,
   progres: { A: boolean[], B: boolean[], C: boolean[] }
 }) {
+  const [scrolled, setScrolled] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Detectem l'scroll del contenidor per a l'efecte de la capçalera
+  const handleContainerScroll = () => {
+    if (scrollContainerRef.current) {
+      setScrolled(scrollContainerRef.current.scrollTop > 40);
+    }
+  };
+
   return (
-    <div className="flex min-h-screen w-full flex-col items-center pb-12 px-6 bg-[#00274d] overflow-y-auto">
+    <div 
+      ref={scrollContainerRef}
+      onScroll={handleContainerScroll}
+      className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20"
+      style={{ WebkitOverflowScrolling: "touch" }}
+    >
       
-      {/* CAPÇALERA */}
-      <header className="pt-10 w-full max-w-sm md:max-w-2xl flex items-center gap-4 mb-8">
-        <button 
-          onClick={onTornar}
-          className="p-3 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-white transition-all active:scale-90"
+      {/* CAPÇALERA DINÀMICA */}
+      <header 
+        style={{ 
+          height: scrolled ? "calc(70px + env(safe-area-inset-top))" : "calc(140px + env(safe-area-inset-top))",
+          backgroundColor: scrolled ? "rgba(0, 39, 77, 0.98)" : "rgba(0, 39, 77, 0.5)",
+          borderBottomColor: scrolled ? "rgba(255, 255, 255, 0.1)" : "transparent",
+          paddingTop: "env(safe-area-inset-top)"
+        }}
+        className="fixed top-0 left-0 right-0 z-[100] flex flex-col items-center justify-center border-b px-6 backdrop-blur-md"
+      >
+        <div className="relative w-full flex items-center justify-center max-w-4xl">
+          {/* Botó de retorn */}
+          <button 
+            style={{ transform: scrolled ? "scale(0.95)" : "scale(1)" }}
+            onClick={onTornar}
+            className="absolute left-0 p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-90 shadow-lg text-white"
+          >
+            <ChevronLeft size={24} />
+          </button>
+
+          {/* Logo Temari Oficial */}
+          <div 
+            style={{ transform: scrolled ? "scale(0.85)" : "scale(1)" }}
+            className="bg-black/30 px-6 py-2 rounded-2xl border border-white/10 text-center"
+          >
+            <h1 className="text-2xl font-black italic tracking-tighter select-none whitespace-nowrap leading-none">
+              <span className="text-white">Temari </span>
+              <span className="text-amber-400">Oficial</span>
+            </h1>
+          </div>
+        </div>
+        
+        {/* Informació Convocatòria: S'amaga instantàniament */}
+        <div 
+          style={{ 
+            opacity: scrolled ? 0 : 1,
+            display: scrolled ? 'none' : 'flex',
+            marginTop: "12px"
+          }}
+          className="flex flex-col items-center gap-1"
         >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-xl font-black italic uppercase text-white tracking-widest leading-tight" id="temari-oficial-titol">
-            Temari <span className="text-amber-400">Oficial</span>
-          </h1>
-          <p className="text-[10px] text-white/50 uppercase tracking-widest italic">Convocatòria 2025-2026</p>
+          <p className="text-[10px] text-white/50 uppercase tracking-[0.2em] italic font-black">
+            Convocatòria 2025-2026
+          </p>
+          <div className="h-0.5 w-10 bg-amber-400/50 rounded-full" />
         </div>
       </header>
 
-      <main className="w-full max-w-sm md:max-w-6xl flex flex-col gap-6" id="temari-oficial-main">
+      {/* CONTINGUT PRINCIPAL */}
+      <main 
+        className="w-full md:max-w-6xl flex flex-col gap-6 pb-20 px-6"
+        style={{ 
+          paddingTop: scrolled 
+            ? "calc(90px + env(safe-area-inset-top))" 
+            : "calc(160px + env(safe-area-inset-top))"
+        }}
+      >
         
         {/* Label: Text informatiu corregit i ara groc */}
         <div className="bg-white/5 border border-white/10 rounded-2xl py-3 px-5 shadow-xl md:py-6">
@@ -193,9 +248,9 @@ export default function TemariOficialInici({
         </div>
       </main>
 
-      {/* PEU DE PÀGINA */}
-      <footer className="mt-12 text-center text-white/20">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em]">OposiCatalunya • Temari Oficial</p>
+      {/* PEU DE PÀGINA: Compactat */}
+      <footer className="mt-6 pb-10 text-center text-white/20">
+        <p className="text-[8px] font-black uppercase tracking-[0.2em]">OposiCatalunya • Preparació ISPC</p>
       </footer>
     </div>
   );

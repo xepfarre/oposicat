@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'motion/react';
 import { ChevronLeft, ArrowRight, Check } from 'lucide-react';
 
@@ -10,36 +10,78 @@ export default function AmbitC({
   onSeleccionarTema,
   onToggle 
 }: { 
-  onTornar: () => void,
+  onTornar: () => void, 
   temes: string[],
   progres: boolean[],
   progresDetallat: boolean[][],
   onSeleccionarTema: (index: number) => void,
   onToggle: (index: number, e: React.MouseEvent) => void
 }) {
+  const [scrolled, setScrolled] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Detectem l'scroll del contenidor per a l'efecte de la capçalera
+  const handleContainerScroll = () => {
+    if (scrollContainerRef.current) {
+      setScrolled(scrollContainerRef.current.scrollTop > 40);
+    }
+  };
+
   const handleToggle = (index: number, e: React.MouseEvent) => {
     e.stopPropagation();
     onToggle(index, e);
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center pb-12 px-6 bg-[#00274d] overflow-y-auto">
-      <header className="pt-10 w-full max-w-sm md:max-w-6xl flex items-center gap-4 mb-8">
-        <button 
-          onClick={onTornar}
-          className="p-3 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-white transition-all active:scale-90"
-        >
-          <ChevronLeft size={20} />
-        </button>
-        <div className="flex-1">
-          <span className="text-emerald-400 font-black italic uppercase text-[10px] md:text-sm tracking-widest block mb-1">Àmbit C</span>
-          <h1 className="text-xl md:text-3xl font-black italic uppercase text-white tracking-widest leading-tight">
-            Seguretat i <span className="text-white/60">Policia</span>
-          </h1>
+    <div 
+      ref={scrollContainerRef}
+      onScroll={handleContainerScroll}
+      className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-20 px-6" 
+      style={{ WebkitOverflowScrolling: "touch" }}
+    >
+      {/* CAPÇALERA DINÀMICA I FIXA */}
+      <header 
+        className={`fixed top-0 left-0 right-0 z-50 flex items-center gap-4 px-6 ${
+          scrolled 
+          ? 'bg-[#00274d]/90 backdrop-blur-md h-20 border-b border-white/10 shadow-2xl' 
+          : 'bg-transparent h-32'
+        }`}
+        style={{ 
+          paddingTop: "env(safe-area-inset-top)" 
+        }}
+      >
+        <div className="w-full md:max-w-4xl mx-auto flex items-center gap-4">
+          <button 
+            onClick={onTornar}
+            className={`p-3 rounded-full border border-white/10 text-white active:scale-90 ${
+              scrolled ? 'bg-white/5 scale-90' : 'bg-white/5'
+            }`}
+          >
+            <ChevronLeft size={scrolled ? 18 : 20} />
+          </button>
+          <div className="flex-1">
+            <span className={`text-emerald-400 font-black italic uppercase tracking-widest block ${
+              scrolled ? 'text-[8px]' : 'text-[10px] md:text-sm mb-1'
+            }`}>
+              Àmbit C
+            </span>
+            <h1 className={`font-black italic uppercase text-white tracking-widest leading-tight ${
+              scrolled ? 'text-lg' : 'text-xl md:text-3xl'
+            }`}>
+              Seguretat i <span className="text-white/60">Policia</span>
+            </h1>
+          </div>
         </div>
       </header>
 
-      <main className="w-full max-w-sm md:max-w-6xl flex flex-col gap-4">
+      <main 
+        className="w-full md:max-w-6xl"
+        style={{ 
+          paddingTop: scrolled 
+            ? "calc(90px + env(safe-area-inset-top))" 
+            : "calc(120px + env(safe-area-inset-top))" 
+        }}
+      >
         <div className="bg-black/20 backdrop-blur-sm rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
           <div className="flex px-4 py-3 border-b border-white/5 items-center">
             <div className="w-8 mr-4 md:hidden"></div>

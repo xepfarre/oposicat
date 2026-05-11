@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { ChevronLeft, Calendar, FileText, Globe, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import NoticiesSetmana from "./noticies_setmana";
@@ -10,9 +10,18 @@ import ExamenActualitat from "./examen_actualitat";
  * Pantalla que mostra les opcions d'actualitat: setmana, any i exàmens.
  */
 export default function ActualitatInici({ onTornar }: { onTornar: () => void }) {
+  const [scrolled, setScrolled] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Estat per saber quina secció d'actualitat estem veient
   const [seccio, setSeccio] = useState<'menu' | 'noticies_setmana' | 'rellevant_any' | 'examen_actualitat'>('menu');
+
+  // Detectem l'scroll del contenidor per a l'efecte de la capçalera
+  const handleContainerScroll = () => {
+    if (scrollContainerRef.current) {
+      setScrolled(scrollContainerRef.current.scrollTop > 40);
+    }
+  };
 
   const opcions = [
     { 
@@ -57,26 +66,61 @@ export default function ActualitatInici({ onTornar }: { onTornar: () => void }) 
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center bg-[#00274d] overflow-y-auto pb-12">
+    <div 
+      ref={scrollContainerRef}
+      onScroll={handleContainerScroll}
+      className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-20 px-6" 
+      style={{ WebkitOverflowScrolling: "touch" }}
+    >
       
-      {/* CAPÇALERA */}
-      <header className="pt-14 w-full flex flex-col items-center gap-6 pb-8 text-center px-6">
-        <div className="bg-white/10 backdrop-blur-md px-10 py-4 rounded-3xl shadow-xl border border-white/10">
-          <h1 className="text-2xl font-black italic tracking-tighter uppercase text-white">
-            Actualitat <span className="text-amber-400">ISPC</span>
-          </h1>
+      {/* CAPÇALERA DINÀMICA I FIXA */}
+      <header 
+        className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-center px-6 ${
+          scrolled 
+          ? 'bg-[#00274d]/90 backdrop-blur-md h-20 border-b border-white/10 shadow-2xl' 
+          : 'bg-transparent h-40'
+        }`}
+        style={{ 
+          paddingTop: "env(safe-area-inset-top)" 
+        }}
+      >
+        <div className="relative w-full max-w-4xl flex items-center justify-center">
+          <button 
+            onClick={onTornar}
+            className={`absolute left-0 p-3 rounded-full border border-white/10 text-white active:scale-90 ${
+              scrolled ? 'bg-white/5 scale-90' : 'bg-white/5'
+            }`}
+          >
+            <ChevronLeft size={scrolled ? 18 : 20} />
+          </button>
+          
+          <div className={`bg-white/10 backdrop-blur-md px-10 py-4 rounded-3xl shadow-xl border border-white/10 ${
+            scrolled ? 'scale-90 py-2' : 'scale-100'
+          }`}>
+            <h1 className={`font-black italic tracking-tighter uppercase text-white ${
+              scrolled ? 'text-lg' : 'text-2xl'
+            }`}>
+              Actualitat <span className="text-amber-400">ISPC</span>
+            </h1>
+          </div>
         </div>
-        
+      </header>
+
+      {/* LLISTAT DE BOTONS */}
+      <main 
+        className="w-full md:max-w-6xl flex flex-col md:grid md:grid-cols-3 gap-4"
+        style={{ 
+          paddingTop: scrolled 
+            ? "calc(100px + env(safe-area-inset-top))" 
+            : "calc(160px + env(safe-area-inset-top))" 
+        }}
+      >
         {/* LABEL GROC SOL·LICITAT */}
-        <div className="max-w-[300px]">
+        <div className={`col-span-full mb-6 mx-auto max-w-[300px] text-center transition-all ${scrolled ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}>
           <p className="text-amber-400 text-xs font-bold leading-relaxed shadow-sm">
             "Troba aqui les noticies me rellevants de l'ultima setmana, les coses mes rellevants de l'ultim any o l'eina de practica d'actualitat."
           </p>
         </div>
-      </header>
-
-      {/* LLISTA DE BOTONS */}
-      <main className="w-full max-w-md md:max-w-6xl px-6 flex flex-col md:grid md:grid-cols-3 gap-4 md:py-8">
         {opcions.map((opc, index) => (
           <motion.button
             key={index}

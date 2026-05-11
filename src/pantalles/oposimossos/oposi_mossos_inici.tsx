@@ -20,7 +20,10 @@ export default function OposiMossosInici({
 }) {
   
   return (
-    <div className="flex min-h-screen w-full flex-col items-center pb-6 px-10 bg-[#00274d] overflow-y-auto">
+    <div 
+      className="fixed inset-0 w-full bg-[#00274d] overflow-y-auto flex flex-col items-center px-6 pb-20"
+      style={{ WebkitOverflowScrolling: "touch" }}
+    >
       
       {/* CAPÇALERA */}
       <header className="pt-14 w-full flex flex-col items-center gap-6 shrink-0 mb-2">
@@ -40,7 +43,7 @@ export default function OposiMossosInici({
           ZONA DELS BOTONS: 
           En mòbil una columna, en tauletes (md:) podem jugar amb l'espai.
       */}
-      <main className="w-full max-w-sm md:max-w-4xl flex flex-col gap-4">
+      <main className="w-full md:max-w-4xl flex flex-col gap-4">
         
         {/* Bloc 0: Accés directe (Dividit en 2: 60% Oposició / 40% Web) */}
         <div className="flex w-full gap-4">
@@ -126,10 +129,21 @@ export default function OposiMossosInici({
             </span>
           </button>
         </div>
+
+        {/* BOTÓ PER TORNAR AL SEL·LECTOR (Més prim i discret) */}
+        <button 
+          onClick={onTornar}
+          className="mt-6 w-full py-2 flex items-center justify-center gap-2 border border-white/10 rounded-xl bg-white/5 hover:bg-white/10 transition-all active:scale-95 group"
+        >
+          <ChevronLeft className="w-4 h-4 text-white/60 group-hover:text-white transition-colors" />
+          <span className="text-white/60 group-hover:text-white font-black italic text-[10px] uppercase tracking-widest transition-colors">
+            Tornar al sel·lector d'APP's
+          </span>
+        </button>
       </main>
 
       {/* PEU DE PÀGINA */}
-      <footer className="w-full max-w-xs flex flex-col items-center gap-6 mt-8 shrink-0">
+      <footer className="w-full max-w-xs flex flex-col items-center gap-2 mt-4 shrink-0 px-6">
         <p className="text-[9px] font-black uppercase tracking-wider text-white opacity-80 select-none whitespace-nowrap">
           Preparació acadèmica per a oposicions de l'ISPC
         </p>

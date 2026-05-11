@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Check } from 'lucide-react';
 import { TEMARI_DETALL } from '../../../../constants/temari';
@@ -19,7 +19,16 @@ export default function TemariAmbitC({
   progresDetallat?: Record<number, boolean[]>,
   onToggle: (i: number) => void
 }) {
+  const [scrolled, setScrolled] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const temes = TEMARI_DETALL.C.map(t => t.titol);
+
+  // Detectem l'scroll del contenidor per a l'efecte de la capçalera
+  const handleContainerScroll = () => {
+    if (scrollContainerRef.current) {
+      setScrolled(scrollContainerRef.current.scrollTop > 40);
+    }
+  };
 
   const handleToggle = (index: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -31,23 +40,55 @@ export default function TemariAmbitC({
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center pb-12 px-6 bg-[#00274d] overflow-y-auto">
-      <header className="pt-10 w-full max-w-sm md:max-w-6xl flex items-center gap-4 mb-8">
-        <button 
-          onClick={onTornar}
-          className="p-3 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-white transition-all active:scale-90"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-xl font-black italic uppercase text-white tracking-widest leading-tight">
-            Àmbit <span className="text-emerald-400">C</span>
-          </h1>
-          <p className="text-[10px] text-white/50 uppercase tracking-widest italic">Seguretat i Policia</p>
+    <div 
+      ref={scrollContainerRef}
+      onScroll={handleContainerScroll}
+      className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-20 px-6" 
+      style={{ WebkitOverflowScrolling: "touch" }}
+    >
+      {/* CAPÇALERA DINÀMICA I FIXA */}
+      <header 
+        className={`fixed top-0 left-0 right-0 z-50 flex items-center gap-4 px-6 ${
+          scrolled 
+          ? 'bg-[#00274d]/90 backdrop-blur-md h-20 border-b border-white/10 shadow-2xl' 
+          : 'bg-transparent h-32'
+        }`}
+        style={{ 
+          paddingTop: "env(safe-area-inset-top)" 
+        }}
+      >
+        <div className="w-full md:max-w-4xl mx-auto flex items-center gap-4">
+          <button 
+            onClick={onTornar}
+            className={`p-3 rounded-full border border-white/10 text-white active:scale-90 ${
+              scrolled ? 'bg-white/5 scale-90' : 'bg-white/5'
+            }`}
+          >
+            <ArrowLeft size={scrolled ? 18 : 20} />
+          </button>
+          <div className="flex-1">
+            <h1 className={`font-black italic uppercase text-white tracking-widest leading-tight ${
+              scrolled ? 'text-lg' : 'text-xl'
+            }`}>
+              Àmbit <span className="text-emerald-400">C</span>
+            </h1>
+            <p className={`text-white/50 uppercase tracking-widest italic ${
+              scrolled ? 'text-[8px]' : 'text-[10px]'
+            }`}>
+              Seguretat i Policia
+            </p>
+          </div>
         </div>
       </header>
 
-      <main className="w-full max-w-sm md:max-w-6xl">
+      <main 
+        className="w-full md:max-w-6xl"
+        style={{ 
+          paddingTop: scrolled 
+            ? "calc(90px + env(safe-area-inset-top))" 
+            : "calc(120px + env(safe-area-inset-top))" 
+        }}
+      >
         <div className="bg-black/20 backdrop-blur-sm rounded-3xl border border-white/10 p-2 shadow-2xl">
           {/* Capçaleres de la llista */}
           <div className="hidden md:flex px-4 py-3 border-b border-white/5 items-center">

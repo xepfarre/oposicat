@@ -35,7 +35,7 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
 
   if (seccio === 'entrevista') {
     return (
-      <div className="flex min-h-screen w-full flex-col items-center pb-8 px-10 bg-[#00274d] overflow-y-auto">
+      <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20" style={{ WebkitOverflowScrolling: "touch" }}>
         <header className="pt-8 w-full flex flex-col items-center shrink-0">
           <HeaderTeorica />
           
@@ -46,7 +46,7 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
           </div>
         </header>
 
-        <main className="w-full max-w-md md:max-w-3xl flex flex-col items-center flex-1">
+        <main className="w-full max-w-md md:max-w-3xl flex flex-col items-center">
           <EntrevistaGuia onBack={() => setSeccio('principal')} />
         </main>
       </div>
@@ -55,7 +55,7 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
 
   if (seccio === 'biodata') {
     return (
-      <div className="flex min-h-screen w-full flex-col items-center pb-8 px-10 bg-[#00274d] overflow-y-auto">
+      <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20" style={{ WebkitOverflowScrolling: "touch" }}>
         <header className="pt-8 w-full flex flex-col items-center shrink-0">
           <HeaderTeorica />
           
@@ -73,7 +73,7 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
           />
         </main>
 
-        <footer className="w-full max-w-xs flex flex-col items-center gap-6 mt-auto pt-10 shrink-0">
+        <footer className="w-full max-w-xs flex flex-col items-center gap-4 pb-10 mt-8 shrink-0 px-6">
           <button 
             onClick={() => {
               if (seccioBiodata === 'menu') {
@@ -86,6 +86,9 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
           >
             <ChevronLeft size={16} /> {seccioBiodata === 'menu' ? 'TORNAR AL MENÚ' : 'TORNAR AL MENÚ BIODATA'}
           </button>
+          <p className="text-[8px] font-black uppercase tracking-wider text-white/10 select-none whitespace-nowrap">
+            Preparació acadèmica per a oposicions de l'ISPC
+          </p>
         </footer>
       </div>
     );
@@ -93,7 +96,7 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
 
   if (seccio === 'competencies') {
     return (
-      <div className="flex min-h-screen w-full flex-col items-center pb-8 px-10 bg-[#00274d] overflow-y-auto">
+      <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20" style={{ WebkitOverflowScrolling: "touch" }}>
         <header className="pt-8 w-full flex flex-col items-center shrink-0">
           <HeaderTeorica />
           
@@ -108,20 +111,23 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
           <CompetenciesClau />
         </main>
 
-        <footer className="w-full max-w-xs flex flex-col items-center gap-6 mt-auto pt-10 shrink-0">
+        <footer className="w-full max-w-xs flex flex-col items-center gap-4 pb-10 mt-8 shrink-0 px-6">
           <button 
             onClick={() => setSeccio('principal')}
             className="flex items-center gap-3 text-white/40 hover:text-white transition-all uppercase italic font-black text-[10px] tracking-[0.2em]"
           >
             <ChevronLeft size={16} /> TORNAR AL MENÚ
           </button>
+          <p className="text-[8px] font-black uppercase tracking-wider text-white/10 select-none whitespace-nowrap">
+            Preparació acadèmica per a oposicions de l'ISPC
+          </p>
         </footer>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center pb-8 px-10 bg-[#00274d] overflow-y-auto">
+    <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20" style={{ WebkitOverflowScrolling: "touch" }}>
       <header className="pt-8 w-full flex flex-col items-center shrink-0">
         <HeaderTeorica />
         
@@ -178,13 +184,16 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
         </button>
       </main>
 
-      <footer className="w-full max-w-xs flex flex-col items-center gap-6 mt-auto pt-10 shrink-0">
+      <footer className="w-full max-w-xs flex flex-col items-center gap-4 pb-10 mt-8 shrink-0 px-6">
         <button 
           onClick={onTornar}
           className="flex items-center gap-3 text-white/40 hover:text-white transition-all uppercase italic font-black text-[10px] tracking-[0.2em]"
         >
           <ChevronLeft size={16} /> TORNAR AL MENÚ
         </button>
+        <p className="text-[8px] font-black uppercase tracking-wider text-white/10 select-none whitespace-nowrap">
+          Preparació acadèmica per a oposicions de l'ISPC
+        </p>
       </footer>
     </div>
   );

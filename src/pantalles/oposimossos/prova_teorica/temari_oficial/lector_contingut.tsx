@@ -92,27 +92,27 @@ export default function LectorContingut({
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center pb-32 bg-[#00274d] overflow-y-auto relative">
+    <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-20 px-6" style={{ WebkitOverflowScrolling: "touch" }}>
       {/* CAPÇALERA FIXA - MÉS NETA I CENTRADA */}
-      <header className="sticky top-0 z-30 w-full bg-[#00274d]/80 backdrop-blur-md border-b border-white/10 px-6 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-30 w-full bg-[#00274d]/80 backdrop-blur-md border-b border-white/10 px-6 py-4 flex items-center gap-4">
         <button 
           onClick={onTornar}
-          className="p-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-white transition-all active:scale-90"
+          className="shrink-0 p-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-white active:scale-90"
         >
           <ArrowLeft size={18} />
         </button>
         
-        <div className="absolute inset-x-0 flex justify-center pointer-events-none">
-          <h1 className="text-[10px] font-black uppercase text-amber-400 tracking-[0.2em] px-12 text-center truncate">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-[8px] md:text-[10px] font-black uppercase text-amber-400 tracking-[0.1em] text-center line-clamp-2 leading-tight">
             {subtitol}
           </h1>
         </div>
 
-        {/* Espaiador per mantenir el títol centrat si calgués afegir un botó a la dreta en el futur */}
-        <div className="w-9" />
+        {/* Espaiador per mantenir equilibri visual */}
+        <div className="w-9 shrink-0 flex justify-center" />
       </header>
 
-      <main className="w-full max-w-sm md:max-w-4xl px-6 pt-10 md:pt-20">
+      <main className="w-full md:max-w-4xl pt-10 md:pt-20">
         {/* 1. EL TÍTOL GRAN DINS LA PÀGINA */}
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
