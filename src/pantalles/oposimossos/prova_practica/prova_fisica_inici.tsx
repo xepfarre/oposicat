@@ -3,6 +3,7 @@ import { ChevronLeft, MapPin, Apple, ArrowRight, Timer, Activity, Weight } from 
 import { motion } from "motion/react";
 import OnEntrenarInici from "./on_entrenar_inici";
 import DetallProvaFisica from "./detall_prova_fisica";
+import Dieta from "./dieta";
 
 type TipusProva = 'circuit' | 'press' | 'navette';
 
@@ -13,11 +14,16 @@ type TipusProva = 'circuit' | 'press' | 'navette';
 export default function ProvaFisicaInici({ onTornar }: { onTornar: () => void }) {
   
   // Estat per gestionar la sub-pantalla interna
-  const [seccio, setSeccio] = useState<'menu' | 'on_entrenar' | TipusProva>('menu');
+  const [seccio, setSeccio] = useState<'menu' | 'on_entrenar' | 'dieta' | TipusProva>('menu');
 
   // Si estem veient la part de trobar on entrenar
   if (seccio === 'on_entrenar') {
     return <OnEntrenarInici onTornar={() => setSeccio('menu')} />;
+  }
+
+  // Si estem a la secció de dieta
+  if (seccio === 'dieta') {
+    return <Dieta onTornar={() => setSeccio('menu')} />;
   }
 
   // Detalls individuals de cada prova
@@ -89,7 +95,10 @@ export default function ProvaFisicaInici({ onTornar }: { onTornar: () => void })
         
         {/* SECCIÓ SUPERIOR: DIETA I ENTRENAMENT */}
         <div className="grid grid-cols-2 gap-3 md:gap-6">
-          <button className="flex flex-col items-center justify-center gap-2 md:gap-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-3 md:p-8 transition-all active:scale-95 group shadow-lg">
+          <button 
+            onClick={() => setSeccio('dieta')}
+            className="flex flex-col items-center justify-center gap-2 md:gap-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-3 md:p-8 transition-all active:scale-95 group shadow-lg"
+          >
             <div className="w-9 h-9 md:w-16 md:h-16 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform">
               <Apple size={20} className="md:size-8" />
             </div>
