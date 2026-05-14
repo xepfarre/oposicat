@@ -6,7 +6,13 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
  * Versió: 1.1.0
  * Disseny rígid per a mòbil: sense scroll, colors canviants i jerarquia clara.
  */
-export default function Pantalla_Inici({ onEntrar }: { onEntrar: (nom: string) => void }) {
+export default function Pantalla_Inici({ 
+  onEntrar, 
+  onAdminClick 
+}: { 
+  onEntrar: (nom: string) => void;
+  onAdminClick: () => void;
+}) {
   const [index, setIndex] = useState(0);
 
   const dades = [
@@ -126,8 +132,14 @@ export default function Pantalla_Inici({ onEntrar }: { onEntrar: (nom: string) =
         <p className={`text-[9px] font-black uppercase tracking-wider opacity-80 select-none whitespace-nowrap ${cos.dark ? 'text-black' : 'text-white'}`}>
           Preparació acadèmica per a oposicions de l'ISPC
         </p>
-      </footer>
 
+        <button 
+          onClick={onAdminClick}
+          className="text-[8px] font-bold text-white/5 uppercase tracking-widest hover:text-white/20 transition-colors mt-2"
+        >
+          Accés Intern
+        </button>
+      </footer>
     </div>
   );
 }

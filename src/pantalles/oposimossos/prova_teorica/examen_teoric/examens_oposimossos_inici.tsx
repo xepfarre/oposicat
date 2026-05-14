@@ -12,7 +12,7 @@ export default function ExamensOposimossosInici({
   onComencar 
 }: { 
   onTornar: () => void;
-  onComencar: (num: number, temps: string) => void;
+  onComencar: (num: number, temps: string, seleccions: { [key: string]: number[] }) => void;
 }) {
   // Estats per a la selecció de l'usuari
   const [tab, setTab] = useState<'errades' | 'examen'>('examen');
@@ -242,7 +242,7 @@ export default function ExamensOposimossosInici({
             <button 
               onClick={() => {
                 setShowConfig(false);
-                onComencar(numPreguntes, temps);
+                onComencar(numPreguntes, temps, seleccions);
               }}
               className="w-full bg-emerald-500 hover:bg-emerald-400 text-[#00274d] rounded-xl py-4 font-black italic uppercase tracking-[0.2em] text-sm shadow-xl shadow-emerald-500/20 transition-all active:scale-95"
             >

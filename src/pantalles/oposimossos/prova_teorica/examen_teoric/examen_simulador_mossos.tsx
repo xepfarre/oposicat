@@ -1,95 +1,89 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft, Check, X, RefreshCw, Trophy, Brain } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { db } from "../../../../lib/firebase";
+import { collection, getDocs, query, collectionGroup } from "firebase/firestore";
 
 /**
  * PANTALLA: ExamenSimuladorMossos
  * Simulador de test d'OposiMossos basat en l'estètica d'Examen Actualitat.
  */
 interface Question {
-  id: number;
+  id: string | number;
   pregunta: string;
   opcions: string[];
   correcta: number;
   explicacio: string;
+  ambit?: string;
+  tema?: number;
+  capitol?: number;
+  status?: 'activa' | 'suspesa';
 }
 
 export default function ExamenSimuladorMossos({ 
   onTornar, 
   numPreguntes, 
-  temps 
+  temps,
+  seleccions
 }: { 
   onTornar: () => void;
   numPreguntes: number;
   temps: string;
+  seleccions: { [key: string]: number[] };
 }) {
+  const [preguntes, setPreguntes] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  // Preguntes simulades per mostrar l'eina
-  const totesLesPreguntes: Question[] = [
-    {
-      id: 1,
-      pregunta: "Segons l'Estatut d'Autonomia de Catalunya, quina institució té la competència exclusiva en matèria de protecció de persones i béns i manteniment de l'ordre públic?",
-      opcions: [
-        "El Ministeri de l'Interior.",
-        "La Generalitat de Catalunya (Mossos d'Esquadra).",
-        "La Guardia Civil en coordinació amb la Policia Nacional.",
-        "Els ajuntaments a través de la Guàrdia Urbana."
-      ],
-      correcta: 1,
-      explicacio: "L'Estatut atorga a la Generalitat la competència per a la creació i l'organització d'una policia autonòmica."
-    },
-    {
-      id: 2,
-      pregunta: "Quin article de la Constitució Espanyola de 1978 estableix que les forces i cossos de seguretat tenen com a missió protegir el lliure exercici dels drets i llibertats?",
-      opcions: [
-        "Article 1.",
-        "Article 55.",
-        "Article 104.",
-        "Article 149."
-      ],
-      correcta: 2,
-      explicacio: "L'article 104 defineix la missió primordial de les Forces i Cossos de Seguretat sota la dependència del Govern."
-    },
-    {
-      id: 3,
-      pregunta: "En quin any es va refundar el cos de Mossos d'Esquadra com a policia de la Generalitat de Catalunya durant la democràcia?",
-      opcions: [
-        "1975",
-        "1983",
-        "1994",
-        "2005"
-      ],
-      correcta: 1,
-      explicacio: "La Llei 19/1983 va ser la base per a la creació definitiva del cos modern dels Mossos d'Esquadra."
-    },
-    {
-      id: 4,
-      pregunta: "Quin és el principi d'actuació que obliga a l'ús de la força només quan sigui estrictament necessari i en la mesura adequada?",
-      opcions: [
-        "Principi de jerarquia.",
-        "Principi de proporcionalitat.",
-        "Principi de celeritat.",
-        "Principi d'oportunitat política."
-      ],
-      correcta: 1,
-      explicacio: "La congruència, l'oportunitat i la proporcionalitat són els pilars de l'ús de la força policial."
-    },
-    {
-      id: 5,
-      pregunta: "A quin àmbit del temari pertany l'estudi de la Unió Europea i les seves institucions?",
-      opcions: [
-        "Àmbit A (Coneixements de l'entorn).",
-        "Àmbit B (Institucional).",
-        "Àmbit C (Seguretat i Policia).",
-        "No forma part del temari de Mossos."
-      ],
-      correcta: 1,
-      explicacio: "L'Àmbit B se centra en les institucions, incloent la Constitució, l'Estatut i la Unió Europea."
-    }
-  ];
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      setLoading(true);
+      try {
+        // Consultem en paral·lel nova estructura i antiga
+        const [snapNew, snapOld] = await Promise.all([
+          getDocs(query(collectionGroup(db, "preguntes_codificades"))),
+          getDocs(collection(db, "examens/mossos/preguntes"))
+        ]);
+        
+        const listNew = snapNew.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question));
+        const listOld = snapOld.docs.map(doc => ({ id: doc.id, ...doc.data() } as Question));
+        
+        let list = [...listNew, ...listOld];
+        
+        // 1. Filtrar només actives
+        list = list.filter(q => q.status !== 'suspesa');
 
-  // Seleccionem només el número de preguntes demanat (o el màxim disponible)
-  const preguntes = totesLesPreguntes.slice(0, numPreguntes);
+        // 2. Filtrar per selecció d'àmbit i tema feta a la UI
+        const teSeleccions = Object.values(seleccions).some(arr => arr.length > 0);
+        
+        if (teSeleccions) {
+          list = list.filter(q => {
+            const ambit = q.ambit || 'A';
+            const tema = q.tema !== undefined ? q.tema + 1 : null;
+            
+            // Si l'àmbit de la pregunta no té cap tema seleccionat, la descartem
+            if (!seleccions[ambit] || seleccions[ambit].length === 0) return false;
+            
+            // Si el tema de la pregunta està en la llista de seleccionats d'aquell àmbit
+            return tema !== null && seleccions[ambit].includes(tema);
+          });
+        }
+
+        if (list.length === 0) {
+          setPreguntes([]);
+        } else {
+          // Barrejar preguntes aleatòriament i agafar el número sol·licitat
+          const shuffled = [...list].sort(() => 0.5 - Math.random());
+          setPreguntes(shuffled.slice(0, numPreguntes));
+        }
+      } catch (error) {
+        console.error("Error carregant preguntes:", error);
+        setPreguntes([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchQuestions();
+  }, [numPreguntes, seleccions]);
 
   const [preguntaActual, setPreguntaActual] = useState(0);
   const [respostaSeleccionada, setRespostaSeleccionada] = useState<number | null>(null);
@@ -120,6 +114,24 @@ export default function ExamenSimuladorMossos({
     setFinalitzat(false);
   };
 
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-[#001a33] z-[200] flex flex-col items-center justify-center p-10 text-center gap-8">
+         <motion.div 
+           animate={{ rotate: 360 }}
+           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+           className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full shadow-lg shadow-emerald-500/20"
+         />
+         <div className="flex flex-col gap-3">
+            <h2 className="text-xl font-black italic uppercase tracking-tighter text-white">Comprovant les preguntes mes noves d'Oposimossos</h2>
+            <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] leading-relaxed max-w-xs animate-pulse">
+               Descarregant contingut...
+            </p>
+         </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-12 text-white z-50">
       
@@ -142,7 +154,26 @@ export default function ExamenSimuladorMossos({
         </div>
       </header>
 
-      <main className="w-full max-w-md md:max-w-4xl px-6 flex flex-col gap-6 md:py-8">
+      {preguntes.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-10 text-center gap-6">
+           <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
+              <RefreshCw size={32} className="text-white/20" />
+           </div>
+           <div className="flex flex-col gap-2">
+              <h2 className="text-xl font-black italic uppercase tracking-tighter text-white">Banc de preguntes buit</h2>
+              <p className="text-white/40 text-xs font-bold uppercase tracking-widest leading-relaxed max-w-xs">
+                 No hem trobat preguntes actives per a la teva selecció. Prova de seleccionar altres temes o blocs.
+              </p>
+           </div>
+           <button 
+             onClick={onTornar}
+             className="px-8 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+           >
+             Tornar a la selecció
+           </button>
+        </div>
+      ) : (
+        <main className="w-full max-w-md md:max-w-4xl px-6 flex flex-col gap-6 md:py-8">
         
         <AnimatePresence mode="wait">
           {!finalitzat ? (
@@ -156,9 +187,9 @@ export default function ExamenSimuladorMossos({
               {/* Progrés */}
               <div className="flex items-center justify-between px-2">
                  <span className="text-white/30 text-[10px] font-black uppercase tracking-widest">Pregunta {preguntaActual + 1} de {preguntes.length}</span>
-                 <div className="flex gap-1">
+                 <div className="flex gap-1 overflow-hidden max-w-[100px]">
                     {preguntes.map((_, i) => (
-                      <div key={i} className={`w-4 h-1 rounded-full ${i === preguntaActual ? 'bg-yellow-400' : i < preguntaActual ? 'bg-emerald-500' : 'bg-white/10'}`} />
+                      <div key={i} className={`min-w-[4px] h-1 rounded-full ${i === preguntaActual ? 'bg-yellow-400 w-4' : i < preguntaActual ? 'bg-emerald-500' : 'bg-white/10'}`} />
                     ))}
                  </div>
               </div>
@@ -281,6 +312,7 @@ export default function ExamenSimuladorMossos({
         </div>
 
       </main>
+      )}
 
     </div>
   );

@@ -29,6 +29,12 @@ import ExamensOposimossosInici from './pantalles/oposimossos/prova_teorica/exame
 import ExamenSimuladorMossos from './pantalles/oposimossos/prova_teorica/examen_teoric/examen_simulador_mossos';
 import ExamenPsicotecnicInici from './pantalles/oposimossos/prova_teorica/examen_psicotecnic_inici';
 import ActualitatInici from './pantalles/oposimossos/prova_teorica/actualitat_inici';
+import AdminPanel from './pantalles/admin/AdminPanel';
+import AdminLogin from './pantalles/admin/AdminLogin';
+import { auth } from './lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { useEffect } from 'react';
+import { Routes, Route } from 'react-router-dom';
 
 import { TEMARI_DETALL } from './constants/temari';
 import { CONTINGUT_TEMARI_TEXTS } from './constants/contingut_textos';
@@ -47,8 +53,27 @@ export default function App() {
     'classes_premium' | 'clase_luna' | 'classes_directe' | 'examens_oficials_passats' | 'examen_psicotecnic' | 'actualitat' | 'examens_oposimossos' | 'examens_oposimossos_simulador';
   const [pantalla, setPantalla] = useState<Pantalla>('inici');
   
+  // Estats per al Backoffice
+  const [mode, setMode] = useState<'app' | 'admin'>('app');
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+    });
+    return () => unsub();
+  }, []);
+  
   // Estat per a la configuració del simulador
-  const [simuladorConfig, setSimuladorConfig] = useState<{ num: number, temps: string }>({ num: 30, temps: '45' });
+  const [simuladorConfig, setSimuladorConfig] = useState<{ 
+    num: number, 
+    temps: string, 
+    seleccions: { [key: string]: number[] } 
+  }>({ 
+    num: 30, 
+    temps: '45', 
+    seleccions: { A: [], B: [], C: [] } 
+  });
   
   // Estat per a la classe premium seleccionada
   const [classeSeleccionada, setClasseSeleccionada] = useState<{ bloc: string, tema: string, subtema: string } | null>(null);
@@ -189,8 +214,8 @@ export default function App() {
   const handleAnarClassesDirecte = () => setPantalla('classes_directe');
   const handleAnarExamensOficialsPassats = () => setPantalla('examens_oficials_passats');
   const handleAnarExamensOposimossos = () => setPantalla('examens_oposimossos');
-  const handleComencarSimulador = (num: number, temps: string) => {
-    setSimuladorConfig({ num, temps });
+  const handleComencarSimulador = (num: number, temps: string, seleccions: { [key: string]: number[] }) => {
+    setSimuladorConfig({ num, temps, seleccions });
     setPantalla('examens_oposimossos_simulador');
   };
 
@@ -231,264 +256,275 @@ export default function App() {
   const handleTornarMossos = () => setPantalla('mossos');
   const handleAnarLaMevaOposicio = () => setPantalla('la_meva_oposicio');
 
+  // Gestió Backoffice
+  const handleSortirBackoffice = () => window.location.href = "/";
+
   return (
-    <>
-      {pantalla === 'inici' && (
-        <Pantalla_Inici onEntrar={handleEntrar} />
-      )}
-      
-      {pantalla === 'mossos' && (
-        <OposiMossosInici 
-          onTornar={handleTornarInici} 
-          onProvaTeorica={handleAnarTeorica}
-          onProvaPractica={handleAnarPractica}
-          onProvaPsicologica={handleAnarPsicologica}
-          onLaMevaOposicio={handleAnarLaMevaOposicio}
-        />
-      )}
+    <Routes>
+      {/* RUTA DE GESTIÓ: Backoffice Web (Bypass temporal segons petició) */}
+      <Route path="/admin/*" element={<AdminPanel onExit={handleSortirBackoffice} />} />
 
-      {pantalla === 'prova_teorica' && (
-        <ProvaTeoricaInici 
-          onTornar={handleTornarMossos} 
-          onExamenTeoric={handleAnarExamenTeoric}
-          onExamenPsicotecnic={handleAnarExamenPsicotecnic}
-          onActualitat={handleAnarActualitat}
-          onEmCostaEstudiar={handleAnarEmCostaEstudiar}
-        />
-      )}
+      {/* RUTA DE L'APP: Experiència d'usuari (actual) */}
+      <Route path="*" element={
+        <div className="contents">
+          {pantalla === 'inici' && (
+            <Pantalla_Inici onEntrar={handleEntrar} onAdminClick={() => window.location.href = "/admin"} />
+          )}
+          
+          {pantalla === 'mossos' && (
+            <OposiMossosInici 
+              onTornar={handleTornarInici} 
+              onProvaTeorica={handleAnarTeorica}
+              onProvaPractica={handleAnarPractica}
+              onProvaPsicologica={handleAnarPsicologica}
+              onLaMevaOposicio={handleAnarLaMevaOposicio}
+            />
+          )}
 
-      {pantalla === 'temari_oficial' && (
-        <TemariOficialInici 
-          onTornar={handleAnarExamenTeoric} 
-          onAmbitA={handleAnarTemariAmbitA}
-          onAmbitB={handleAnarTemariAmbitB}
-          onAmbitC={handleAnarTemariAmbitC}
-          progres={progres}
-        />
-      )}
+          {pantalla === 'prova_teorica' && (
+            <ProvaTeoricaInici 
+              onTornar={handleTornarMossos} 
+              onExamenTeoric={handleAnarExamenTeoric}
+              onExamenPsicotecnic={handleAnarExamenPsicotecnic}
+              onActualitat={handleAnarActualitat}
+              onEmCostaEstudiar={handleAnarEmCostaEstudiar}
+            />
+          )}
 
-      {pantalla === 'temari_ambit_a' && (
-        <TemariAmbitA 
-          onTornar={handleAnarTemariOficial} 
-          onTemaSeleccionat={(i) => handleSeleccionarTema('A', i)}
-          progres={progres.A}
-          progresDetallat={progres.detall.A}
-          onToggle={(i) => toggleTemaLlegit('A', i)}
-        />
-      )}
+          {pantalla === 'temari_oficial' && (
+            <TemariOficialInici 
+              onTornar={handleAnarExamenTeoric} 
+              onAmbitA={handleAnarTemariAmbitA}
+              onAmbitB={handleAnarTemariAmbitB}
+              onAmbitC={handleAnarTemariAmbitC}
+              progres={progres}
+            />
+          )}
 
-      {pantalla === 'temari_ambit_b' && (
-        <TemariAmbitB 
-          onTornar={handleAnarTemariOficial} 
-          onTemaSeleccionat={(i) => handleSeleccionarTema('B', i)}
-          progres={progres.B}
-          progresDetallat={progres.detall.B}
-          onToggle={(i) => toggleTemaLlegit('B', i)}
-        />
-      )}
+          {pantalla === 'temari_ambit_a' && (
+            <TemariAmbitA 
+              onTornar={handleAnarTemariOficial} 
+              onTemaSeleccionat={(i) => handleSeleccionarTema('A', i)}
+              progres={progres.A}
+              progresDetallat={progres.detall.A}
+              onToggle={(i) => toggleTemaLlegit('A', i)}
+            />
+          )}
 
-      {pantalla === 'temari_ambit_c' && (
-        <TemariAmbitC 
-          onTornar={handleAnarTemariOficial} 
-          onTemaSeleccionat={(i) => handleSeleccionarTema('C', i)}
-          progres={progres.C}
-          progresDetallat={progres.detall.C}
-          onToggle={(i) => toggleTemaLlegit('C', i)}
-        />
-      )}
+          {pantalla === 'temari_ambit_b' && (
+            <TemariAmbitB 
+              onTornar={handleAnarTemariOficial} 
+              onTemaSeleccionat={(i) => handleSeleccionarTema('B', i)}
+              progres={progres.B}
+              progresDetallat={progres.detall.B}
+              onToggle={(i) => toggleTemaLlegit('B', i)}
+            />
+          )}
 
-      {pantalla === 'detall_tema' && temaSeleccionat && (
-        <DetallTemaGeneric 
-          titol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].titol}
-          ambit={temaSeleccionat.ambit}
-          subtemes={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].subtemes}
-          progres={progres.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A]}
-          onTornar={handleTornarDeDetall}
-          onToggle={(subIdx) => toggleSubtemaLlegit(temaSeleccionat.ambit, temaSeleccionat.index, subIdx)}
-          onSubtemaClick={(subIdx) => handleSeleccionarSubtema(subIdx)}
-        />
-      )}
+          {pantalla === 'temari_ambit_c' && (
+            <TemariAmbitC 
+              onTornar={handleAnarTemariOficial} 
+              onTemaSeleccionat={(i) => handleSeleccionarTema('C', i)}
+              progres={progres.C}
+              progresDetallat={progres.detall.C}
+              onToggle={(i) => toggleTemaLlegit('C', i)}
+            />
+          )}
 
-      {pantalla === 'lector_contingut' && temaSeleccionat && subtemaSeleccionat !== null && (
-        <LectorContingut 
-          titol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].subtemes[subtemaSeleccionat]}
-          subtitol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].titol}
-          index={subtemaSeleccionat + 1}
-          contingutOriginal={CONTINGUT_TEMARI_TEXTS[temaSeleccionat.ambit]?.[temaSeleccionat.index]?.[subtemaSeleccionat] || ""}
-          contingutDesat={progres.contingutPersonalitzat[`${temaSeleccionat.ambit}-${temaSeleccionat.index}-${subtemaSeleccionat}`]}
-          completat={progres.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A][subtemaSeleccionat]}
-          onTornar={handleTornarDeLector}
-          onGuardarContingut={(html) => guardarContingutPersonalitzat(temaSeleccionat.ambit, temaSeleccionat.index, subtemaSeleccionat, html)}
-          onMarcarCompletat={() => {
-            if (!progres.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A][subtemaSeleccionat]) {
-              toggleSubtemaLlegit(temaSeleccionat.ambit, temaSeleccionat.index, subtemaSeleccionat);
-            }
-          }}
-        />
-      )}
+          {pantalla === 'detall_tema' && temaSeleccionat && (
+            <DetallTemaGeneric 
+              titol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].titol}
+              ambit={temaSeleccionat.ambit}
+              subtemes={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].subtemes}
+              progres={progres.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A]}
+              onTornar={handleTornarDeDetall}
+              onToggle={(subIdx) => toggleSubtemaLlegit(temaSeleccionat.ambit, temaSeleccionat.index, subIdx)}
+              onSubtemaClick={(subIdx) => handleSeleccionarSubtema(subIdx)}
+            />
+          )}
 
-      {pantalla === 'examen_teoric' && (
-        <ExamenTeoricInici 
-          onTornar={handleAnarTeorica} 
-          onTemariOficial={handleAnarTemariOficial}
-          onTemariOposimossos={handleAnarTemariOposimossos}
-          onClassesPremium={handleAnarClassesPremium}
-          onClassesDirecte={handleAnarClassesDirecte}
-          onExamensOficialsPassats={handleAnarExamensOficialsPassats}
-          onExamensOposimossos={handleAnarExamensOposimossos}
-        />
-      )}
+          {pantalla === 'lector_contingut' && temaSeleccionat && subtemaSeleccionat !== null && (
+            <LectorContingut 
+              titol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].subtemes[subtemaSeleccionat]}
+              subtitol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].titol}
+              index={subtemaSeleccionat + 1}
+              contingutOriginal={CONTINGUT_TEMARI_TEXTS[temaSeleccionat.ambit]?.[temaSeleccionat.index]?.[subtemaSeleccionat] || ""}
+              contingutDesat={progres.contingutPersonalitzat[`${temaSeleccionat.ambit}-${temaSeleccionat.index}-${subtemaSeleccionat}`]}
+              completat={progres.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A][subtemaSeleccionat]}
+              onTornar={handleTornarDeLector}
+              onGuardarContingut={(html) => guardarContingutPersonalitzat(temaSeleccionat.ambit, temaSeleccionat.index, subtemaSeleccionat, html)}
+              onMarcarCompletat={() => {
+                if (!progres.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A][subtemaSeleccionat]) {
+                  toggleSubtemaLlegit(temaSeleccionat.ambit, temaSeleccionat.index, subtemaSeleccionat);
+                }
+              }}
+            />
+          )}
 
-      {pantalla === 'examens_oposimossos' && (
-        <ExamensOposimossosInici 
-          onTornar={handleAnarExamenTeoric} 
-          onComencar={handleComencarSimulador}
-        />
-      )}
+          {pantalla === 'examen_teoric' && (
+            <ExamenTeoricInici 
+              onTornar={handleAnarTeorica} 
+              onTemariOficial={handleAnarTemariOficial}
+              onTemariOposimossos={handleAnarTemariOposimossos}
+              onClassesPremium={handleAnarClassesPremium}
+              onClassesDirecte={handleAnarClassesDirecte}
+              onExamensOficialsPassats={handleAnarExamensOficialsPassats}
+              onExamensOposimossos={handleAnarExamensOposimossos}
+            />
+          )}
 
-      {pantalla === 'examens_oposimossos_simulador' && (
-        <ExamenSimuladorMossos 
-          onTornar={handleAnarExamensOposimossos}
-          numPreguntes={simuladorConfig.num}
-          temps={simuladorConfig.temps}
-        />
-      )}
+          {pantalla === 'examens_oposimossos' && (
+            <ExamensOposimossosInici 
+              onTornar={handleAnarExamenTeoric} 
+              onComencar={handleComencarSimulador}
+            />
+          )}
 
-      {pantalla === 'classes_premium' && (
-        <ClassesPremiumInici 
-          onTornar={handleAnarExamenTeoric} 
-          onSeleccionarClasse={(classeInfo) => {
-            setClasseSeleccionada(classeInfo);
-            setPantalla('clase_luna');
-          }}
-        />
-      )}
+          {pantalla === 'examens_oposimossos_simulador' && (
+            <ExamenSimuladorMossos 
+              onTornar={handleAnarExamensOposimossos}
+              numPreguntes={simuladorConfig.num}
+              temps={simuladorConfig.temps}
+              seleccions={simuladorConfig.seleccions}
+            />
+          )}
 
-      {pantalla === 'clase_luna' && classeSeleccionada && (
-        <ClaseLuna 
-          onTornar={handleAnarClassesPremium} 
-          bloc={classeSeleccionada.bloc}
-          tema={classeSeleccionada.tema}
-          subtema={classeSeleccionada.subtema}
-        />
-      )}
+          {pantalla === 'classes_premium' && (
+            <ClassesPremiumInici 
+              onTornar={handleAnarExamenTeoric} 
+              onSeleccionarClasse={(classeInfo) => {
+                setClasseSeleccionada(classeInfo);
+                setPantalla('clase_luna');
+              }}
+            />
+          )}
 
-      {pantalla === 'classes_directe' && (
-        <ClassesDirecteInici onTornar={handleAnarExamenTeoric} />
-      )}
+          {pantalla === 'clase_luna' && classeSeleccionada && (
+            <ClaseLuna 
+              onTornar={handleAnarClassesPremium} 
+              bloc={classeSeleccionada.bloc}
+              tema={classeSeleccionada.tema}
+              subtema={classeSeleccionada.subtema}
+            />
+          )}
 
-      {pantalla === 'examens_oficials_passats' && (
-        <ExamensOficialsPassatsInici onTornar={handleAnarExamenTeoric} />
-      )}
+          {pantalla === 'classes_directe' && (
+            <ClassesDirecteInici onTornar={handleAnarExamenTeoric} />
+          )}
 
-      {pantalla === 'examen_psicotecnic' && (
-        <ExamenPsicotecnicInici onTornar={handleAnarTeorica} />
-      )}
+          {pantalla === 'examens_oficials_passats' && (
+            <ExamensOficialsPassatsInici onTornar={handleAnarExamenTeoric} />
+          )}
 
-      {pantalla === 'actualitat' && (
-        <ActualitatInici onTornar={handleAnarTeorica} />
-      )}
+          {pantalla === 'examen_psicotecnic' && (
+            <ExamenPsicotecnicInici onTornar={handleAnarTeorica} />
+          )}
 
-      {/* RUTES TEMARI OPOSIMOSSOS */}
-      {pantalla === 'temari_oposimossos' && (
-        <TemariOposimossosInici 
-          onTornar={handleAnarExamenTeoric} 
-          onAmbitA={handleAnarOposiAmbitA}
-          onAmbitB={handleAnarOposiAmbitB}
-          onAmbitC={handleAnarOposiAmbitC}
-          progres={progres.oposimossos}
-        />
-      )}
+          {pantalla === 'actualitat' && (
+            <ActualitatInici onTornar={handleAnarTeorica} />
+          )}
 
-      {pantalla === 'temari_oposimossos_ambit_a' && (
-        <OposiAmbitA 
-          onTornar={() => setPantalla('temari_oposimossos')} 
-          temes={Object.keys(TEMARI_DETALL.A).map(k => TEMARI_DETALL.A[k as any].titol)}
-          onSeleccionarTema={(i) => handleSeleccionarTema('A', i, 'oposimossos')}
-          progres={progres.oposimossos.A}
-          progresDetallat={Object.values(progres.oposimossos.detall.A)}
-          onToggle={(i) => toggleTemaLlegit('A', i, 'oposimossos')}
-        />
-      )}
+          {pantalla === 'temari_oposimossos' && (
+            <TemariOposimossosInici 
+              onTornar={handleAnarExamenTeoric} 
+              onAmbitA={handleAnarOposiAmbitA}
+              onAmbitB={handleAnarOposiAmbitB}
+              onAmbitC={handleAnarOposiAmbitC}
+              progres={progres.oposimossos}
+            />
+          )}
 
-      {pantalla === 'temari_oposimossos_ambit_b' && (
-        <OposiAmbitB 
-          onTornar={() => setPantalla('temari_oposimossos')} 
-          temes={Object.keys(TEMARI_DETALL.B).map(k => TEMARI_DETALL.B[k as any].titol)}
-          onSeleccionarTema={(i) => handleSeleccionarTema('B', i, 'oposimossos')}
-          progres={progres.oposimossos.B}
-          progresDetallat={Object.values(progres.oposimossos.detall.B)}
-          onToggle={(i) => toggleTemaLlegit('B', i, 'oposimossos')}
-        />
-      )}
+          {pantalla === 'temari_oposimossos_ambit_a' && (
+            <OposiAmbitA 
+              onTornar={() => setPantalla('temari_oposimossos')} 
+              temes={Object.keys(TEMARI_DETALL.A).map(k => TEMARI_DETALL.A[k as any].titol)}
+              onSeleccionarTema={(i) => handleSeleccionarTema('A', i, 'oposimossos')}
+              progres={progres.oposimossos.A}
+              progresDetallat={Object.values(progres.oposimossos.detall.A)}
+              onToggle={(i) => toggleTemaLlegit('A', i, 'oposimossos')}
+            />
+          )}
 
-      {pantalla === 'temari_oposimossos_ambit_c' && (
-        <OposiAmbitC 
-          onTornar={() => setPantalla('temari_oposimossos')} 
-          temes={Object.keys(TEMARI_DETALL.C).map(k => TEMARI_DETALL.C[k as any].titol)}
-          onSeleccionarTema={(i) => handleSeleccionarTema('C', i, 'oposimossos')}
-          progres={progres.oposimossos.C}
-          progresDetallat={Object.values(progres.oposimossos.detall.C)}
-          onToggle={(i) => toggleTemaLlegit('C', i, 'oposimossos')}
-        />
-      )}
+          {pantalla === 'temari_oposimossos_ambit_b' && (
+            <OposiAmbitB 
+              onTornar={() => setPantalla('temari_oposimossos')} 
+              temes={Object.keys(TEMARI_DETALL.B).map(k => TEMARI_DETALL.B[k as any].titol)}
+              onSeleccionarTema={(i) => handleSeleccionarTema('B', i, 'oposimossos')}
+              progres={progres.oposimossos.B}
+              progresDetallat={Object.values(progres.oposimossos.detall.B)}
+              onToggle={(i) => toggleTemaLlegit('B', i, 'oposimossos')}
+            />
+          )}
 
-      {pantalla === 'detall_tema_oposimossos' && temaSeleccionat && (
-        <DetallTemaOposimossos 
-          ambitNom={`ÀMBIT ${temaSeleccionat.ambit}`}
-          temaTitol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].titol}
-          subtemes={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].subtemes}
-          progres={progres.oposimossos.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A]}
-          onTornar={handleTornarDeDetall}
-          onToggle={(subIdx) => toggleSubtemaLlegit(temaSeleccionat.ambit, temaSeleccionat.index, subIdx, 'oposimossos')}
-          onSeleccionarSubtema={(subIdx) => handleSeleccionarSubtema(subIdx, 'oposimossos')}
-        />
-      )}
+          {pantalla === 'temari_oposimossos_ambit_c' && (
+            <OposiAmbitC 
+              onTornar={() => setPantalla('temari_oposimossos')} 
+              temes={Object.keys(TEMARI_DETALL.C).map(k => TEMARI_DETALL.C[k as any].titol)}
+              onSeleccionarTema={(i) => handleSeleccionarTema('C', i, 'oposimossos')}
+              progres={progres.oposimossos.C}
+              progresDetallat={Object.values(progres.oposimossos.detall.C)}
+              onToggle={(i) => toggleTemaLlegit('C', i, 'oposimossos')}
+            />
+          )}
 
-      {pantalla === 'lector_contingut_oposimossos' && temaSeleccionat && subtemaSeleccionat !== null && (
-        <LectorOposimossos 
-          ambitNom={`ÀMBIT ${temaSeleccionat.ambit}`}
-          temaTitol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].titol}
-          puntTitol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].subtemes[subtemaSeleccionat]}
-          contingutMd={
-            temaSeleccionat.ambit === 'A' && temaSeleccionat.index === 0 && subtemaSeleccionat === 0
-            ? `### 1.1.1. L'Antiguitat a Catalunya (Context)
+          {pantalla === 'detall_tema_oposimossos' && temaSeleccionat && (
+            <DetallTemaOposimossos 
+              ambitNom={`ÀMBIT ${temaSeleccionat.ambit}`}
+              temaTitol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].titol}
+              subtemes={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].subtemes}
+              progres={progres.oposimossos.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A]}
+              onTornar={handleTornarDeDetall}
+              onToggle={(subIdx) => toggleSubtemaLlegit(temaSeleccionat.ambit, temaSeleccionat.index, subIdx, 'oposimossos')}
+              onSeleccionarSubtema={(subIdx) => handleSeleccionarSubtema(subIdx, 'oposimossos')}
+            />
+          )}
+
+          {pantalla === 'lector_contingut_oposimossos' && temaSeleccionat && subtemaSeleccionat !== null && (
+            <LectorOposimossos 
+              ambitNom={`ÀMBIT ${temaSeleccionat.ambit}`}
+              temaTitol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].titol}
+              puntTitol={TEMARI_DETALL[temaSeleccionat.ambit][temaSeleccionat.index].subtemes[subtemaSeleccionat]}
+              contingutMd={
+                temaSeleccionat.ambit === 'A' && temaSeleccionat.index === 0 && subtemaSeleccionat === 0
+                ? `### 1.1.1. L'Antiguitat a Catalunya (Context)
 
 *   **Vicens i Vives** defineix Catalunya com → **Redòs i passadís**.
 *   Les dues restes humanes més antigues de Catalunya són ↓
     *   **La més antiga**: L'home de Talteüll - 450.000 anys.
     *   **La segona**: La mandíbula de Banyoles.`
-            : "*Estat actual: En fase de blindatge. Properament trobaràs aquí el resum optimitzat d'OposiMossos.*"
-          }
-          contingutOficialHTML={progres.contingutPersonalitzat[`${temaSeleccionat.ambit}-${temaSeleccionat.index}-${subtemaSeleccionat}`]}
-          completat={progres.oposimossos.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A][subtemaSeleccionat]}
-          onTornar={handleTornarDeLector}
-          onMarcarCompletat={() => {
-            if (!progres.oposimossos.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A][subtemaSeleccionat]) {
-              toggleSubtemaLlegit(temaSeleccionat.ambit, temaSeleccionat.index, subtemaSeleccionat, 'oposimossos');
-            }
-          }}
-        />
-      )}
+                : "*Estat actual: En fase de blindatge. Properament trobaràs aquí el resum optimitzat d'OposiMossos.*"
+              }
+              contingutOficialHTML={progres.contingutPersonalitzat[`${temaSeleccionat.ambit}-${temaSeleccionat.index}-${subtemaSeleccionat}`]}
+              completat={progres.oposimossos.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A][subtemaSeleccionat]}
+              onTornar={handleTornarDeLector}
+              onMarcarCompletat={() => {
+                if (!progres.oposimossos.detall[temaSeleccionat.ambit][temaSeleccionat.index as keyof typeof progres.detall.A][subtemaSeleccionat]) {
+                  toggleSubtemaLlegit(temaSeleccionat.ambit, temaSeleccionat.index, subtemaSeleccionat, 'oposimossos');
+                }
+              }}
+            />
+          )}
 
-      {pantalla === 'em_costa_estudiar' && (
-        <EmCostaEstudiarInici onTornar={handleAnarTeorica} />
-      )}
+          {pantalla === 'em_costa_estudiar' && (
+            <EmCostaEstudiarInici onTornar={handleAnarTeorica} />
+          )}
 
-      {pantalla === 'prova_practica' && (
-        <ProvaFisicaInici onTornar={handleTornarMossos} />
-      )}
+          {pantalla === 'prova_practica' && (
+            <ProvaFisicaInici onTornar={handleTornarMossos} />
+          )}
 
-      {pantalla === 'prova_psicologica' && (
-        <ProvaPsicologicaInici onTornar={handleTornarMossos} />
-      )}
+          {pantalla === 'prova_psicologica' && (
+            <ProvaPsicologicaInici onTornar={handleTornarMossos} />
+          )}
 
-      {pantalla === 'la_meva_oposicio' && (
-        <LaMevaOposicio 
-          onTornar={handleTornarMossos} 
-          progresDetallat={progres.detall}
-        />
-      )}
-    </>
+          {pantalla === 'la_meva_oposicio' && (
+            <LaMevaOposicio 
+              onTornar={handleTornarMossos} 
+              progresDetallat={progres.detall}
+            />
+          )}
+        </div>
+      } />
+    </Routes>
   );
 }

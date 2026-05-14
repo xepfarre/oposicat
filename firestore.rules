@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == "xepfarre@gmail.com" ||
+        request.auth.token.email == "sergivinu@gmail.com" ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 1. Preguntes (Estructura antiga i nova via collectionGroup)
+    match /{path=**}/preguntes_codificades/{questionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /examens/mossos/preguntes/{questionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 2. Actualitat
+    match /actualitat/{newsId} {
+      allow read: if true;
+      allow write: if isAdmin();
+
+      function isValidNews(data) {
+        return data.titol is string && data.titol.size() < 200 &&
+               data.descripcio is string &&
+               data.categoria is string;
+      }
+
+      allow create: if isAdmin() && isValidNews(request.resource.data);
+      allow update: if isAdmin() && isValidNews(request.resource.data);
+    }
+    
+    // 3. Admins collection
+    match /admins/{userId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Només via consola o script inicial
+    }
+
+    // 4. Gimnasos
+    match /gimnasos/{gymId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 5. Reserves Psicologia
+    match /reserves_psicologia/{resId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.usuariId == request.auth.uid);
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (isSignedIn() && resource.data.usuariId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // 6. Subscripcions
+    match /subscripcions/{subId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.usuariId == request.auth.uid);
+      allow write: if isAdmin();
+    }
+  }
+}

@@ -8,6 +8,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 // Importem la pantalla que veiem al principi (Ruta senzilla com a la imatge)
+import { BrowserRouter } from 'react-router-dom';
 import App from './App.tsx';
 
 // Importem el disseny i els estils globals (Ruta senzilla com a la imatge)
@@ -23,7 +24,9 @@ if (rootElement) {
   const root = createRoot(rootElement);
   root.render(
     <StrictMode>
-      <App />
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
     </StrictMode>
   );
 }

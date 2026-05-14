@@ -1,85 +1,111 @@
+import { useState, useEffect } from "react";
 import { ChevronLeft, Newspaper, Clock, Tag } from "lucide-react";
 import { motion } from "motion/react";
+import { db } from "../../../lib/firebase";
+import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 
 /**
  * PANTALLA: NoticiesSetmana
  * Mostra una llista de les 10 notícies més rellevants de l'última setmana.
  */
 export default function NoticiesSetmana({ onTornar }: { onTornar: () => void }) {
+  const [noticies, setNoticies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
   // 10 notícies d'actualitat simulades (període maig 2026 segons context)
-  const noticies = [
+  const fallbackNoticies = [
     {
-      id: 1,
+      id: "f1",
       data: "07 Mai",
       categoria: "Societat",
       titol: "Catalunya entra en fase de pre-alerta per sequera després d'un abril sec",
-      resum: "L'Agència Catalana de l'Aigua monitoritza els embassaments que es troben al 35% de la seva capacitat."
+      descripcio: "L'Agència Catalana de l'Aigua monitoritza els embassaments que es troben al 35% de la seva capacitat."
     },
     {
-      id: 2,
+      id: "f2",
       data: "06 Mai",
       categoria: "Seguretat",
       titol: "Nou pla de seguretat per al Mobile World Congress 2026",
-      resum: "Interior confirma un desplegament especial de Mossos d'Esquadra per garantir la seguretat en l'esdeveniment tecnològic."
+      descripcio: "Interior confirma un desplegament especial de Mossos d'Esquadra per garantir la seguretat en l'esdeveniment tecnològic."
     },
     {
-      id: 3,
+      id: "f3",
       data: "05 Mai",
       categoria: "Política",
       titol: "El Parlament aprova la nova llei d'habitatge per limitar preus en zones tenses",
-      resum: "La normativa busca frenar l'escalada de preus de lloguer a l'àrea metropolitana de Barcelona."
+      descripcio: "La normativa busca frenar l'escalada de preus de lloguer a l'àrea metropolitana de Barcelona."
     },
     {
-      id: 4,
+      id: "f4",
       data: "04 Mai",
       categoria: "Economia",
       titol: "L'atur baixa a Catalunya per tercer mes consecutiu",
-      resum: "Les dades de maig mostren una forta recuperació en el sector serveis i hostaleria."
+      descripcio: "Les dades de maig mostren una forta recuperació en el sector serveis i hostaleria."
     },
     {
-      id: 5,
+      id: "f5",
       data: "03 Mai",
       categoria: "Tecnologia",
       titol: "Barcelona inaugura el nou hub d'Intel·ligència Artificial del sud d'Europa",
-      resum: "El centre preveu crear més de 1.000 llocs de treball d'alta qualificació en els propers dos anys."
+      descripcio: "El centre preveu crear més de 1.000 llocs de treball d'alta qualificació en els propers dos anys."
     },
     {
-      id: 6,
+      id: "f6",
       data: "02 Mai",
       categoria: "Cultura",
       titol: "Sant Jordi 2026 bat rècords de vendes de llibres en català",
-      resum: "El Gremi de Llibreters confirma un increment del 15% respecte a l'any anterior."
+      descripcio: "El Gremi de Llibreters confirma un increment del 15% respecte a l'any anterior."
     },
     {
-      id: 7,
+      id: "f7",
       data: "01 Mai",
       categoria: "Infraestructures",
       titol: "Les obres de la L9 del Metro entren en la seva fase final a Sarrià",
-      resum: "Es preveu que el tram central estigui operatiu a principis de l'any vinent."
+      descripcio: "Es preveu que el tram central estigui operatiu a principis de l'any vinent."
     },
     {
-      id: 8,
+      id: "f8",
       data: "30 Abr",
       categoria: "Medi Ambient",
       titol: "Protecció Civil demana precaució davant les primeres onades de calor",
-      resum: "S'activen els protocols d'informació a la gent gran i col·lectius vulnerables."
+      descripcio: "S'activen els protocols d'informació a la gent gran i col·lectius vulnerables."
     },
     {
-      id: 9,
+      id: "f9",
       data: "29 Abr",
       categoria: "Esports",
       titol: "El Barça femení es proclama campió de lliga per cinquena vegada consecutiva",
-      resum: "L'equip manté la seva hegemonia en el futbol estatal amb una temporada gairebé perfecta."
+      descripcio: "L'equip manté la seva hegemonia en el futbol estatal amb una temporada gairebé perfecta."
     },
     {
-      id: 10,
+      id: "f10",
       data: "28 Abr",
       categoria: "Sanitat",
       titol: "Salut implanta el nou sistema de recepta electrònica universal",
-      resum: "El sistema permetrà retirar medicaments a qualsevol farmàcia de la Unió Europea amb el codi QR."
+      descripcio: "El sistema permetrà retirar medicaments a qualsevol farmàcia de la Unió Europea amb el codi QR."
     }
   ];
+
+  useEffect(() => {
+    const fetchNoticies = async () => {
+      try {
+        const q = query(collection(db, "actualitat"), orderBy("createdAt", "desc"), limit(20));
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+          setNoticies(fallbackNoticies);
+        } else {
+          setNoticies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        }
+      } catch (error) {
+        console.error("Error carregant notícies:", error);
+        setNoticies(fallbackNoticies);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNoticies();
+  }, []);
 
   return (
     <div className="flex min-h-screen w-full flex-col items-center bg-[#00274d] overflow-y-auto pb-12 text-white">
@@ -104,7 +130,11 @@ export default function NoticiesSetmana({ onTornar }: { onTornar: () => void }) 
 
       {/* LLISTA DE NOTÍCIES */}
       <main className="w-full max-w-md md:max-w-6xl px-6 flex flex-col md:grid md:grid-cols-2 gap-4 md:gap-x-8 md:gap-y-6 md:py-8">
-        {noticies.map((n, index) => (
+        {loading ? (
+          <div className="col-span-full py-20 flex justify-center">
+             <div className="w-8 h-8 border-4 border-white/10 border-t-amber-400 rounded-full animate-spin"></div>
+          </div>
+        ) : noticies.map((n, index) => (
           <motion.div
             key={n.id}
             initial={{ opacity: 0, y: 20 }}
@@ -123,7 +153,7 @@ export default function NoticiesSetmana({ onTornar }: { onTornar: () => void }) 
             <div className="flex items-center gap-3 md:gap-5">
               <div className="flex flex-col items-center justify-center bg-red-600 px-2 py-1.5 md:py-3 rounded-xl min-w-[50px] md:min-w-[70px] shadow-lg shadow-red-900/20">
                 <span className="text-[9px] md:text-xs font-black uppercase tracking-tighter opacity-80 leading-none mb-0.5">MAI</span>
-                <span className="text-lg md:text-2xl font-black italic tracking-tighter leading-none">{n.data.split(' ')[0]}</span>
+                <span className="text-lg md:text-2xl font-black italic tracking-tighter leading-none">{n.data?.split(' ')?.[0] || '12'}</span>
               </div>
               <h2 className="text-sm md:text-xl font-black italic uppercase leading-tight pr-12 tracking-tight">
                 {n.titol}
@@ -131,12 +161,12 @@ export default function NoticiesSetmana({ onTornar }: { onTornar: () => void }) 
             </div>
             
             <p className="text-white/50 text-[11px] md:text-sm leading-relaxed font-medium pl-14 md:pl-24">
-              {n.resum}
+              {n.descripcio}
             </p>
 
             <div className="flex items-center gap-2 pl-14 md:pl-24 mt-1 opacity-20">
               <Clock size={10} />
-              <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest">Publicat fa 2 dies</span>
+              <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest">ACTUALITZAT</span>
             </div>
           </motion.div>
         ))}
