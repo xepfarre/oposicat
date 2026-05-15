@@ -35,7 +35,7 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
         {onBackClick && (
           <button 
             onClick={onBackClick}
-            className="absolute right-4 flex items-center justify-center w-10 h-10 bg-[#0a213a] border border-white/10 rounded-full text-white/40 hover:text-white transition-all shadow-xl active:scale-95"
+            className="absolute left-4 flex items-center justify-center w-10 h-10 bg-[#0a213a] border border-white/10 rounded-full text-white/40 hover:text-white transition-all shadow-xl active:scale-95"
           >
             <ChevronLeft size={20} />
           </button>

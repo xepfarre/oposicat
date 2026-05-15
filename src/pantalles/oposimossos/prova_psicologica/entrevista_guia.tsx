@@ -174,16 +174,16 @@ export const EntrevistaGuia = ({ onBack }: { onBack: () => void }) => {
     <div className="flex flex-col flex-1 gap-6 w-full animate-in fade-in duration-500 pb-20">
       
       {/* Intro Label Section */}
-      <div className="bg-[#1a3a5a]/30 border border-white/10 rounded-[2rem] md:rounded-[4rem] pt-6 md:pt-16 px-6 md:px-16 pb-8 md:pb-20 -mx-4 md:mx-0 shadow-2xl backdrop-blur-sm">
-        <div className="flex flex-col items-center gap-4 md:gap-10 text-center">
-          <div className="w-12 h-12 md:w-24 md:h-24 rounded-full bg-cyan-400/20 flex items-center justify-center text-cyan-400">
-            <MessageSquare size={24} className="md:size-12" />
+      <div className="bg-[#1a3a5a]/30 border border-white/10 rounded-[2rem] md:rounded-[4rem] pt-4 md:pt-8 px-6 md:px-16 pb-5 md:pb-10 -mx-4 md:mx-0 shadow-2xl backdrop-blur-sm">
+        <div className="flex flex-col items-center gap-2 md:gap-5 text-center">
+          <div className="w-8 h-8 md:w-16 md:h-16 rounded-full bg-cyan-400/20 flex items-center justify-center text-cyan-400">
+            <MessageSquare size={16} className="md:size-10" />
           </div>
-          <p className="text-[11px] md:text-2xl text-white/80 font-bold leading-relaxed italic px-2 md:max-w-3xl">
+          <p className="text-[11px] md:text-xl text-white/80 font-bold leading-relaxed italic px-2 md:max-w-3xl">
             "Llistat de preguntes que múltiples psicòlegs de forma oficial han avaluat durant anys a les entrevistes de la fase d'oposició"
           </p>
           
-          <div className="w-full h-[1px] bg-white/5 my-2 md:my-6" />
+          <div className="w-full h-[1px] bg-white/5 my-1 md:my-3" />
           
           <div className="flex items-center gap-2 md:gap-4">
             <ListCheck size={14} className="text-cyan-400/60 md:size-6" />

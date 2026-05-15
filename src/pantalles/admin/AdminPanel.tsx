@@ -41,7 +41,13 @@ import {
   CreditCard,
   UserCheck,
   UserX,
-  Clock
+  Clock,
+  Info,
+  FileText,
+  User,
+  Database,
+  Calendar,
+  X
 } from "lucide-react";
 import { TEMARI_DETALL } from "../../constants/temari";
 import { motion, AnimatePresence } from "motion/react";
@@ -491,7 +497,45 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                     fetchData();
                   } finally { setLoading(false); }
                 }}
+                onSeedData={async () => {
+                  setLoading(true);
+                  try {
+                    // Generar una hora vàlida dins dels torns
+                    const isMorning = Math.random() > 0.5;
+                    const date = new Date(Date.now() + 86400000 * 2);
+                    date.setHours(isMorning ? 10 : 18, 30, 0, 0);
+
+                    await addDoc(collection(db, "reserves_psicologia"), {
+                      usuariNom: "Roger de Flor (Prova)",
+                      usuariEmail: "roger.prova@example.com",
+                      dataSessio: date.toISOString(),
+                      estat: "pendent",
+                      notes: "Preparació intensiva per a l'entrevista oficial. Té dubtes sobre la part de competències socials.",
+                      telefon: "654 321 000",
+                      edat: "24",
+                      anysOpositant: "2",
+                      psicoleg: "Aleix Romero Pociello",
+                      biodataFet: true,
+                      competencies: {
+                        "Orientació al servei": 8.5,
+                        "Autocontrol": 7.2,
+                        "Comunicació": 9.0,
+                        "Treball en equip": 8.8,
+                        "Resolució de problemes": 6.5,
+                        "Presa de decisions": 7.0,
+                        "Planificació": 8.0,
+                        "Responsabilitat": 9.5,
+                        "Adaptabilitat": 7.5,
+                        "Ètica professional": 9.8
+                      },
+                      biodataInforme: "Perfil altament vocacional amb excel·lents capacitats comunicatives. Es recomana treballar la rapidesa en la presa de decisions sota pressió extrema.",
+                      createdAt: serverTimestamp()
+                    });
+                    fetchData();
+                  } finally { setLoading(false); }
+                }}
                 darkMode={darkMode}
+                loading={loading}
               />
             } />
             <Route path="pagaments" element={
@@ -1134,46 +1178,313 @@ function GimnasosView({ gimnasos, onDelete, onAdd, darkMode }: any) {
 /**
  * VIEW: Psicologia / Reserves
  */
-function PsicologiaView({ reserves, onUpdateStatus, darkMode }: any) {
+function PsicologiaView({ reserves, onUpdateStatus, onSeedData, loading, darkMode }: any) {
+  const [userInfoModal, setUserInfoModal] = useState<any>(null);
+  const [biodataModal, setBiodataModal] = useState<any>(null);
+  const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
+  const [isSeeding, setIsSeeding] = useState(false);
+
+  const loadingMessages = [
+    "Compilant bio-algoritmes de conducta...",
+    "Construint base de dades interna...",
+    "Sincronitzant núvols de dades neuronals...",
+    "Generant estructura de reserves segures...",
+    "Verificant integritat de l'historial...",
+    "Encriptant fitxes de seguretat...",
+    "Optimitzant rutes de memòria..."
+  ];
+
+  useEffect(() => {
+    if (isSeeding) {
+      const interval = setInterval(() => {
+        setLoadingMsgIdx((prev) => (prev + 1) % loadingMessages.length);
+      }, 300); // Més ràpid per a generar dades
+      return () => clearInterval(interval);
+    }
+  }, [isSeeding]);
+
+  const handleSeed = async () => {
+    setIsSeeding(true);
+    // Donem temps a que es vegin els "missatges professionals"
+    setTimeout(async () => {
+      await onSeedData();
+      setIsSeeding(false);
+    }, 2000);
+  };
+
+  // Funció per determinar el torn
+  const getTorn = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const hour = date.getHours();
+    return hour < 14 ? "Matí" : "Tarda";
+  };
+
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-10">
-      <header>
-        <span className="text-emerald-600 font-bold uppercase tracking-[0.2em] text-[10px]">Psychology & bookings</span>
-        <h1 className={`text-4xl font-black mt-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Gestió de <span className="text-emerald-600">Reserves</span></h1>
+    <div className="max-w-7xl mx-auto flex flex-col gap-10">
+      <header className="flex items-center justify-between">
+        <div>
+          <span className="text-emerald-600 font-bold uppercase tracking-[0.2em] text-[10px]">Psychology & bookings</span>
+          <h1 className={`text-4xl font-black mt-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Gestió de <span className="text-emerald-600">Reserves</span></h1>
+        </div>
+        <button 
+          onClick={handleSeed}
+          className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-600/20 transition-all active:scale-95 disabled:opacity-50"
+          disabled={isSeeding}
+        >
+          {isSeeding ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={16} />}
+          Generar Reserva de Prova
+        </button>
       </header>
+
+      {/* MODAL: INFO USUARI */}
+      <AnimatePresence>
+        {userInfoModal && (
+          <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-md" onClick={() => setUserInfoModal(null)} />
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className={`relative w-full max-w-md rounded-[2.5rem] border p-8 shadow-2xl ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}
+            >
+              <div className="flex justify-between items-center mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+                    <User size={24} />
+                  </div>
+                  <div>
+                    <h3 className={`text-xl font-black uppercase tracking-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>Fitxa de l'Usuari</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Informació Personal</p>
+                  </div>
+                </div>
+                <button onClick={() => setUserInfoModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-all">
+                  <X size={20} className="text-slate-400" />
+                </button>
+              </div>
+
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+                    <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Nom Real</span>
+                    <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{userInfoModal.usuariNom}</span>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+                    <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Edat</span>
+                    <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{userInfoModal.edat || "24"} anys</span>
+                  </div>
+                </div>
+                
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+                  <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Correu Electrònic</span>
+                  <span className="text-sm font-bold text-blue-500">{userInfoModal.usuariEmail}</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+                  <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Telèfon de Contacte</span>
+                  <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{userInfoModal.telefon || "634 12 88 45"}</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+                  <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Motiu de la Cita</span>
+                  <p className={`text-xs italic leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    {userInfoModal.notes || "Preparació per a l'entrevista oficial de Mossos d'Esquadra."}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: RESUM BIODATA */}
+      <AnimatePresence>
+        {biodataModal && (
+          <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-md" onClick={() => setBiodataModal(null)} />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className={`relative w-full max-w-4xl rounded-[2.5rem] border p-10 shadow-2xl ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}
+            >
+              <div className="flex justify-between items-center mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-violet-500/10 flex items-center justify-center text-violet-500">
+                    <FileText size={24} />
+                  </div>
+                  <div>
+                    <h3 className={`text-xl font-black uppercase tracking-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>Informe de Competències Mossos</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Resultats basats en Biodata AI - Alumne: {biodataModal.usuariNom}</p>
+                  </div>
+                </div>
+                <button onClick={() => setBiodataModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-all">
+                  <X size={20} className="text-slate-400" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="space-y-4">
+                   <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-500 mb-4">Competències Clau</h4>
+                   {Object.entries(biodataModal.competencies || {}).map(([name, val]: any) => (
+                      <div key={name} className="space-y-1">
+                         <div className="flex justify-between items-end">
+                            <span className={`text-[10px] font-bold uppercase ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{name}</span>
+                            <span className="text-xs font-black text-violet-500">{val}/10</span>
+                         </div>
+                         <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <motion.div 
+                               initial={{ width: 0 }}
+                               animate={{ width: `${(val as number) * 10}%` }}
+                               transition={{ duration: 1, ease: "easeOut" }}
+                               className="h-full bg-violet-500 rounded-full"
+                            />
+                         </div>
+                      </div>
+                   ))}
+                </div>
+
+                <div className="flex flex-col gap-6">
+                   <div className={`p-8 rounded-2xl border flex-1 leading-relaxed text-sm ${darkMode ? 'bg-slate-900/50 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
+                      <div className="flex items-center gap-2 mb-4">
+                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                         <span className="font-bold text-slate-400 uppercase text-[9px] tracking-widest underline decoration-emerald-500/40">Conclusions del Sistema</span>
+                      </div>
+                      <p className="italic">
+                        {biodataModal.biodataInforme || "Perfil equilibrat amb bones perspectives per l'entrevista."}
+                      </p>
+                   </div>
+                   <button className="w-full py-4 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-violet-600/20 active:scale-95 text-center">
+                      Descarregar Informe Complet (PDF)
+                   </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <div className={`rounded-[2.5rem] border overflow-hidden transition-colors ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
         <table className="w-full text-left">
           <thead>
-            <tr className={darkMode ? 'bg-slate-900/50' : 'bg-slate-50'}>
-              <th className="p-6 text-[10px] font-black uppercase text-slate-400">Usuari</th>
-              <th className="p-6 text-[10px] font-black uppercase text-slate-400">Data</th>
-              <th className="p-6 text-[10px] font-black uppercase text-slate-400">Estat</th>
-              <th className="p-6 text-[10px] font-black uppercase text-slate-400 text-right">Accions</th>
+            <tr className={`border-b text-[10px] font-black uppercase tracking-widest ${darkMode ? 'bg-slate-900/40 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
+              <th className="p-6">Usuari</th>
+              <th className="p-6">Visita (Torn/Hora)</th>
+              <th className="p-6">Psicòleg</th>
+              <th className="p-6">Estat</th>
+              <th className="p-6">Biodata</th>
+              <th className="p-6 text-right">Accions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
             {reserves.map((r: any) => (
-              <tr key={r.id}>
-                <td className="p-6 font-bold">{r.usuariNom}</td>
-                <td className="p-6 text-xs text-slate-400 font-bold uppercase">{new Date(r.dataSessio).toLocaleDateString()}</td>
+              <tr key={r.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-colors">
                 <td className="p-6">
-                  <span className={`px-2 py-1 rounded text-[8px] font-black uppercase ${
-                    r.estat === 'confirmada' ? 'bg-emerald-500 text-white' : 
-                    r.estat === 'cancel·lada' ? 'bg-red-500 text-white' : 'bg-amber-500 text-white'
-                  }`}>
-                    {r.estat}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col">
+                      <span className="font-bold">{r.usuariNom}</span>
+                      <span className="text-[10px] text-slate-400 font-medium">{r.usuariEmail}</span>
+                    </div>
+                    <button 
+                      onClick={() => setUserInfoModal(r)}
+                      className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 hover:bg-blue-500 hover:text-white transition-all"
+                      title="Informació Usuari"
+                    >
+                      <Info size={12} />
+                    </button>
+                  </div>
                 </td>
-                <td className="p-6 text-right space-x-2">
-                  <button onClick={() => onUpdateStatus(r.id, 'confirmada')} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg"><UserCheck size={18} /></button>
-                  <button onClick={() => onUpdateStatus(r.id, 'cancel·lada')} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><UserX size={18} /></button>
+                <td className="p-6">
+                   <div className="flex flex-col">
+                      <span className="text-xs font-bold uppercase">{new Date(r.dataSessio).toLocaleDateString('ca-ES', { day: '2-digit', month: 'long' })}</span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${getTorn(r.dataSessio) === 'Matí' ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                           {getTorn(r.dataSessio)}
+                        </span>
+                        <Clock size={10} className="text-slate-400 ml-1" />
+                        <span className="text-[10px] text-slate-400 font-bold">{new Date(r.dataSessio).toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' })}h</span>
+                      </div>
+                   </div>
+                </td>
+                <td className="p-6">
+                   <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                         <User size={14} />
+                      </div>
+                      <span className="text-xs font-bold text-slate-500">{r.psicoleg || "Aleix Romero Pociello"}</span>
+                   </div>
+                </td>
+                <td className="p-6">
+                   <div className="flex items-center gap-2">
+                    <div className={`w-1.5 h-1.5 rounded-full ${
+                        r.estat === 'confirmada' ? 'bg-emerald-500' : 
+                        r.estat === 'cancel·lada' ? 'bg-red-500' :
+                        r.estat === 'cancel·lada_usuari' ? 'bg-amber-500' : 'bg-blue-500'
+                    }`} />
+                    <span className={`text-[9px] font-black uppercase tracking-tighter ${
+                        r.estat === 'confirmada' ? 'text-emerald-500' : 
+                        r.estat === 'cancel·lada' ? 'text-red-500' :
+                        r.estat === 'cancel·lada_usuari' ? 'text-amber-500' : 'text-blue-500'
+                    }`}>
+                        {r.estat === 'confirmada' ? 'Acceptat' : 
+                         r.estat === 'cancel·lada' ? 'Cancel·lat (Admin)' :
+                         r.estat === 'cancel·lada_usuari' ? 'Cancel·lat (Usuari)' : 'Pendent'}
+                    </span>
+                   </div>
+                </td>
+                <td className="p-6">
+                   <div className="flex items-center gap-3">
+                      <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${r.biodataFet ? 'bg-violet-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                        {r.biodataFet ? 'FET' : 'NO FET'}
+                      </span>
+                      {r.biodataFet && (
+                         <button 
+                           onClick={() => setBiodataModal(r)}
+                           className="text-violet-500 hover:text-violet-600 flex items-center gap-1 text-[9px] font-black uppercase tracking-widest"
+                          >
+                           <Eye size={12} /> Informe
+                         </button>
+                      )}
+                   </div>
+                </td>
+                <td className="p-6 text-right space-x-1">
+                  <button onClick={() => onUpdateStatus(r.id, 'confirmada')} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg" title="Acceptar"><UserCheck size={18} /></button>
+                  <button onClick={() => onUpdateStatus(r.id, 'cancel·lada')} className="p-2 text-red-500 hover:bg-red-50 rounded-lg" title="Cancel·lar"><UserX size={18} /></button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {reserves.length === 0 && <p className="p-20 text-center text-slate-400 uppercase font-black text-xs tracking-widest leading-loose">No hi ha reserves pendents</p>}
+        {reserves.length === 0 && (
+          <div className="p-32 text-center flex flex-col items-center gap-6">
+            {isSeeding ? (
+              <div className="flex flex-col items-center gap-6">
+                <div className="relative">
+                  <div className="w-20 h-20 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Database className="text-emerald-500 animate-pulse" size={24} />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-emerald-500 font-black uppercase text-xs tracking-[0.3em]">{loadingMessages[loadingMsgIdx]}</span>
+                  <span className="text-slate-400 text-[10px] font-bold italic">Sincronitzant amb el Backoffice Central...</span>
+                </div>
+              </div>
+            ) : (
+               <div className="flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-300 dark:text-slate-700">
+                     <Calendar size={32} />
+                  </div>
+                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">No hi ha reserves pendents</span>
+                  <button 
+                    onClick={handleSeed}
+                    className="mt-2 text-emerald-500 hover:text-emerald-400 text-[9px] font-black uppercase tracking-widest underline underline-offset-4"
+                  >
+                    Generar una reserva de prova ara
+                  </button>
+               </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
