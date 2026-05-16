@@ -34,14 +34,29 @@ export default function ExamenTeoricInici({
     }
   };
   
-  // Llista de botons demanats
-  const botons = [
-    { text: "Temari oficial", action: onTemariOficial },
-    { text: "Temari d'OposiMossos", action: onTemariOposimossos },
-    { text: "Classes premium", action: onClassesPremium },
-    { text: "Classes en directe", action: onClassesDirecte },
-    { text: "Examens d'OposiMossos", action: onExamensOposimossos },
-    { text: "Examens Oficials passats", action: onExamensOficialsPassats }
+  // Llista de seccions amb els seus botons
+  const seccions = [
+    {
+      titol: "Temari",
+      items: [
+        { text: "Temari oficial", action: onTemariOficial },
+        { text: "Temari d'OposiMossos", action: onTemariOposimossos },
+      ]
+    },
+    {
+      titol: "Classes",
+      items: [
+        { text: "Classes premium", action: onClassesPremium },
+        { text: "Classes en directe", action: onClassesDirecte },
+      ]
+    },
+    {
+      titol: "Examens",
+      items: [
+        { text: "Examens d'OposiMossos", action: onExamensOposimossos },
+        { text: "Examens Oficials passats", action: onExamensOficialsPassats }
+      ]
+    }
   ];
 
   return (
@@ -116,17 +131,37 @@ export default function ExamenTeoricInici({
             : "calc(160px + env(safe-area-inset-top))" 
         }}
       >
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          {botons.map((boto, idx) => (
-            <button 
-              key={idx}
-              onClick={() => boto.action && boto.action()}
-              className="w-full bg-white/10 border-white/20 hover:bg-white/20 border rounded-xl py-6 md:py-16 text-white font-black italic uppercase text-[11px] md:text-base tracking-widest transition-all active:scale-95 shadow-lg"
-            >
-              {boto.text}
-            </button>
-          ))}
+        <div className="w-full flex flex-col gap-6">
+          {seccions.map((seccio, sIdx) => (
+            <div key={sIdx} className="flex flex-col gap-3">
+              {/* Títol de la secció (Label) */}
+              <div className="pl-4">
+                <h3 className="text-[10px] font-black italic uppercase tracking-[0.2em] text-white/30">
+                  {seccio.titol}
+                </h3>
+              </div>
 
+              {/* Botons de la secció */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {seccio.items.map((boto, bIdx) => (
+                  <button 
+                    key={bIdx}
+                    onClick={() => boto.action && boto.action()}
+                    className="w-full bg-white/10 border-white/20 hover:bg-white/20 border rounded-xl py-4 md:py-8 text-white font-black italic uppercase text-[11px] md:text-base tracking-widest transition-all active:scale-95 shadow-lg"
+                  >
+                    {boto.text}
+                  </button>
+                ))}
+              </div>
+
+              {/* Línia de separació (excepte l'últim) */}
+              {sIdx < seccions.length - 1 && (
+                <div className="mt-3 px-10">
+                  <div className="h-[1px] w-full bg-white/10" />
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </main>
 

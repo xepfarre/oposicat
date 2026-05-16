@@ -24,12 +24,14 @@ export default function ExamenSimuladorMossos({
   onTornar, 
   numPreguntes, 
   temps,
-  seleccions
+  seleccions,
+  examenId
 }: { 
   onTornar: () => void;
   numPreguntes: number;
   temps: string;
   seleccions: { [key: string]: number[] };
+  examenId?: string;
 }) {
   const [preguntes, setPreguntes] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,26 +54,33 @@ export default function ExamenSimuladorMossos({
         // 1. Filtrar només actives
         list = list.filter(q => q.status !== 'suspesa');
 
-        // 2. Filtrar per selecció d'àmbit i tema feta a la UI
-        const teSeleccions = Object.values(seleccions).some(arr => arr.length > 0);
-        
-        if (teSeleccions) {
-          list = list.filter(q => {
-            const ambit = q.ambit || 'A';
-            const tema = q.tema !== undefined ? q.tema + 1 : null;
-            
-            // Si l'àmbit de la pregunta no té cap tema seleccionat, la descartem
-            if (!seleccions[ambit] || seleccions[ambit].length === 0) return false;
-            
-            // Si el tema de la pregunta està en la llista de seleccionats d'aquell àmbit
-            return tema !== null && seleccions[ambit].includes(tema);
-          });
+        // 2. FILTRATGE ESPECIAL PER EXAMEN OFICIAL O ERRADES
+        if (examenId) {
+          if (examenId === 'errades') {
+            // Lògica de preguntes errades (placeholder per ara)
+          } else {
+            // Filtratge per any o ID d'examen oficial
+            // @ts-ignore
+            list = list.filter(q => q.any?.toString() === examenId || q.examenId === examenId);
+          }
+        } else {
+          // 3. FILTRATGE PER SELECCIÓ DE TEMARI (Simulador normal)
+          const teSeleccions = Object.values(seleccions).some(arr => arr.length > 0);
+          
+          if (teSeleccions) {
+            list = list.filter(q => {
+              const ambit = q.ambit || 'A';
+              const tema = q.tema !== undefined ? q.tema + 1 : null;
+              
+              if (!seleccions[ambit] || seleccions[ambit].length === 0) return false;
+              return tema !== null && seleccions[ambit].includes(tema);
+            });
+          }
         }
 
         if (list.length === 0) {
           setPreguntes([]);
         } else {
-          // Barrejar preguntes aleatòriament i agafar el número sol·licitat
           const shuffled = [...list].sort(() => 0.5 - Math.random());
           setPreguntes(shuffled.slice(0, numPreguntes));
         }
@@ -83,7 +92,7 @@ export default function ExamenSimuladorMossos({
       }
     };
     fetchQuestions();
-  }, [numPreguntes, seleccions]);
+  }, [numPreguntes, seleccions, examenId]);
 
   const [preguntaActual, setPreguntaActual] = useState(0);
   const [respostaSeleccionada, setRespostaSeleccionada] = useState<number | null>(null);

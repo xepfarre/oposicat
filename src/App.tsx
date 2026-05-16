@@ -68,7 +68,8 @@ export default function App() {
   const [simuladorConfig, setSimuladorConfig] = useState<{ 
     num: number, 
     temps: string, 
-    seleccions: { [key: string]: number[] } 
+    seleccions: { [key: string]: number[] },
+    examenId?: string 
   }>({ 
     num: 30, 
     temps: '45', 
@@ -214,8 +215,8 @@ export default function App() {
   const handleAnarClassesDirecte = () => setPantalla('classes_directe');
   const handleAnarExamensOficialsPassats = () => setPantalla('examens_oficials_passats');
   const handleAnarExamensOposimossos = () => setPantalla('examens_oposimossos');
-  const handleComencarSimulador = (num: number, temps: string, seleccions: { [key: string]: number[] }) => {
-    setSimuladorConfig({ num, temps, seleccions });
+  const handleComencarSimulador = (num: number, temps: string, seleccions: { [key: string]: number[] }, examenId?: string) => {
+    setSimuladorConfig({ num, temps, seleccions, examenId });
     setPantalla('examens_oposimossos_simulador');
   };
 
@@ -382,10 +383,14 @@ export default function App() {
 
           {pantalla === 'examens_oposimossos_simulador' && (
             <ExamenSimuladorMossos 
-              onTornar={handleAnarExamensOposimossos}
+              onTornar={() => {
+                if (simuladorConfig.examenId) setPantalla('examens_oficials_passats');
+                else setPantalla('examens_oposimossos');
+              }}
               numPreguntes={simuladorConfig.num}
               temps={simuladorConfig.temps}
               seleccions={simuladorConfig.seleccions}
+              examenId={simuladorConfig.examenId}
             />
           )}
 
@@ -413,7 +418,10 @@ export default function App() {
           )}
 
           {pantalla === 'examens_oficials_passats' && (
-            <ExamensOficialsPassatsInici onTornar={handleAnarExamenTeoric} />
+            <ExamensOficialsPassatsInici 
+              onTornar={handleAnarExamenTeoric} 
+              onComencar={handleComencarSimulador}
+            />
           )}
 
           {pantalla === 'examen_psicotecnic' && (

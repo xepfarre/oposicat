@@ -313,6 +313,13 @@ export default function ExamensOposimossosInici({
           
           <div className="relative w-full max-w-xs bg-[#00274d] border border-white/10 rounded-[2rem] p-6 flex flex-col gap-5 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
             
+            {/* Recordatori d'examen oficial */}
+            <div className="text-center px-4">
+              <p className="text-[10px] font-bold text-white/30 italic leading-relaxed">
+                " Recorda que 45 minuts i 30 preguntes el que et trobaras el dia de l'examen! "
+              </p>
+            </div>
+
             {/* Preguntes */}
             <div className="flex flex-col gap-3">
               <h3 className="text-[10px] font-black italic uppercase tracking-[0.2em] text-emerald-400 text-center">
