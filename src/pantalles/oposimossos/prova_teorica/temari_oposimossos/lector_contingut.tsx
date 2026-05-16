@@ -66,7 +66,7 @@ export default function LectorContingut({
   }, []);
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center bg-[#00274d]">
+    <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-12">
       
       {/* CAPÇALERA FLOTANT / FIXA */}
       <header className={`fixed top-0 w-full z-50 transition-all duration-300 border-b ${

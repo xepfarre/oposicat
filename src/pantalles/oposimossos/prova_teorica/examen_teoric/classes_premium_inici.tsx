@@ -27,23 +27,42 @@ export default function ClassesPremiumInici({
   ];
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center pb-12 px-6 bg-[#00274d] overflow-y-auto">
+    <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-12 px-6">
       
       {/* CAPÇALERA */}
-      <header className="pt-14 w-full flex flex-col items-center gap-6 shrink-0 text-center mb-4">
-        <div className="bg-black/30 backdrop-blur-md px-10 py-4 rounded-3xl shadow-xl border border-white/10">
-          <h1 className="text-3xl font-black italic tracking-tighter select-none">
-            <span className="text-white">Classes </span>
-            <span className="text-red-500">Premium</span>
-          </h1>
+      <header className="pt-14 w-full max-w-lg md:max-w-4xl flex flex-col items-center shrink-0 text-center mb-4 relative">
+        
+        {/* FILA 1: BOTÓ ENRERA + LOGO */}
+        <div className="w-full flex items-center justify-center relative mb-8">
+          <button 
+            onClick={onTornar}
+            className="absolute left-0 p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-90 shadow-lg"
+          >
+            <ChevronLeft className="w-6 h-6 text-white" />
+          </button>
+
+          <div className="bg-black/30 backdrop-blur-md px-10 py-3 rounded-[1.5rem] shadow-xl border border-white/10">
+            <h1 className="text-2xl font-black italic tracking-tighter select-none">
+              <span className="text-white">Oposi </span>
+              <span className="text-red-500">Mossos</span>
+            </h1>
+          </div>
+        </div>
+
+        {/* FILA 2: TITOL SECCIO + RATLLA */}
+        <div className="flex flex-col items-center mb-8">
+          <h2 className="text-lg font-black italic tracking-widest text-white uppercase mb-1">
+            Classes Premium
+          </h2>
+          <div className="w-12 h-1 bg-red-600 rounded-full" />
         </div>
         
-        {/* LABEL GROC PERSONALITZAT */}
-        <div className="max-w-md bg-amber-400/10 border border-amber-400/30 p-4 rounded-2xl">
-          <p className="text-amber-400 text-[11px] font-black uppercase tracking-wider leading-relaxed text-center">
-            Seleciona el tema que vulguis veure una clase amb la maxima qualitat, 
-            recorda que fem clases en directe de dilluns a dijous en l'apartat de 
-            <span className="underline ml-1">"Clases en directe"</span>.
+        {/* LABEL GRIS PERSONALITZAT */}
+        <div className="max-w-md bg-slate-800/40 border border-slate-700/50 p-4 rounded-2xl">
+          <p className="text-slate-400 text-[11px] font-bold tracking-tight leading-relaxed text-center">
+            Selecciona el tema que vulguis veure una classe amb la màxima qualitat, 
+            recorda que fem classes en directe de dilluns a dijous en l'apartat de 
+            <span className="text-amber-400 underline ml-1">"Classes en directe"</span>.
           </p>
         </div>
       </header>

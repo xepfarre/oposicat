@@ -45,9 +45,7 @@ import {
   Info,
   FileText,
   User,
-  Database,
-  Calendar,
-  X
+  Database
 } from "lucide-react";
 import { TEMARI_DETALL } from "../../constants/temari";
 import { motion, AnimatePresence } from "motion/react";
@@ -1181,36 +1179,6 @@ function GimnasosView({ gimnasos, onDelete, onAdd, darkMode }: any) {
 function PsicologiaView({ reserves, onUpdateStatus, onSeedData, loading, darkMode }: any) {
   const [userInfoModal, setUserInfoModal] = useState<any>(null);
   const [biodataModal, setBiodataModal] = useState<any>(null);
-  const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
-  const [isSeeding, setIsSeeding] = useState(false);
-
-  const loadingMessages = [
-    "Compilant bio-algoritmes de conducta...",
-    "Construint base de dades interna...",
-    "Sincronitzant núvols de dades neuronals...",
-    "Generant estructura de reserves segures...",
-    "Verificant integritat de l'historial...",
-    "Encriptant fitxes de seguretat...",
-    "Optimitzant rutes de memòria..."
-  ];
-
-  useEffect(() => {
-    if (isSeeding) {
-      const interval = setInterval(() => {
-        setLoadingMsgIdx((prev) => (prev + 1) % loadingMessages.length);
-      }, 300); // Més ràpid per a generar dades
-      return () => clearInterval(interval);
-    }
-  }, [isSeeding]);
-
-  const handleSeed = async () => {
-    setIsSeeding(true);
-    // Donem temps a que es vegin els "missatges professionals"
-    setTimeout(async () => {
-      await onSeedData();
-      setIsSeeding(false);
-    }, 2000);
-  };
 
   // Funció per determinar el torn
   const getTorn = (dateStr: string) => {
@@ -1227,11 +1195,11 @@ function PsicologiaView({ reserves, onUpdateStatus, onSeedData, loading, darkMod
           <h1 className={`text-4xl font-black mt-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Gestió de <span className="text-emerald-600">Reserves</span></h1>
         </div>
         <button 
-          onClick={handleSeed}
+          onClick={onSeedData}
           className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-600/20 transition-all active:scale-95 disabled:opacity-50"
-          disabled={isSeeding}
+          disabled={loading}
         >
-          {isSeeding ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={16} />}
+          {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={16} />}
           Generar Reserva de Prova
         </button>
       </header>
@@ -1456,33 +1424,7 @@ function PsicologiaView({ reserves, onUpdateStatus, onSeedData, loading, darkMod
         </table>
         {reserves.length === 0 && (
           <div className="p-32 text-center flex flex-col items-center gap-6">
-            {isSeeding ? (
-              <div className="flex flex-col items-center gap-6">
-                <div className="relative">
-                  <div className="w-20 h-20 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Database className="text-emerald-500 animate-pulse" size={24} />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-emerald-500 font-black uppercase text-xs tracking-[0.3em]">{loadingMessages[loadingMsgIdx]}</span>
-                  <span className="text-slate-400 text-[10px] font-bold italic">Sincronitzant amb el Backoffice Central...</span>
-                </div>
-              </div>
-            ) : (
-               <div className="flex flex-col items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-300 dark:text-slate-700">
-                     <Calendar size={32} />
-                  </div>
-                  <span className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">No hi ha reserves pendents</span>
-                  <button 
-                    onClick={handleSeed}
-                    className="mt-2 text-emerald-500 hover:text-emerald-400 text-[9px] font-black uppercase tracking-widest underline underline-offset-4"
-                  >
-                    Generar una reserva de prova ara
-                  </button>
-               </div>
-            )}
+            <span className="text-slate-400 font-bold uppercase text-xs tracking-widest">No hi ha reserves pendents</span>
           </div>
         )}
       </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ChevronLeft, BarChart3, Target, AlertTriangle } from "lucide-react";
+import { ChevronLeft, BarChart3, Target, AlertTriangle, RefreshCw, ChevronDown, ChevronUp, Check } from "lucide-react";
+import { TEMARI_DETALL } from "../../../../constants/temari";
 
 /**
  * PANTALLA: ExamensOposimossosInici
@@ -22,165 +23,287 @@ export default function ExamensOposimossosInici({
     C: []
   });
 
+  // Estat per controlar quins blocs estan desplegats
+  const [blocsOberts, setBlocsOberts] = useState<{ [key: string]: boolean }>({
+    A: true,
+    B: false,
+    C: false
+  });
+
   // Estats per al Modal de configuració
   const [showConfig, setShowConfig] = useState(false);
   const [numPreguntes, setNumPreguntes] = useState<number>(30);
   const [temps, setTemps] = useState<string>('45');
 
-  // Dades de la estructura del temari (Blocks)
+  // Dades de la estructura del temari (Blocks) - Ara amb títols reals
   const BLOCS = [
-    { id: 'A', nom: 'Bloc A', temes: [1, 2, 3, 4, 5, 6, 7, 8, 9] },
-    { id: 'B', nom: 'Bloc B', temes: [1, 2, 3, 4, 5, 6, 7] },
-    { id: 'C', nom: 'Bloc C', temes: [1, 2, 3, 4, 5] },
+    { 
+      id: 'A', 
+      nom: 'Àmbit A: Coneixements de l\'entorn', 
+      temes: TEMARI_DETALL.A.map((t, i) => ({ id: i + 1, titol: t.titol })) 
+    },
+    { 
+      id: 'B', 
+      nom: 'Àmbit B: Institucional', 
+      temes: TEMARI_DETALL.B.map((t, i) => ({ id: i + 1, titol: t.titol })) 
+    },
+    { 
+      id: 'C', 
+      nom: 'Àmbit C: Seguretat i Policia', 
+      temes: TEMARI_DETALL.C.map((t, i) => ({ id: i + 1, titol: t.titol })) 
+    },
   ];
 
   // Funció per toggle de tema
-  const toggleTema = (blocId: string, tema: number) => {
+  const toggleTema = (blocId: string, temaId: number) => {
     setSeleccions(prev => {
       const actuals = prev[blocId];
-      if (actuals.includes(tema)) {
-        return { ...prev, [blocId]: actuals.filter(t => t !== tema) };
+      if (actuals.includes(temaId)) {
+        return { ...prev, [blocId]: actuals.filter(t => t !== temaId) };
       } else {
-        return { ...prev, [blocId]: [...actuals, tema] };
+        return { ...prev, [blocId]: [...actuals, temaId] };
       }
     });
   };
 
   // Funció per seleccionar tots els d'un bloc
-  const toggleTots = (blocId: string, totsTemes: number[]) => {
+  const toggleTots = (e: React.MouseEvent, blocId: string, temesIds: number[]) => {
+    e.stopPropagation(); // Evitem desplegar/plegar el bloc al fer clic a "Tots"
     setSeleccions(prev => {
       const actuals = prev[blocId];
-      if (actuals.length === totsTemes.length) {
+      if (actuals.length === temesIds.length) {
         return { ...prev, [blocId]: [] };
       } else {
-        return { ...prev, [blocId]: [...totsTemes] };
+        return { ...prev, [blocId]: [...temesIds] };
       }
     });
+  };
+
+  // Toggle desplegable de bloc
+  const toggleBloc = (blocId: string) => {
+    setBlocsOberts(prev => ({ ...prev, [blocId]: !prev[blocId] }));
   };
 
   return (
     <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20">
       
-      {/* HEADER */}
-      <header className="pt-12 w-full flex flex-col items-center gap-6 pb-6 shadow-2xl">
-        <div className="relative w-full flex items-center justify-center max-w-4xl">
+      {/* CAPÇALERA */}
+      <header className="pt-14 w-full max-w-lg md:max-w-4xl flex flex-col items-center shrink-0 text-center mb-4 relative">
+        
+        {/* FILA 1: BOTÓ ENRERA + LOGO */}
+        <div className="w-full flex items-center justify-center relative mb-8">
           <button 
             onClick={onTornar}
-            className="absolute left-0 p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-90 transition-all"
+            className="absolute left-0 p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-90 shadow-lg"
           >
             <ChevronLeft className="w-6 h-6 text-white" />
           </button>
 
-          <div className="bg-black/30 px-6 py-2 rounded-2xl border border-white/10">
-            <h1 className="text-xl font-black italic tracking-tighter text-white uppercase">
-              Exàmens OposiMossos
+          <div className="bg-black/30 backdrop-blur-md px-10 py-3 rounded-[1.5rem] shadow-xl border border-white/10">
+            <h1 className="text-2xl font-black italic tracking-tighter select-none">
+              <span className="text-white">Oposi </span>
+              <span className="text-red-500">Mossos</span>
             </h1>
           </div>
+        </div>
+
+        {/* FILA 2: TITOL SECCIO + RATLLA */}
+        <div className="flex flex-col items-center mb-4">
+          <h2 className="text-lg font-black italic tracking-widest text-white uppercase mb-1">
+            Exàmens Oposimossos
+          </h2>
+          <div className="w-12 h-1 bg-red-600 rounded-full" />
         </div>
       </header>
 
       <main className="w-full max-w-md flex flex-col gap-8 mt-4">
         
-        {/* SECCIÓ ESTADÍSTIQUES (Estil Paint interpretat) */}
-        <section className="flex flex-col gap-4 bg-white/5 border border-white/10 p-6 rounded-3xl">
-          <div className="flex items-center justify-between border-b border-white/10 pb-4">
-            <span className="text-xs font-black italic uppercase tracking-widest text-white/40 flex items-center gap-2">
-              <BarChart3 size={14} className="text-emerald-400" />
-              Total preguntes
-            </span>
-            <div className="flex items-center gap-2 font-black italic text-xl">
-              <span className="text-emerald-400">100</span>
-              <span className="text-white/20">-</span>
-              <span className="text-red-500">219</span>
+        {/* SECCIÓ ESTADÍSTIQUES (Segons l'últim croquis de l'usuari) */}
+        <section className="flex flex-col gap-4 w-full">
+          <h3 className="text-xs font-black italic uppercase tracking-widest text-white/50 ml-4 mb-[-8px]">
+            Resum dels examens :
+          </h3>
+
+          {/* CONTENIDOR 1: ENCERTS | ERRADES | RESET */}
+          <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-[1.5rem] p-3 grid grid-cols-[1fr_1fr_64px] items-center gap-1 shadow-xl">
+            <div className="flex items-center justify-center gap-2 border-r border-white/10 h-full">
+              <span className="text-[9px] font-bold text-white/40 italic uppercase">Encerts:</span>
+              <span className="text-xl font-black italic text-emerald-400">100</span>
             </div>
+
+            <div className="flex items-center justify-center gap-2 border-r border-white/10 h-full">
+              <span className="text-[9px] font-bold text-white/40 italic uppercase">Errades:</span>
+              <span className="text-xl font-black italic text-red-500">78</span>
+            </div>
+
+            <button className="flex flex-col items-center group transition-all active:scale-90">
+              <RefreshCw size={14} className="text-white/20 group-hover:text-white/60 transition-colors" />
+              <span className="text-[7px] font-black italic uppercase text-white/25 text-center leading-tight">Reset</span>
+            </button>
           </div>
 
-          <div className="flex flex-col gap-3">
-            <div className="flex items-start gap-3">
-              <Target size={16} className="text-emerald-400 shrink-0 mt-0.5" />
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Millor tema</span>
-                <span className="text-sm font-bold text-white/80 italic">Bloc A. 3 (Història de Catalunya)</span>
-              </div>
+          {/* CONTENIDOR 2: MILLOR | PITJOR TEMA */}
+          <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-[1.5rem] p-3 px-4 flex flex-col gap-1.5 shadow-xl">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-bold text-white/40 italic uppercase">El meu millor tema :</span>
+              <span className="text-[11px] font-black italic text-emerald-400 tracking-tight truncate max-w-[160px]">Història de Catalunya</span>
             </div>
             
-            <div className="flex items-start gap-3">
-              <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Necessita millorar</span>
-                <span className="text-sm font-bold text-white/80 italic">Bloc B. 5 (La Corona)</span>
-              </div>
+            <div className="h-[1px] w-full bg-white/5" />
+
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-bold text-white/40 italic uppercase">He de millorar en :</span>
+              <span className="text-[11px] font-black italic text-red-500 tracking-tight truncate max-w-[160px]">La Corona</span>
             </div>
           </div>
         </section>
 
-        {/* TABS (Preguntes Errades | Examen) */}
-        <div className="flex w-full bg-white/5 p-1.5 rounded-2xl border border-white/10">
-          <button 
-            onClick={() => setTab('errades')}
-            className={`flex-1 py-3 rounded-xl font-black italic uppercase text-[10px] tracking-widest transition-all ${
-              tab === 'errades' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-white/30 hover:text-white/60'
-            }`}
-          >
-            Preguntes errades
-          </button>
+        {/* TABS (Examen | Preguntes Errades) - Estil compacte i color blau fosc */}
+        <div className="flex w-full bg-black/30 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 shadow-xl">
+          {/* Botó EXAMEN (A l'esquerra, seleccionat per defecte) */}
           <button 
             onClick={() => setTab('examen')}
-            className={`flex-1 py-3 rounded-xl font-black italic uppercase text-[10px] tracking-widest transition-all ${
-              tab === 'examen' ? 'bg-emerald-500 text-[#00274d] shadow-lg shadow-emerald-500/20' : 'text-white/30 hover:text-white/60'
+            className={`flex-1 py-2.5 rounded-xl font-black italic uppercase text-[9px] tracking-widest transition-all ${
+              tab === 'examen' 
+              ? 'bg-emerald-500 text-[#00274d] shadow-lg shadow-emerald-500/20' 
+              : 'text-white/30 hover:text-white/60'
             }`}
           >
             Examen
           </button>
+          
+          {/* Botó PREGUNTES ERRADES (A la dreta) */}
+          <button 
+            onClick={() => setTab('errades')}
+            className={`flex-1 py-2.5 rounded-xl font-black italic uppercase text-[9px] tracking-widest transition-all ${
+              tab === 'errades' 
+              ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' 
+              : 'text-white/30 hover:text-white/60'
+            }`}
+          >
+            Preguntes errades
+          </button>
         </div>
 
-        {/* SELECCIÓ DE BLOCS I TEMES */}
-        <div className="flex flex-col gap-4">
-          {BLOCS.map(bloc => (
-            <div key={bloc.id} className="bg-white/5 border border-white/10 rounded-3xl p-5 flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-black italic uppercase text-lg text-white/80 tracking-tighter">
-                  {bloc.nom}
-                </h3>
-                <button 
-                  onClick={() => toggleTots(bloc.id, bloc.temes)}
-                  className={`px-4 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-all ${
-                    seleccions[bloc.id].length === bloc.temes.length
-                    ? 'bg-yellow-400 border-yellow-400 text-[#00274d]'
-                    : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10'
-                  }`}
-                >
-                  Tots
-                </button>
-              </div>
-
-              <div className="flex flex-wrap gap-1 md:gap-1.5">
-                {bloc.temes.map(tema => (
-                  <button 
-                    key={tema}
-                    onClick={() => toggleTema(bloc.id, tema)}
-                    className={`w-8 h-8 md:w-9 md:h-9 rounded-lg border flex items-center justify-center font-bold text-[10px] md:text-xs transition-all ${
-                      seleccions[bloc.id].includes(tema)
-                      ? 'bg-yellow-400/20 border-yellow-400 text-yellow-400 shadow-lg shadow-yellow-400/5'
-                      : 'bg-white/5 border-white/5 text-white/30 hover:border-white/20 hover:text-white/60'
-                    }`}
-                  >
-                    {tema}
-                  </button>
-                ))}
-              </div>
+        {/* CONTINGUT CONDICIONAL: Depèn de quina pestanya hem seleccionat a dalt */}
+        {tab === 'examen' ? (
+          /* SI SELECCIONEM "EXAMEN": Mostrem la llista de blocs i temes */
+          <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            
+            {/* TEXT INSTRUCTIU */}
+            <div className="text-center w-full">
+              <p className="text-[10px] font-bold text-white/30 italic uppercase tracking-widest">
+                Desplega el bloc que vulguis provar i selecciona el tema!
+              </p>
             </div>
-          ))}
-        </div>
 
-        {/* BOTÓ COMENÇAR - Obre el modal de configuració */}
-        <button 
-          onClick={() => setShowConfig(true)}
-          className="w-full bg-yellow-400 hover:bg-yellow-300 text-[#00274d] rounded-3xl py-6 font-black italic uppercase tracking-[0.3em] text-lg shadow-2xl shadow-yellow-400/20 active:scale-95 transition-all mt-4 border-b-4 border-yellow-600"
-        >
-          Començar
-        </button>
+            <div className="flex flex-col gap-4">
+              {BLOCS.map(bloc => (
+                <div key={bloc.id} className="flex flex-col gap-2">
+                  {/* CAPÇALERA DEL BLOC (Ara és un div per evitar botons niats) */}
+                  <div 
+                    className="w-full bg-black/30 backdrop-blur-md border border-white/10 rounded-xl flex items-stretch justify-between overflow-hidden shadow-xl"
+                  >
+                    {/* Àrea clickable principal per desplegar el bloc */}
+                    <button 
+                      onClick={() => toggleBloc(bloc.id)}
+                      className="flex-1 p-4 flex items-center justify-between transition-all group hover:bg-white/5 text-left"
+                    >
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="text-[10px] font-black italic uppercase tracking-[0.2em] text-white/30 leading-none">
+                          Bloc {bloc.id}
+                        </span>
+                        <h3 className="font-black italic uppercase text-xs text-white tracking-tight leading-tight">
+                          {bloc.nom.split(': ')[1]}
+                        </h3>
+                      </div>
+                      
+                      <div className="text-white/20 mr-2">
+                        {blocsOberts[bloc.id] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </div>
+                    </button>
+                    
+                    {/* Separador i Botó "Tots" */}
+                    <div className="flex items-center gap-0">
+                      <div className="h-10 w-[1px] bg-white/10" />
+                      <button 
+                        onClick={(e) => toggleTots(e, bloc.id, bloc.temes.map(t => t.id))}
+                        className={`px-4 h-full flex items-center justify-center text-[10px] font-black uppercase tracking-widest transition-all ${
+                          seleccions[bloc.id].length === bloc.temes.length
+                          ? 'bg-yellow-400 text-[#00274d]'
+                          : 'text-white/40 hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        Tots
+                      </button>
+                    </div>
+                  </div>
 
+                  {/* LLISTAT DE TEMES (Si està obert) */}
+                  {blocsOberts[bloc.id] && (
+                    <div className="flex flex-col gap-1.5 px-2 animate-in slide-in-from-top-2 duration-200">
+                      {bloc.temes.map(tema => (
+                        <button 
+                          key={tema.id}
+                          onClick={() => toggleTema(bloc.id, tema.id)}
+                          className={`w-full p-3 rounded-xl border flex items-center gap-4 transition-all text-left ${
+                            seleccions[bloc.id].includes(tema.id)
+                            ? 'bg-yellow-400/10 border-yellow-400/40 text-yellow-400 shadow-xl shadow-yellow-400/5'
+                            : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10 hover:border-white/20'
+                          }`}
+                        >
+                          <div className={`w-6 h-6 flex items-center justify-center rounded-lg border font-black text-[10px] shrink-0 transition-all ${
+                            seleccions[bloc.id].includes(tema.id)
+                            ? 'bg-yellow-400 text-[#00274d] border-yellow-400'
+                            : 'bg-white/5 border-white/10 text-white/20'
+                          }`}>
+                            {tema.id}
+                          </div>
+                          <span className={`text-[11px] font-bold italic truncate leading-tight ${
+                            seleccions[bloc.id].includes(tema.id) ? 'text-white' : ''
+                          }`}>
+                            {tema.titol}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* BOTÓ COMENÇAR EXAMEN - Obre el modal de configuració */}
+            <button 
+              onClick={() => setShowConfig(true)}
+              disabled={Object.values(seleccions).flat().length === 0}
+              className={`w-full rounded-3xl py-6 font-black italic uppercase tracking-[0.3em] text-lg shadow-2xl active:scale-95 transition-all mt-4 border-b-4 ${
+                Object.values(seleccions).flat().length > 0
+                ? 'bg-yellow-400 hover:bg-yellow-300 text-[#00274d] shadow-yellow-400/20 border-yellow-600'
+                : 'bg-white/5 text-white/10 border-white/5 cursor-not-allowed border-transparent'
+              }`}
+            >
+              Començar
+            </button>
+          </div>
+        ) : (
+          /* SI SELECCIONEM "PREGUNTES ERRADES": Mostrem el missatge d'explicació i botó especial */
+          <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            {/* Label explicatiu estil blau fosc / glassmorphism */}
+            <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-[2rem] p-6 shadow-xl text-center">
+              <p className="text-sm font-bold text-white/80 italic leading-relaxed">
+                Dona a <span className="text-red-400">començar</span> per tal de només practicar les preguntes que has errat! Un cop les encertis les convertires en preguntes encertades.
+              </p>
+            </div>
+
+            {/* Botó començar pràctica d'errades */}
+            <button 
+              onClick={() => onComencar(20, 'inf', {})} // Configuració per defecte per a errades
+              className="w-full bg-red-500 hover:bg-red-400 text-white rounded-3xl py-6 font-black italic uppercase tracking-[0.3em] text-lg shadow-2xl shadow-red-500/20 active:scale-95 transition-all border-b-4 border-red-700"
+            >
+              Començar
+            </button>
+          </div>
+        )}
       </main>
 
       {/* MODAL DE CONFIGURACIÓ (Pop-up) */}

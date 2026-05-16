@@ -24,7 +24,7 @@ export default function DetallTemaGeneric({
   onToggle: (index: number) => void
 }) {
   return (
-    <div className="flex min-h-screen w-full flex-col items-center pb-12 px-6 bg-[#00274d] overflow-y-auto">
+    <div className="fixed inset-0 w-full flex flex-col items-center pb-12 px-6 bg-[#00274d] overflow-y-auto">
       
       {/* CAPÇALERA */}
       <header className="pt-10 w-full max-w-sm md:max-w-2xl flex items-center gap-4 mb-8">

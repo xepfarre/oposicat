@@ -32,20 +32,44 @@ export default function ClassesDirecteInici({ onTornar }: { onTornar: () => void
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center pb-12 px-6 bg-[#00274d] overflow-y-auto">
+    <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-12 px-6">
       
-      {/* CAPÇALERA DE LA PANTALLA */}
-      <header className="pt-14 w-full flex flex-col items-center gap-6 shrink-0 text-center mb-8 md:max-w-4xl">
-        <div className="bg-emerald-500/10 backdrop-blur-md px-8 py-4 md:py-8 md:px-16 rounded-3xl shadow-xl border border-emerald-500/20">
-          <h1 className="text-2xl md:text-5xl font-black italic tracking-tighter uppercase">
-            <span className="text-white">Classes en </span>
-            <span className="text-red-500">Directe</span>
-          </h1>
+      {/* CAPÇALERA */}
+      <header className="pt-14 w-full max-w-lg md:max-w-4xl flex flex-col items-center shrink-0 text-center mb-4 relative">
+        
+        {/* FILA 1: BOTÓ ENRERA + LOGO */}
+        <div className="w-full flex items-center justify-center relative mb-8">
+          <button 
+            onClick={onTornar}
+            className="absolute left-0 p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-90 shadow-lg"
+          >
+            <ChevronLeft className="w-6 h-6 text-white" />
+          </button>
+
+          <div className="bg-black/30 backdrop-blur-md px-10 py-3 rounded-[1.5rem] shadow-xl border border-white/10">
+            <h1 className="text-2xl font-black italic tracking-tighter select-none">
+              <span className="text-white">Oposi </span>
+              <span className="text-red-500">Mossos</span>
+            </h1>
+          </div>
+        </div>
+
+        {/* FILA 2: TITOL SECCIO + RATLLA */}
+        <div className="flex flex-col items-center mb-8">
+          <h2 className="text-lg font-black italic tracking-widest text-white uppercase mb-1">
+            Classes en Directe
+          </h2>
+          <div className="w-12 h-1 bg-red-600 rounded-full" />
         </div>
         
-        <p className="text-white/40 text-[10px] md:text-base uppercase font-black tracking-[0.2em] max-w-xs md:max-w-xl leading-relaxed">
-          Connecta't en temps real amb els nostres instructors per resoldre dubtes i avançar en el temari.
-        </p>
+        {/* LABEL GRIS PERSONALITZAT */}
+        <div className="max-w-md bg-slate-800/40 border border-slate-700/50 p-4 rounded-2xl">
+          <p className="text-slate-400 text-[11px] font-bold tracking-tight leading-relaxed text-center">
+            Disfruta de les classes que fem cada setmana dels 3 blocs de temari i del temari psicotècnic. 
+            Si vols veure tema a tema clases en la maxima qualitat entra a 
+            <span className="text-amber-400 underline ml-1 font-black">Clases Premium</span>.
+          </p>
+        </div>
       </header>
 
       {/* LLISTAT DE PROPERES CLASSES (LABELS) */}
@@ -150,17 +174,6 @@ export default function ClassesDirecteInici({ onTornar }: { onTornar: () => void
           </motion.div>
         ))}
       </main>
-
-      {/* FOOTER AMB EL BOTÓ DE TORNAR */}
-      <footer className="mt-12">
-        <button 
-          onClick={onTornar}
-          className="flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 text-white transition-all active:scale-95 group"
-        >
-          <ChevronLeft size={20} className="text-white/30 group-hover:text-white transition-colors" />
-          <span className="text-xs font-black uppercase tracking-[0.2em]">Tornar a l'examen teòric</span>
-        </button>
-      </footer>
 
     </div>
   );
