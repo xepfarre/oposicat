@@ -105,21 +105,35 @@ export default function ExamenActualitat({ onTornar }: { onTornar: () => void })
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center bg-[#00274d] overflow-y-auto pb-12 text-white">
+    <div className="fixed inset-0 w-full h-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-12 text-white" style={{ WebkitOverflowScrolling: "touch" }}>
       
       {/* CAPÇALERA */}
-      <header className="w-full p-6 flex items-center gap-4 shrink-0 max-w-2xl mx-auto">
-        <button 
-          onClick={onTornar}
-          className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all active:scale-95"
-        >
-          <ChevronLeft size={24} />
-        </button>
-        <div className="flex flex-col">
-          <span className="text-emerald-400 text-[8px] font-black uppercase tracking-[0.2em] opacity-70">Simulador de Test</span>
-          <h1 className="text-white text-base font-black uppercase italic tracking-tight">
-            Examen <span className="text-red-500">Actualitat</span>
-          </h1>
+      <header className="pt-14 w-full max-w-lg md:max-w-4xl flex flex-col items-center shrink-0 text-center mb-4 relative">
+        
+        {/* FILA 1: BOTÓ ENRERA + LOGO */}
+        <div className="w-full flex items-center justify-center relative mb-8 px-6">
+          <button 
+            onClick={onTornar}
+            className="absolute left-6 p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-90 shadow-lg"
+          >
+            <ChevronLeft className="w-6 h-6 text-white" />
+          </button>
+
+          <div className="bg-black/30 backdrop-blur-md px-10 py-3 rounded-[1.5rem] shadow-xl border border-white/10">
+            <h1 className="text-2xl font-black italic tracking-tighter select-none">
+              <span className="text-white">Oposi </span>
+              <span className="text-red-500">Mossos</span>
+            </h1>
+          </div>
+        </div>
+
+        {/* FILA 2: TITOL SECCIO + RATLLA */}
+        <div className="flex flex-col items-center mb-4 px-6">
+          <span className="text-emerald-400 text-[8px] font-black uppercase tracking-[0.2em] opacity-70 mb-1">Simulador de Test</span>
+          <h2 className="text-lg font-black italic tracking-widest text-white uppercase mb-1 text-center">
+            Examen Actualitat
+          </h2>
+          <div className="w-12 h-1 bg-red-600 rounded-full" />
         </div>
       </header>
 

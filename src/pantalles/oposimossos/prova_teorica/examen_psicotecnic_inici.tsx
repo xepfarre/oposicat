@@ -37,56 +37,71 @@ export default function ExamenPsicotecnicInici({ onTornar }: { onTornar: () => v
   }
 
   return (
-    <div className="fixed inset-0 h-full w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-12">
+    <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20" style={{ WebkitOverflowScrolling: "touch" }}>
       
       {/* CAPÇALERA */}
-      <header className="pt-14 w-full flex flex-col items-center gap-6 pb-6 text-center md:max-w-4xl shrink-0">
-        <div className="bg-white/10 backdrop-blur-md px-10 py-4 md:py-8 md:px-20 rounded-3xl shadow-xl border border-white/10">
-          <h1 className="text-2xl md:text-5xl font-black italic tracking-tighter uppercase text-white">
-            Exàmen <span className="text-red-500">Psicotècnic</span>
-          </h1>
+      <header className="pt-14 w-full max-w-lg md:max-w-4xl flex flex-col items-center shrink-0 text-center mb-4 relative">
+        
+        {/* FILA 1: BOTÓ ENRERA + LOGO */}
+        <div className="w-full flex items-center justify-center relative mb-8">
+          <button 
+            onClick={onTornar}
+            className="absolute left-0 p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-90 shadow-lg"
+          >
+            <ChevronLeft className="w-6 h-6 text-white" />
+          </button>
+
+          <div className="bg-black/30 backdrop-blur-md px-10 py-3 rounded-[1.5rem] shadow-xl border border-white/10">
+            <h1 className="text-2xl font-black italic tracking-tighter select-none">
+              <span className="text-white">Oposi </span>
+              <span className="text-red-500">Mossos</span>
+            </h1>
+          </div>
         </div>
-        <p className="text-white/40 text-[10px] md:text-base font-black uppercase tracking-[0.2em] max-w-[250px] md:max-w-xl leading-relaxed">
-          Selecciona el tipus d'entrenament mental que vols realitzar avui.
-        </p>
+
+        {/* FILA 2: TITOL SECCIO + RATLLA */}
+        <div className="flex flex-col items-center mb-4">
+          <h2 className="text-lg font-black italic tracking-widest text-white uppercase mb-1 text-center">
+            Exàmen Psicotècnic
+          </h2>
+          <div className="w-12 h-1 bg-red-600 rounded-full" />
+        </div>
+
+        <div className="flex flex-col gap-2 mt-2">
+          <p className="text-white/30 text-[9px] md:text-xs font-bold italic leading-relaxed max-w-[280px] md:max-w-2xl">
+            " Recorda que <span className="text-yellow-400">5 PUNTS</span> del tot el comput total de la prova teorica de l'oposició és l'examen psicotecnic, no ho deixis pel final i practica! "
+          </p>
+        </div>
       </header>
 
       {/* QUADRÍCULA D'EXERCICIS */}
-      <main className="w-full max-w-md md:max-w-6xl px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5">
-        {exercicis.map((ex, index) => (
-          <motion.button
+      <main className="w-full max-w-md md:max-w-6xl flex flex-col gap-3">
+        {exercicis.map((ex) => (
+          <button
             key={ex.id}
             onClick={() => setExerciciSeleccionat({ id: ex.id, titol: ex.titol })}
-            className="w-full bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl p-4 md:p-8 flex items-center justify-between group transition-all"
+            className="w-full bg-black/30 backdrop-blur-md border border-white/10 rounded-xl p-4 flex items-center justify-between group transition-all active:scale-[0.98] shadow-xl hover:bg-white/5"
           >
-            <div className="flex items-center gap-4 md:gap-6">
-              <div className={`p-3 md:p-5 ${ex.color} rounded-xl md:rounded-2xl text-white shadow-lg shadow-black/20 group-hover:scale-110 transition-transform`}>
-                <div className="md:scale-150">
-                  {ex.icona}
-                </div>
+            <div className="flex items-center gap-4">
+              <div className={`p-2 rounded-lg ${ex.color} text-white shadow-lg shadow-black/20 group-hover:scale-110 transition-transform`}>
+                {ex.icona}
               </div>
-              <span className="text-white font-black italic uppercase tracking-wider text-sm md:text-lg text-left">
+              <span className="text-white font-black italic tracking-wider text-sm text-left">
                 {ex.titol}
               </span>
             </div>
-            <div className="bg-white/10 p-2 md:p-3 rounded-lg text-white/20 group-hover:text-white transition-colors">
-              <ChevronLeft className="rotate-180 md:size-5" size={16} />
+            <div className="text-white/10 group-hover:text-white transition-colors">
+              <ChevronLeft className="rotate-180" size={18} />
             </div>
-          </motion.button>
+          </button>
         ))}
       </main>
 
       {/* PEU DE PÀGINA */}
-      <footer className="w-full max-w-xs flex flex-col items-center gap-6 pt-10">
-        <button 
-          onClick={onTornar}
-          className="flex items-center gap-2 group transition-all"
-        >
-          <ChevronLeft size={20} className="text-white/30 group-hover:text-white transition-colors" />
-          <span className="text-white/40 group-hover:text-white text-[10px] font-black uppercase tracking-[0.2em] transition-colors">
-            Tornar a Prova Teòrica
-          </span>
-        </button>
+      <footer className="mt-12 opacity-30">
+        <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white">
+          OposiMossos • Psicotècnics
+        </p>
       </footer>
 
     </div>

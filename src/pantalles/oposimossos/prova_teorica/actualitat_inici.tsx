@@ -66,108 +66,96 @@ export default function ActualitatInici({ onTornar }: { onTornar: () => void }) 
   }
 
   return (
-    <div 
-      ref={scrollContainerRef}
-      onScroll={handleContainerScroll}
-      className="fixed inset-0 h-full w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-20 px-6" 
-      style={{ WebkitOverflowScrolling: "touch" }}
-    >
+    <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20" style={{ WebkitOverflowScrolling: "touch" }}>
       
-      {/* CAPÇALERA DINÀMICA I FIXA */}
-      <header 
-        className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-center px-6 ${
-          scrolled 
-          ? 'bg-[#00274d]/90 backdrop-blur-md h-20 border-b border-white/10 shadow-2xl' 
-          : 'bg-transparent h-40'
-        }`}
-        style={{ 
-          paddingTop: "env(safe-area-inset-top)" 
-        }}
-      >
-        <div className="relative w-full max-w-4xl flex items-center justify-center">
+      {/* CAPÇALERA */}
+      <header className="pt-14 w-full max-w-lg md:max-w-4xl flex flex-col items-center shrink-0 text-center mb-4 relative">
+        
+        {/* FILA 1: BOTÓ ENRERA + LOGO */}
+        <div className="w-full flex items-center justify-center relative mb-8">
           <button 
             onClick={onTornar}
-            className={`absolute left-0 p-3 rounded-full border border-white/10 text-white active:scale-90 ${
-              scrolled ? 'bg-white/5 scale-90' : 'bg-white/5'
-            }`}
+            className="absolute left-0 p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-90 shadow-lg"
           >
-            <ChevronLeft size={scrolled ? 18 : 20} />
+            <ChevronLeft className="w-6 h-6 text-white" />
           </button>
-          
-          <div className={`bg-white/10 backdrop-blur-md px-10 py-4 rounded-3xl shadow-xl border border-white/10 ${
-            scrolled ? 'scale-90 py-2' : 'scale-100'
-          }`}>
-            <h1 className={`font-black italic tracking-tighter uppercase text-white ${
-              scrolled ? 'text-lg' : 'text-2xl'
-            }`}>
-              Actualitat <span className="text-amber-400">ISPC</span>
+
+          <div className="bg-black/30 backdrop-blur-md px-10 py-3 rounded-[1.5rem] shadow-xl border border-white/10">
+            <h1 className="text-2xl font-black italic tracking-tighter select-none">
+              <span className="text-white">Oposi </span>
+              <span className="text-red-500">Mossos</span>
             </h1>
           </div>
         </div>
-      </header>
 
-      {/* LLISTAT DE BOTONS */}
-      <main 
-        className="w-full md:max-w-6xl flex flex-col md:grid md:grid-cols-3 gap-4"
-        style={{ 
-          paddingTop: scrolled 
-            ? "calc(100px + env(safe-area-inset-top))" 
-            : "calc(160px + env(safe-area-inset-top))" 
-        }}
-      >
-        {/* LABEL GROC SOL·LICITAT */}
-        <div className={`col-span-full mb-6 mx-auto max-w-[300px] text-center transition-all ${scrolled ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}>
-          <p className="text-amber-400 text-xs font-bold leading-relaxed shadow-sm">
-            "Troba aqui les noticies me rellevants de l'ultima setmana, les coses mes rellevants de l'ultim any o l'eina de practica d'actualitat."
+        {/* FILA 2: TITOL SECCIO + RATLLA */}
+        <div className="flex flex-col items-center mb-4">
+          <h2 className="text-lg font-black italic tracking-widest text-white uppercase mb-1 text-center">
+            Actualitat
+          </h2>
+          <div className="w-12 h-1 bg-red-600 rounded-full" />
+        </div>
+
+        {/* LABEL GROC */}
+        <div className="mt-4 mx-auto max-w-[300px] text-center">
+          <p className="text-amber-400 text-[10px] font-bold italic leading-relaxed">
+            "Troba aquí les notícies més rellevants de l'última setmana, les coses més rellevants de l'últim any o l'eina de pràctica d'actualitat."
           </p>
         </div>
-        {opcions.map((opc, index) => (
-          <motion.button
-            key={index}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            onClick={() => {
-              if (opc.id === 'setmana') {
-                setSeccio('noticies_setmana');
-              } else if (opc.id === 'any') {
-                setSeccio('rellevant_any');
-              } else if (opc.id === 'examen') {
-                setSeccio('examen_actualitat');
-              }
-            }}
-            className={`w-full bg-gradient-to-br ${opc.color} hover:bg-white/10 border border-white/10 rounded-[2rem] p-6 md:p-10 flex flex-row md:flex-col items-center justify-between md:justify-center gap-4 group transition-all shadow-lg active:scale-95`}
+      </header>
+
+      {/* SECCIONS D'OPCIONS */}
+      <main className="w-full max-w-md md:max-w-xl flex flex-col items-center mt-4 gap-5">
+        
+        {/* SECCIÓ 1 */}
+        <div className="w-full flex flex-col">
+          <span className="text-white/40 text-[10px] font-black uppercase tracking-[0.3em] mb-2 self-start pl-2">
+            Actualitat més recent
+          </span>
+          <button 
+            onClick={() => setSeccio('noticies_setmana')}
+            className="w-full bg-white/10 border-white/20 hover:bg-white/20 border rounded-xl py-4 md:py-8 text-white font-black italic uppercase text-[11px] md:text-base tracking-widest transition-all active:scale-95 shadow-lg"
           >
-            <div className="flex flex-row md:flex-col items-center gap-5">
-              <div className={`w-12 h-12 md:w-20 md:h-20 rounded-2xl bg-black/20 flex items-center justify-center ${opc.iconColor} group-hover:scale-110 transition-transform`}>
-                {/* SVG icon size adjustment for tablet */}
-                {React.cloneElement(opc.icona as React.ReactElement<any>, { size: 32 })}
-              </div>
-              <div className="flex flex-col items-start md:items-center text-left md:text-center">
-                <span className="text-white font-black italic uppercase tracking-wider text-sm md:text-xl leading-tight">
-                  {opc.titol}
-                </span>
-                <span className="text-white/40 text-[9px] md:text-xs font-bold uppercase tracking-widest mt-1">
-                  {opc.desc}
-                </span>
-              </div>
-            </div>
-            <ArrowRight size={18} className="text-white/20 group-hover:text-white group-hover:translate-x-1 transition-all md:hidden" />
-          </motion.button>
-        ))}
+            Última setmana
+          </button>
+        </div>
+
+        {/* SECCIÓ 2 */}
+        <div className="w-full flex flex-col">
+          <span className="text-white/40 text-[10px] font-black uppercase tracking-[0.3em] mb-2 self-start pl-2">
+            El més rellevant mes a mes
+          </span>
+          <button 
+            onClick={() => setSeccio('rellevant_any')}
+            className="w-full bg-white/10 border-white/20 hover:bg-white/20 border rounded-xl py-4 md:py-8 text-white font-black italic uppercase text-[11px] md:text-base tracking-widest transition-all active:scale-95 shadow-lg"
+          >
+            Notícies de l'any
+          </button>
+        </div>
+
+        {/* SEPARADOR */}
+        <div className="w-full h-px bg-white/5 my-1" />
+
+        {/* SECCIÓ 3 */}
+        <div className="w-full flex flex-col">
+          <span className="text-yellow-400/60 text-[10px] font-black uppercase tracking-[0.3em] mb-2 self-start pl-2">
+            Practica amb examens d'actualitat
+          </span>
+          <button 
+            onClick={() => setSeccio('examen_actualitat')}
+            className="w-full bg-white/10 border-white/20 hover:bg-white/20 border rounded-xl py-4 md:py-8 text-white font-black italic uppercase text-[11px] md:text-base tracking-widest transition-all active:scale-95 shadow-lg"
+          >
+            Examens actualitat
+          </button>
+        </div>
+
       </main>
 
-      {/* BOTÓ TORNAR */}
-      <footer className="w-full max-w-xs flex flex-col items-center gap-6 pt-12">
-        <button 
-          onClick={onTornar}
-          className="flex items-center gap-2 group transition-all"
-        >
-          <ChevronLeft size={20} className="text-white/30 group-hover:text-white transition-colors" />
-          <span className="text-white/40 group-hover:text-white text-[10px] font-black uppercase tracking-[0.2em] transition-colors">
-            Tornar a Prova Teòrica
-          </span>
-        </button>
+      {/* PEU DE PÀGINA */}
+      <footer className="mt-12 opacity-30">
+        <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white">
+          OposiMossos • Actualitat
+        </p>
       </footer>
 
     </div>

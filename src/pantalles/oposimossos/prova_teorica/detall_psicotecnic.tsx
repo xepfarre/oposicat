@@ -13,9 +13,9 @@ export default function DetallPsicotecnic({
   exercici: { id: string, titol: string }
 }) {
   return (
-    <div className="flex min-h-screen w-full flex-col items-center bg-[#00274d] overflow-y-auto pb-12 text-white">
-           {/* CAPÇALERA AMB BOTÓ TORNAR I TÍTOL */}
-      <header className="w-full p-6 flex items-center gap-4 md:gap-8 shrink-0 max-w-2xl md:max-w-4xl mx-auto">
+    <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-20 text-white" style={{ WebkitOverflowScrolling: "touch" }}>
+      {/* CAPÇALERA AMB BOTÓ TORNAR I TÍTOL */}
+      <header className="w-full pt-14 px-6 p-6 flex items-center gap-4 md:gap-8 shrink-0 max-w-2xl md:max-w-4xl mx-auto relative">
         <button 
           onClick={onTornar}
           className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all active:scale-95"
