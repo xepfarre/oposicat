@@ -36,7 +36,7 @@ export default function DetallProvaFisica({
   */
   const renderContingutConsells = () => {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6 pb-20">
         <div className="bg-white/5 border border-white/10 rounded-[1.5rem] p-4 flex items-center text-left gap-4 shadow-2xl">
           <div className={`w-12 h-12 shrink-0 rounded-2xl bg-${color}/10 flex items-center justify-center text-${color}`}>
             <TrendingUp size={24} />
@@ -67,13 +67,8 @@ export default function DetallProvaFisica({
     Funció que renderitza la vista detallada del pla d'entrenament.
   */
   const renderContingutPla = () => {
-    const props = { 
-      color, 
-      onSelectSetmana: (pla: any) => console.log("Setmana seleccionada:", pla) 
-    };
-
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6 pb-20">
         <div className="bg-white/5 border border-white/10 rounded-[1.5rem] p-4 flex items-center text-left gap-4 shadow-2xl">
           <div className={`w-12 h-12 shrink-0 rounded-2xl bg-${color}/10 flex items-center justify-center text-${color}`}>
             <Calendar size={24} />
@@ -85,9 +80,9 @@ export default function DetallProvaFisica({
         </div>
 
         <div className="flex flex-col gap-3">
-          {nom.toLocaleLowerCase().includes('circuit') && <PlaCircuitAgilitat {...props} />}
-          {nom.toLocaleLowerCase().includes('press') && <PlaPressBanca {...props} />}
-          {nom.toLocaleLowerCase().includes('navette') && <PlaCourseNavette {...props} />}
+          {nom.toLocaleLowerCase().includes('circuit') && <PlaCircuitAgilitat color={color} />}
+          {nom.toLocaleLowerCase().includes('press') && <PlaPressBanca color={color} />}
+          {nom.toLocaleLowerCase().includes('navette') && <PlaCourseNavette color={color} />}
         </div>
 
         <button 
@@ -101,10 +96,10 @@ export default function DetallProvaFisica({
   };
   
   return (
-    <div className="flex min-h-screen w-full flex-col items-center bg-[#00274d] overflow-y-auto pb-12">
+    <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-24">
       
       {/* CAPÇALERA AMB BOTÓ TORNAR */}
-      <header className="pt-10 w-full flex flex-col items-center gap-4 pb-6 px-6 max-w-2xl">
+      <header className="pt-10 w-full flex flex-col items-center gap-4 pb-6 px-6 max-w-2xl shrink-0">
         <div className="flex items-center gap-4 w-full">
           <button 
             onClick={seccioInterna === 'principal' ? onTornar : () => setSeccioInterna('principal')}

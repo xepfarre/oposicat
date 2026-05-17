@@ -1,6 +1,6 @@
 {
   "name": "OposiCAT",
-  "description": "Plataforma de preparació per a les oposicions de la Generalitat de Catalunya.",
+  "description": "Plataforma avançada de preparació per a les oposicions de la Generalitat de Catalunya, amb gestió de preguntes, actualitat i seguiment físic.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

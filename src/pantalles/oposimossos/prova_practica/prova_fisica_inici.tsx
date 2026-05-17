@@ -70,7 +70,16 @@ export default function ProvaFisicaInici({ onTornar }: { onTornar: () => void })
     <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20" style={{ WebkitOverflowScrolling: "touch" }}>
       
       {/* CAPÇALERA */}
-      <header className="pt-10 w-full flex flex-col items-center gap-4 pb-6 text-center md:max-w-4xl md:mx-auto">
+      <header className="pt-14 w-full flex flex-col items-center gap-4 pb-6 text-center md:max-w-4xl md:mx-auto relative">
+        
+        {/* BOTÓ ENRERA (A l'esquerra, posicionament absolut per no moure el centre) */}
+        <button 
+          onClick={onTornar}
+          className="absolute left-0 top-14 p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-90 shadow-lg transition-all"
+        >
+          <ChevronLeft className="w-5 h-5 text-white" />
+        </button>
+
         <div className="bg-white/10 backdrop-blur-md px-8 py-3 md:py-6 md:px-12 rounded-2xl shadow-xl border border-white/10">
           <h1 className="text-xl md:text-3xl font-black italic tracking-tighter uppercase text-white">
             Prova <span className="text-emerald-400">Física</span>
