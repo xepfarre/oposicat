@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { ChevronLeft, Search, MapPin, Building2, ChevronDown, Check, Plus, User, Briefcase, ArrowRight, X, Phone, Mail } from "lucide-react";
+import { ChevronLeft, Search, MapPin, Building2, ChevronDown, Check, Plus, User, Briefcase, ArrowRight, X, Phone, Mail, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { DATA_CATALUNYA } from "../../../data/municipis";
 
@@ -170,8 +170,9 @@ function SmartSelector({ label, options, value, onSelect, disabled }: SelectorPr
           onClick={() => setIsOpen(!isOpen)}
           className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between text-left group transition-all hover:bg-white/10"
         >
-          <span className={`text-xs font-bold uppercase tracking-wide ${value ? 'text-emerald-400' : 'text-white/30 italic'}`}>
-            {value || `Selecciona ${label.toLowerCase()}...`}
+          <span className={`text-xs font-bold uppercase tracking-wide flex items-center gap-2 ${value ? 'text-emerald-400' : 'text-white/30'}`}>
+            {disabled && <Lock size={12} className="opacity-50" />}
+            {value || (label === 'Província' ? 'Selecciona província' : label === 'Comarca' ? 'Ex: Vallès Occidental' : 'Ex: Sant Cugat del Vallès')}
           </span>
           <ChevronDown size={16} className={`text-white/20 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </button>
@@ -437,14 +438,14 @@ export default function OnEntrenarInici({ onTornar }: { onTornar: () => void }) 
               </div>
 
               <SmartSelector 
-                label="La teva província"
+                label="Província"
                 options={provincies}
                 value={provincia}
                 onSelect={handleSelectProvincia}
               />
 
               <SmartSelector 
-                label="La teva comarca"
+                label="Comarca"
                 options={comarques}
                 value={comarca}
                 onSelect={handleSelectComarca}
@@ -452,7 +453,7 @@ export default function OnEntrenarInici({ onTornar }: { onTornar: () => void }) 
               />
 
               <SmartSelector 
-                label="El teu municipi"
+                label="Municipi"
                 options={municipis}
                 value={municipi}
                 onSelect={setMunicipi}

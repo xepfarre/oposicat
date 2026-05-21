@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, ChevronLeft, Youtube, Dumbbell, Target } from 'lucide-react';
+import { Play, ChevronLeft, Youtube, Dumbbell, Target, AlertTriangle } from 'lucide-react';
 
 /* 
   Aquest component gestiona els consells tècnics de forma modular per al Circuit d'Agilitat.
@@ -38,42 +38,51 @@ interface ConsellsCircuitProps {
 export const ConsellsCircuitAgilitat = ({ color }: ConsellsCircuitProps) => {
   const [puntSeleccionat, setPuntSeleccionat] = useState<string | null>(null);
 
-  const dadesCircuit: { [key: string]: { explicacio: string, exercicis: string[] } } = {
+  const dadesCircuit: { [key: string]: { explicacio: string, exercicis: string[], errors: string[] } } = {
     "Atacar la tanca": {
       explicacio: "La sortida és vital. Has d'atacar la primera tanca amb decisió per guanyar inèrcia des del segon zero.",
-      exercicis: ["Sortides de reacció", "Skipping alt contra paret", "Acceleracions 5m"]
+      exercicis: ["Sortides de reacció", "Skipping alt contra paret", "Acceleracions 5m"],
+      errors: ["Sortir abans del senyal", "Mirar el terra", "No inclinar el cos"]
     },
     "Voltereta a la colxoneta": {
       explicacio: "No és gimnàstica artística. Ha de ser ràpida, compacta i sense perdre l'orientació per aixecar-te d'un salt.",
-      exercicis: ["Volteretes amb llast", "Burpees explosives", "Core stability"]
+      exercicis: ["Volteretes amb llast", "Burpees explosives", "Core stability"],
+      errors: ["Aixecar-se amb les mans", "Perdre la verticalitat", "Voltereta lenta"]
     },
     "Primera tanca": {
       explicacio: "Passar per sota requereix agilitat i baixar el centre de gravetat al màxim sense tocar el llistó.",
-      exercicis: ["Mobilitat de maluc", "Pas de tanca lateral", "Esquat profund"]
+      exercicis: ["Mobilitat de maluc", "Pas de tanca lateral", "Esquat profund"],
+      errors: ["Tocar el llistó", "Passar massa lluny", "No doblegar prous els genolls"]
     },
     "Saltar el plint": {
       explicacio: "Fes servir les mans per recolzar-te i impel·lir el cos. No saltis massa alt, busca la línia recta.",
-      exercicis: ["Box jumps", "Salt de longitud", "Plio-box altern"]
+      exercicis: ["Box jumps", "Salt de longitud", "Plio-box altern"],
+      errors: ["No recolzar bé les mans", "Saltar massa alt", "Aterratge inestable"]
     },
     "Segona tanca": {
       explicacio: "Mantenir la velocitat mentre canvies de direcció. Ull amb els peus per no ensopegar amb les bases.",
-      exercicis: ["Z-runs", "Slalom entre cons", "Propiocepció de turmell"]
+      exercicis: ["Z-runs", "Slalom entre cons", "Propiocepció de turmell"],
+      errors: ["Prendre la corba massa oberta", "Ensopegar amb la base", "Frenar en excés"]
     },
     "Tercera tanca": {
       explicacio: "L'últim obstacle abans del pes. Manté la concentració i no baixis el ritme per la fatiga.",
-      exercicis: ["Circuit d'agilitat reduït", "Multi-salts", "Equilibri dinàmic"]
+      exercicis: ["Circuit d'agilitat reduït", "Multi-salts", "Equilibri dinàmic"],
+      errors: ["Falta d'embranzida", "Tocar el llistó per fatiga", "Relentir abans del pes"]
     },
     "Agafar el pes correctament": {
       explicacio: "No perdis temps dubtant. Agafa el sac amb seguretat pel centre per evitar que es mogui durant el gir.",
-      exercicis: ["Farmer's walk", "Clean amb manuella", "Poder d'aspror (grip)"]
+      exercicis: ["Farmer's walk", "Clean amb manuella", "Poder d'aspror (grip)"],
+      errors: ["Agafar-lo pel costat", "Dudar en l'agarrada", "Que el sac rellisqui"]
     },
     "El gir": {
       explicacio: "Clava el peu interior per pivotar ràpidament. El cos s'ha d'inclinar cap al gir per vèncer la inèrcia.",
-      exercicis: ["Girs en 8", "Llançaments de pilota medicinal", "Pivots de bàsquet"]
+      exercicis: ["Girs en 8", "Llançaments de pilota medicinal", "Pivots de bàsquet"],
+      errors: ["Peu de pivot inestable", "No inclinar el cos", "Pas de més en el gir"]
     },
     "Últim sprint": {
       explicacio: "Corre com si t'hi anés la vida. No frenis fins que el pit hagi passat totalment la línia d'arribada.",
-      exercicis: ["Sprints resistits", "Fartlek intens", "Tècnica de cursa"]
+      exercicis: ["Sprints resistits", "Fartlek intens", "Tècnica de cursa"],
+      errors: ["Frenar abans de la línia", "Mirar al cronòmetre", "Braçat poc potent"]
     }
   };
 
@@ -111,6 +120,18 @@ export const ConsellsCircuitAgilitat = ({ color }: ConsellsCircuitProps) => {
         </div>
 
         <div className="flex flex-col gap-3">
+          <span className="text-[9px] text-white/30 font-black uppercase tracking-[0.2em] ml-2">Errors comuns a evitar</span>
+          <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-4 flex flex-col gap-2">
+            {info.errors.map((error, eIdx) => (
+              <div key={eIdx} className="flex items-start gap-3">
+                <AlertTriangle size={12} className="text-red-500/50 mt-0.5 shrink-0" />
+                <span className="text-[10px] text-white/50 font-medium italic">{error}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
           <span className="text-[9px] text-white/30 font-black uppercase tracking-[0.2em] ml-2">Entrenament específic</span>
           <div className="flex flex-col gap-2">
             {info.exercicis.map((ex, idx) => (
@@ -135,15 +156,28 @@ export const ConsellsCircuitAgilitat = ({ color }: ConsellsCircuitProps) => {
   const puntsClau = Object.keys(dadesCircuit);
 
   return (
-    <div className="flex flex-col gap-2 w-full animate-in fade-in duration-500">
-      {puntsClau.map((punto, idx) => (
-        <BotoConsell 
-          key={idx} 
-          titol={punto} 
-          color={color} 
-          onClick={() => setPuntSeleccionat(punto)} 
-        />
-      ))}
+    <div className="flex flex-col gap-6 w-full animate-in fade-in duration-500">
+      <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/10 rounded-3xl p-6 shadow-xl flex flex-col gap-4">
+        <div className="flex items-center gap-3 text-emerald-400">
+          <Target size={20} />
+          <h4 className="text-[10px] font-black uppercase tracking-[0.2em]">Consells de preparació</h4>
+        </div>
+        <p className="text-[12px] text-white/70 leading-relaxed italic">
+          "L'agilitat no és només velocitat lineal, és el control del centre de gravetat i la reactivitat dels peus. Entrena descalç per millorar la propiocepció."
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-[9px] text-white/30 font-black uppercase tracking-[0.2em] ml-2 mb-1">Punts crítics segon a segon</span>
+        {puntsClau.map((punto, idx) => (
+          <BotoConsell 
+            key={idx} 
+            titol={punto} 
+            color={color} 
+            onClick={() => setPuntSeleccionat(punto)} 
+          />
+        ))}
+      </div>
     </div>
   );
 };
@@ -311,7 +345,7 @@ export const ConsellsPressBanca = ({ color }: { color: string }) => {
             className="group relative overflow-hidden rounded-2xl aspect-video bg-black/40 border border-white/10 flex items-center justify-center"
           >
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-            <Youtube size={48} className="text-red-500 relative z-10 group-hover:scale-110 transition-transform" />
+            < Youtube size={48} className="text-red-500 relative z-10 group-hover:scale-110 transition-transform" />
             <span className="absolute bottom-4 left-4 text-[10px] font-bold uppercase tracking-widest text-white/70 group-hover:text-white transition-colors">Veure correcció tècnica</span>
           </a>
         </div>

@@ -13,6 +13,7 @@ import {
   setDoc,
   collectionGroup
 } from "firebase/firestore";
+import { DATA_CATALUNYA } from "../../data/municipis";
 import { 
   Plus, 
   Trash2, 
@@ -44,6 +45,7 @@ import {
   Clock,
   Info,
   FileText,
+  FileDown,
   User,
   Database,
   Coffee,
@@ -56,15 +58,21 @@ import {
   Users2,
   ClipboardList,
   Briefcase,
+  Wand2,
   ArrowLeft,
+  ArrowRight,
   Video,
   Image as ImageIcon,
   ExternalLink,
-  Type
+  Type,
+  Building2,
+  Phone,
+  Mail,
+  Lock as LockIcon
 } from "lucide-react";
 import { TEMARI_DETALL } from "../../constants/temari";
 import { motion, AnimatePresence } from "motion/react";
-import { Routes, Route, Link, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 /**
  * PANTALLA: AdminPanel (Web de Gestió)
@@ -150,6 +158,14 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
   const [gimnasos, setGimnasos] = useState<any[]>([]);
   const [reserves, setReserves] = useState<any[]>([]);
   const [subscripcions, setSubscripcions] = useState<any[]>([]);
+  const [exercicisFisics, setExercicisFisics] = useState<any[]>([]);
+  const [plansEntrenament, setPlansEntrenament] = useState<any[]>([]);
+  const [preguntesBiodataPersonals, setPreguntesBiodataPersonals] = useState<any[]>([]);
+  const [preguntesBiodataLaborals, setPreguntesBiodataLaborals] = useState<any[]>([]);
+  const [preguntesBiodataPGME, setPreguntesBiodataPGME] = useState<any[]>([]);
+  const [preguntesEntrevista, setPreguntesEntrevista] = useState<any[]>([]);
+  
+  const [psicolegs, setPsicolegs] = useState<any[]>([]);
   
   // Determinació de la secció activa segons URL
   const activeTab = location.pathname.split('/').pop() || 'dashboard';
@@ -163,6 +179,20 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     capitol: 0,
     explicacio: "",
     status: "activa" // status: 'activa' | 'suspesa'
+  });
+
+  const [nouExercici, setNouExercici] = useState({
+    nom: "",
+    temps: "30 segons",
+    categoria: "Circuit Agilitat", // Categoria per filtrar
+    imatge: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80",
+    consells: ["", "", ""]
+  });
+
+  const [nouPlaFisic, setNouPlaFisic] = useState({
+    setmana: 1,
+    tipusProva: "Course Navette", // Course Navette | Circuit Agilitat | Press de Banca
+    exercicisIds: [] as string[]
   });
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -236,7 +266,10 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
 
     try {
       // Executem totes les consultes EN PARAL·LEL per anar molt més ràpid
-      const [snapNew, snapOld, snapAct, snapGim, snapRes, snapSub, snapPsiTip, snapPsiPreg] = await Promise.all([
+      const [
+        snapNew, snapOld, snapAct, snapGim, snapRes, snapSub, snapPsiTip, snapPsiPreg, snapExFis, snapPlaFis,
+        snapBioPer, snapBioLab, snapBioPGME, snapEnt
+      ] = await Promise.all([
         getDocs(query(collectionGroup(db, "preguntes_codificades"))),
         getDocs(query(collection(db, "examens/mossos/preguntes"))),
         getDocs(query(collection(db, "actualitat"))),
@@ -244,7 +277,13 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
         getDocs(query(collection(db, "reserves_psicologia"))),
         getDocs(query(collection(db, "subscripcions"))),
         getDocs(query(collection(db, "psicotecnics_tipus"), orderBy("titol"))),
-        getDocs(query(collection(db, "psicotecnics_preguntes"), orderBy("createdAt", "desc")))
+        getDocs(query(collection(db, "psicotecnics_preguntes"), orderBy("createdAt", "desc"))),
+        getDocs(query(collection(db, "exercicis_fisics"), orderBy("nom"))),
+        getDocs(query(collection(db, "plans_entrenament"), orderBy("setmana"))),
+        getDocs(query(collection(db, "preguntes_biodata_personals"))),
+        getDocs(query(collection(db, "preguntes_biodata_laborals"))),
+        getDocs(query(collection(db, "preguntes_biodata_pgme"))),
+        getDocs(query(collection(db, "preguntes_entrevista"), orderBy("createdAt", "desc")))
       ]);
       
       // Processar preguntes noves
@@ -293,6 +332,27 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
 
       // Processar subscripcions
       setSubscripcions(snapSub.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      
+      // Processar exercicis físics
+      setExercicisFisics(snapExFis.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      
+      // Processar plans entrenament
+      setPlansEntrenament(snapPlaFis.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+      // Processar preguntes biodata
+      setPreguntesBiodataPersonals(snapBioPer.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setPreguntesBiodataLaborals(snapBioLab.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setPreguntesBiodataPGME(snapBioPGME.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      
+      // Processar preguntes entrevista
+      setPreguntesEntrevista(snapEnt.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+      // Psicòlegs per defecte (si no n'hi ha a la BBDD)
+      setPsicolegs([
+        { id: "p1", nom: "Aleix Romeo Pociello" },
+        { id: "p2", nom: "Maria Blazquez Godia" }
+      ]);
+
       setFetchError(null);
 
     } catch (err: any) {
@@ -347,6 +407,158 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     ];
     setPsicotecnicsPreguntes(mocks);
     setFetchError(null);
+  };
+
+  const loadMockBiodata = () => {
+    const personals = [
+      { id: "mock-bio-p1", pregunta: "Digui'm els seus 3 majors defectes i 3 majors virtuts.", resposta: "Resposta pendent de definir...", createdAt: new Date() },
+      { id: "mock-bio-p2", pregunta: "És el primer cop que es presenta? Si no ho és, per què es presenta un altre cop?", resposta: "Resposta pendent de definir...", createdAt: new Date() },
+      { id: "mock-bio-p3", pregunta: "Per què creu que vostè ha d'aprovar aquesta oposició aquest any?", resposta: "Resposta pendent de definir...", createdAt: new Date() },
+      { id: "mock-bio-p4", pregunta: "Descrigui breument la situació que més por ha passat a la seva vida.", resposta: "Resposta pendent de definir...", createdAt: new Date() }
+    ];
+    const laborals = [
+      { id: "mock-bio-l1", pregunta: "Quants anys ha treballat vostè i on?", resposta: "Resposta pendent de definir...", createdAt: new Date() },
+      { id: "mock-bio-l2", pregunta: "Quin és el càrrec més important que vostè ha desenvolupat?", resposta: "Resposta pendent de definir...", createdAt: new Date() },
+      { id: "mock-bio-l3", pregunta: "Si tornés a néixer, estudiaria el mateix?", resposta: "Resposta pendent de definir...", createdAt: new Date() }
+    ];
+    const pgme = [
+      { id: "mock-bio-pg1", pregunta: "Per què vostè vol ser policia?", resposta: "Voldria ser policia perquè considero que sóc una persona que vol ajudar a la societat de forma altruista i professional. Desenvoluparé la feina amb gran professionalitat i responsabilitat per a donar el màxim nivell del servei. Estic preparat per a fer el que sigui necessari per als ciutadans i el cos de PGME, però amb els peus a terra, sense creure'm un superheroi.", createdAt: new Date() },
+      { id: "mock-bio-pg2", pregunta: "Per què ha decidit ser mosso i no policia local?", resposta: "Resposta pendent de definir...", createdAt: new Date() },
+      { id: "mock-bio-pg3", pregunta: "Què espera de la feina de mosso?", resposta: "Resposta pendent de definir...", createdAt: new Date() },
+      { id: "mock-bio-pg4", pregunta: "Què creu vostè que la ciutadania espera de vostè?", resposta: "Resposta pendent de definir...", createdAt: new Date() },
+      { id: "mock-bio-pg5", pregunta: "Quina especialitat és la que més li agradaria treballar dins del cos?", resposta: "Resposta pendent de definir...", createdAt: new Date() }
+    ];
+
+    setPreguntesBiodataPersonals(personals);
+    setPreguntesBiodataLaborals(laborals);
+    setPreguntesBiodataPGME(pgme);
+    setFetchError(null);
+  };
+
+  const loadMockEntrevista = () => {
+    const mocks = [
+      // INICIALS
+      { id: "e-mock-1", pregunta: "1 Què tal?", seccio: "PREGUNTES INICIALS", createdAt: new Date() },
+      { id: "e-mock-2", pregunta: "2 Està molt nerviós?", seccio: "PREGUNTES INICIALS", createdAt: new Date() },
+      { id: "e-mock-3", pregunta: "3 D'on ve?", seccio: "PREGUNTES INICIALS", createdAt: new Date() },
+      
+      // FORMACIÓ
+      { id: "e-mock-4", pregunta: "7 Quins estudis ha realitzat?", seccio: "FORMACIÓ", createdAt: new Date() },
+      { id: "e-mock-5", pregunta: "9 Tornaria a realitzar els mateixos estudis? Per què?", seccio: "FORMACIÓ", createdAt: new Date() },
+      { id: "e-mock-6", pregunta: "13 Quin tipus d'estudiant era/és?", seccio: "FORMACIÓ", createdAt: new Date() },
+      
+      // LABORAL
+      { id: "e-mock-7", pregunta: "14 Quina és la darrera feina que ha fet?", seccio: "EXPERIÈNCIA LABORAL", createdAt: new Date() },
+      { id: "e-mock-8", pregunta: "22 Per què vol canviar de feina?", seccio: "EXPERIÈNCIA LABORAL", createdAt: new Date() },
+      { id: "e-mock-9", pregunta: "24 Expliqui’m algun conflicte que hagi tingut a la feina.", seccio: "EXPERIÈNCIA LABORAL", createdAt: new Date() },
+      
+      // PERSONALS
+      { id: "e-mock-10", pregunta: "29 Parli’m de vostè. Quin tipus de persona és?", seccio: "PREGUNTES PERSONALS", createdAt: new Date() },
+      { id: "e-mock-11", pregunta: "30 Digui’m 3 punts forts del seu caràcter.", seccio: "PREGUNTES PERSONALS", createdAt: new Date() },
+      { id: "e-mock-12", pregunta: "31 Digui’m tres punts febles.", seccio: "PREGUNTES PERSONALS", createdAt: new Date() },
+      
+      // MMEE
+      { id: "e-mock-13", pregunta: "78 Per què vol ser MMEE?", seccio: "PREGUNTES SOBRE MMEE", createdAt: new Date() },
+      { id: "e-mock-14", pregunta: "86 Quines funcions té encomanades el cos MMEE?", seccio: "PREGUNTES SOBRE MMEE", createdAt: new Date() },
+      { id: "e-mock-15", pregunta: "107 Quina creu que és la qualitat més important que ha de tenir un MMEE?", seccio: "PREGUNTES SOBRE MMEE", createdAt: new Date() }
+    ];
+    setPreguntesEntrevista(mocks);
+    setFetchError(null);
+  };
+
+  const loadMockReserves = (targetDateStr?: string) => {
+    const names = ["Roger de Flor", "Laia Martínez", "Jordi Soler", "Marta Vinu"];
+    
+    // Si no ens passen data, usem la d'avui. Si ens la passen (ex: "2026-05-20"), la fem servir
+    const today = targetDateStr ? new Date(targetDateStr) : new Date();
+    
+    const mocks = names.map((name, i) => {
+      const date = new Date(today);
+      // Alguns per la data seleccionada, d'altres per al dia següent
+      const dayOffset = i >= 2 ? 1 : 0;
+      date.setDate(today.getDate() + dayOffset); 
+      date.setHours(10 + (i * 2), 0, 0, 0);
+      
+      return {
+        id: `mock-res-${Date.now()}-${i}`,
+        usuariNom: name,
+        usuariEmail: `${name.toLowerCase().replace(/ /g, '.')}@exemple.com`,
+        dataSessio: date.toISOString(),
+        estat: i % 2 === 0 ? "pendent" : "confirmada",
+        notes: "Aspirant amb perfil molt equilibrat per a la simulació backoffice.",
+        telefon: "600 000 000",
+        edat: (22 + i).toString(),
+        anysOpositant: (1 + i).toString(),
+        psicoleg: i === 1 ? "Aleix Romeo Pociello" : "", 
+        biodataFet: true,
+        competencies: {
+          "Orientació al servei": 8.5,
+          "Autocontrol": 7.2,
+          "Comunicació": 9.0,
+          "Treball en equip": 8.0,
+          "Ètica": 9.5
+        },
+        biodataInforme: "Dades de prova generades localment per a verificació de disseny.",
+        createdAt: new Date()
+      };
+    });
+
+    setReserves(prev => [...mocks, ...prev]);
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 2000);
+  };
+
+  const handleSeedCites = async () => {
+    // Aquesta funció es manté per si es vol persistir a la BBDD, 
+    // però el botó de "proves" ara farà servir la versió local
+    setLoading(true);
+    try {
+      const names = ["Roger de Flor", "Laia Martínez", "Jordi Soler", "Marta Vinu"];
+      const dates = [
+        new Date(), // Avui (perquè sigui visible immediatament)
+        new Date(Date.now() + 86400000 * 1), // Demà
+        new Date(Date.now() + 86400000 * 2), // Demà pasat
+        new Date(Date.now() + 86400000 * 3)  // En 3 dies
+      ];
+      
+      dates[0].setHours(10, 0, 0, 0);
+      dates[1].setHours(12, 30, 0, 0);
+      dates[2].setHours(16, 0, 0, 0);
+      dates[3].setHours(18, 45, 0, 0);
+
+      const promises = names.map((name, i) => {
+        return addDoc(collection(db, "reserves_psicologia"), {
+          usuariNom: name,
+          usuariEmail: `${name.toLowerCase().replace(/ /g, '.')}@exemple.com`,
+          dataSessio: dates[i].toISOString(),
+          estat: "pendent",
+          notes: "Aspirant molt motivat amb bona presència. Té dubtes sobre el circuit d'agilitat.",
+          telefon: "600 000 000",
+          edat: (22 + i).toString(),
+          anysOpositant: (1 + i).toString(),
+          psicoleg: "", 
+          biodataFet: true,
+          competencies: {
+            "Orientació al servei": 7 + Math.random() * 3,
+            "Autocontrol": 6 + Math.random() * 4,
+            "Comunicació": 8 + Math.random() * 2,
+            "Treball en equip": 7 + Math.random() * 3,
+            "Ètica": 9 + Math.random()
+          },
+          biodataInforme: "Perfil apte per al servei policial amb gran capacitat de treball en equip i comunicació efectiva.",
+          createdAt: serverTimestamp()
+        });
+      });
+
+      await Promise.all(promises);
+      await fetchData(); // Force refresh
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (error) {
+      console.error("Error seeding cites:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   /**
@@ -526,17 +738,182 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     }
   };
 
-  const handleDelete = async (fullPath: string) => {
+  const handleAddExerciciFisic = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
     try {
+      await addDoc(collection(db, "exercicis_fisics"), {
+        ...nouExercici,
+        createdAt: serverTimestamp()
+      });
+      setSuccess(true);
+      setNouExercici({ nom: "", temps: "30 segons", categoria: "Circuit Agilitat", imatge: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80", consells: ["", "", ""] });
+      fetchData();
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (error) {
+      console.error("Error afegint exercici:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddPlaEntrenament = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await addDoc(collection(db, "plans_entrenament"), {
+        ...nouPlaFisic,
+        createdAt: serverTimestamp()
+      });
+      setSuccess(true);
+      setNouPlaFisic({ setmana: 1, tipusProva: "Course Navette", exercicisIds: [] });
+      fetchData();
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (error) {
+      console.error("Error afegint pla d'entrenament:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Funció per generar exercicis d'exemple ràpidament (LOCAL)
+  const handleGenerateExampleExercicis = () => {
+    console.log("Generant exercicis de prova...");
+    const timestamp = Date.now();
+    const exemples = [
+      { id: `local-ex-${timestamp}-1`, nom: "Skipping Alt", categoria: "Circuit Agilitat", temps: "45 segons", imatge: "https://images.unsplash.com/photo-1594882645126-14020914d58d?w=800", consells: ["Genolls a l'alçada del melic", "Braços coordinats", "Punta del peu activa"], createdAt: new Date() },
+      { id: `local-ex-${timestamp}-2`, nom: "Flexions Diamant", categoria: "Press de Banca", temps: "15 reps", imatge: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800", consells: ["Mans en forma de diamant", "Colzes enganxats al cos", "Esquena totalment recta"], createdAt: new Date() },
+      { id: `local-ex-${timestamp}-3`, nom: "Squat Jumps", categoria: "Circuit Agilitat", temps: "30 segons", imatge: "https://images.unsplash.com/photo-1434682881908-b43d0467b798?w=800", consells: ["Amortigua bé la caiguda", "Talons a terra en baixar", "Salt explosiu amunt"], createdAt: new Date() },
+      { id: `local-ex-${timestamp}-4`, nom: "Resistència incremental", categoria: "Course Navette", temps: "Paliers 1-5", imatge: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800", consells: ["Mantén el core rígid", "Gira tot el tronc", "Mira la mà que puja"], createdAt: new Date() }
+    ];
+
+    setExercicisFisics(prev => {
+      const nous = exemples.filter(ex => !prev.some(p => p.nom === ex.nom));
+      return [...nous, ...prev];
+    });
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 2000);
+    return exemples; 
+  };
+
+  // Funció per generar plans d'exemple si hi ha exercicis (LOCAL)
+  const handleGenerateExamplePlans = () => {
+    console.log("Generant plans de prova...");
+    let exercicisPerPla = [...exercicisFisics];
+    
+    // Si no hi ha exercicis, en generem uns quants primer
+    if (exercicisPerPla.length < 4) {
+        const nousEx = handleGenerateExampleExercicis();
+        exercicisPerPla = [...nousEx, ...exercicisPerPla];
+    }
+    
+    const timestamp = Date.now();
+    const nousPlans = [
+      {
+        id: `local-pla-${timestamp}-1`,
+        setmana: 1,
+        tipusProva: "Circuit Agilitat",
+        exercicisIds: exercicisPerPla.slice(0, 3).map(ex => ex.id),
+        createdAt: new Date()
+      },
+      {
+        id: `local-pla-${timestamp}-2`,
+        setmana: 2,
+        tipusProva: "Press de Banca",
+        exercicisIds: exercicisPerPla.slice(1, 3).map(ex => ex.id),
+        createdAt: new Date()
+      },
+      {
+        id: `local-pla-${timestamp}-3`,
+        setmana: 3,
+        tipusProva: "Course Navette",
+        exercicisIds:  exercicisPerPla.filter(ex => ex.categoria === "Course Navette").map(ex => ex.id),
+        createdAt: new Date()
+      }
+    ];
+    
+    setPlansEntrenament(prev => [...nousPlans, ...prev]);
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 2000);
+  };
+
+  // Funció per generar gimnasos d'exemple (LOCAL)
+  const handleGenerateExampleGimnasos = () => {
+    const timestamp = Date.now();
+    const exemples = [
+      { 
+        id: `local-gym-${timestamp}-1`, 
+        nom: "Eurofitness Sant Cugat", 
+        provincia: "Barcelona", 
+        comarca: "Vallès Occidental", 
+        municipi: "Sant Cugat del Vallès",
+        entrenament: ["Circuit Agilitat", "Course Navette"],
+        imatges: ["https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800"],
+        descripcio: "Instal·lacions d'alt rendiment amb zona específica per a opositors.",
+        telefon: "935 891 234",
+        correu: "info@eurofitness.cat",
+        preus: "Pack oposicions: 45€/mes. Sessions soltes: 12€.",
+        infoPrivada: "Acord de comissió del 10% per cada alumne inscrit via OposiCAT.",
+        createdAt: new Date() 
+      },
+      { 
+        id: `local-gym-${timestamp}-2`, 
+        nom: "GEiEG Girona", 
+        provincia: "Girona", 
+        comarca: "Gironès", 
+        municipi: "Girona",
+        entrenament: ["Circuit Agilitat", "Press de Banca"],
+        imatges: ["https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800"],
+        descripcio: "Centre multiesportiu amb pista d'atletisme reglamentària.",
+        telefon: "972 234 567",
+        correu: "salut@geieg.cat",
+        preus: "Quota mensual: 52€. Inclou piscina i gimnàs.",
+        infoPrivada: "Contacte directe: Joan (Director esportiu). Molt col·laborador.",
+        createdAt: new Date() 
+      },
+      { 
+        id: `local-gym-${timestamp}-3`, 
+        nom: "Gimnàs Lleida Sport", 
+        provincia: "Lleida", 
+        comarca: "Segrià", 
+        municipi: "Lleida",
+        entrenament: ["Course Navette"],
+        imatges: ["https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800"],
+        descripcio: "Especialistes en resistència i preparació física de Bombers.",
+        telefon: "973 112 233",
+        correu: "admin@lleidasport.com",
+        preus: "Sessió única Navette: 8€.",
+        infoPrivada: "Interès en fer conveni exclusiu per a l'Àmbit C.",
+        createdAt: new Date() 
+      }
+    ];
+
+    setGimnasos(prev => {
+      const nous = exemples.filter(ex => !prev.some(p => p.nom === ex.nom));
+      return [...nous, ...prev];
+    });
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 2000);
+  };
+
+  const handleDelete = async (fullPath: string, id?: string) => {
+    try {
+      if (id?.toString().startsWith('local-') || id?.toString().startsWith('mock-')) {
+          setExercicisFisics(prev => prev.filter(ex => ex.id !== id));
+          setPlansEntrenament(prev => prev.filter(p => p.id !== id));
+          setPreguntes(prev => prev.filter(p => p.id !== id));
+          setPreguntesBiodataPersonals(prev => prev.filter(q => q.id !== id));
+          setPreguntesBiodataLaborals(prev => prev.filter(q => q.id !== id));
+          setPreguntesBiodataPGME(prev => prev.filter(q => q.id !== id));
+          setPreguntesEntrevista(prev => prev.filter(q => q.id !== id));
+          return;
+      }
       if (fullPath) {
         await deleteDoc(doc(db, fullPath));
         fetchData();
-      } else {
-        // Local delete? We don't have fullPath for local. 
-        // Need to find by ID maybe. But fullPath is passed.
       }
     } catch (err) {
-      console.error("Error eliminant de BBDD:", err);
+      console.error("Error eliminant:", err);
     }
   };
 
@@ -836,6 +1213,33 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
               <Route path="prova-teorica" element={<ProvaTeoricaView darkMode={darkMode} />} />
               <Route path="prova-fisica" element={<ProvaFisicaView darkMode={darkMode} />} />
               <Route path="prova-psicotecnica" element={<ProvaPsicotecnicaView darkMode={darkMode} />} />
+              <Route path="exercicis-fisics" element={
+                <ExercicisFisicsView 
+                  exercicis={exercicisFisics}
+                  nouExercici={nouExercici}
+                  setNouExercici={setNouExercici}
+                  onSubmit={handleAddExerciciFisic}
+                  onLoadMock={handleGenerateExampleExercicis}
+                  onDelete={handleDelete}
+                  loading={loading}
+                  success={success}
+                  darkMode={darkMode}
+                />
+              } />
+              <Route path="plans-entrenament" element={
+                <PlansEntrenamentView 
+                  plans={plansEntrenament}
+                  exercicisDisponibles={exercicisFisics}
+                  nouPla={nouPlaFisic}
+                  setNouPla={setNouPlaFisic}
+                  onSubmit={handleAddPlaEntrenament}
+                  onLoadMock={handleGenerateExamplePlans}
+                  onDelete={handleDelete}
+                  loading={loading}
+                  success={success}
+                  darkMode={darkMode}
+                />
+              } />
               <Route path="preguntes" element={
                 <PreguntesView 
                 preguntes={preguntes} 
@@ -934,58 +1338,97 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                     fetchData();
                   } finally { setLoading(false); }
                 }}
+                onLoadMock={handleGenerateExampleGimnasos}
                 darkMode={darkMode}
               />
             } />
-            <Route path="psicologia" element={
-              <PsicologiaView 
+            <Route path="biodata/personals" element={
+              <PreguntesBiodataView 
+                preguntes={preguntesBiodataPersonals}
+                type="personals"
+                onDelete={handleDelete}
+                onAdd={async (q: any) => {
+                  setLoading(true);
+                  try {
+                    await addDoc(collection(db, "preguntes_biodata_personals"), { ...q, createdAt: serverTimestamp() });
+                    fetchData();
+                  } finally { setLoading(false); }
+                }}
+                onLoadMock={loadMockBiodata}
+                darkMode={darkMode}
+              />
+            } />
+            <Route path="biodata/laborals" element={
+              <PreguntesBiodataView 
+                preguntes={preguntesBiodataLaborals}
+                type="laborals"
+                onDelete={handleDelete}
+                onAdd={async (q: any) => {
+                  setLoading(true);
+                  try {
+                    await addDoc(collection(db, "preguntes_biodata_laborals"), { ...q, createdAt: serverTimestamp() });
+                    fetchData();
+                  } finally { setLoading(false); }
+                }}
+                onLoadMock={loadMockBiodata}
+                darkMode={darkMode}
+              />
+            } />
+            <Route path="biodata/pgme" element={
+              <PreguntesBiodataView 
+                preguntes={preguntesBiodataPGME}
+                type="pgme"
+                onDelete={handleDelete}
+                onAdd={async (q: any) => {
+                  setLoading(true);
+                  try {
+                    await addDoc(collection(db, "preguntes_biodata_pgme"), { ...q, createdAt: serverTimestamp() });
+                    fetchData();
+                  } finally { setLoading(false); }
+                }}
+                onLoadMock={loadMockBiodata}
+                darkMode={darkMode}
+              />
+            } />
+            <Route path="entrevista" element={
+              <PreguntesEntrevistaView 
+                preguntes={preguntesEntrevista}
+                onDelete={handleDelete}
+                onAdd={async (q: any) => {
+                  setLoading(true);
+                  try {
+                    await addDoc(collection(db, "preguntes_entrevista"), { ...q, createdAt: serverTimestamp() });
+                    fetchData();
+                  } finally { setLoading(false); }
+                }}
+                onLoadMock={loadMockEntrevista}
+                darkMode={darkMode}
+              />
+            } />
+            <Route path="cites" element={
+              <ReservesUsuariView 
                 reserves={reserves}
                 onUpdateStatus={async (id: string, estat: string) => {
+                  if (id.startsWith('mock-')) {
+                    setReserves(prev => prev.map(r => r.id === id ? { ...r, estat } : r));
+                    return;
+                  }
                   setLoading(true);
                   try {
                     await updateDoc(doc(db, "reserves_psicologia", id), { estat });
                     fetchData();
                   } finally { setLoading(false); }
                 }}
-                onSeedData={async () => {
-                  setLoading(true);
-                  try {
-                    // Generar una hora vàlida dins dels torns
-                    const isMorning = Math.random() > 0.5;
-                    const date = new Date(Date.now() + 86400000 * 2);
-                    date.setHours(isMorning ? 10 : 18, 30, 0, 0);
-
-                    await addDoc(collection(db, "reserves_psicologia"), {
-                      usuariNom: "Roger de Flor (Prova)",
-                      usuariEmail: "roger.prova@example.com",
-                      dataSessio: date.toISOString(),
-                      estat: "pendent",
-                      notes: "Preparació intensiva per a l'entrevista oficial. Té dubtes sobre la part de competències socials.",
-                      telefon: "654 321 000",
-                      edat: "24",
-                      anysOpositant: "2",
-                      psicoleg: "Aleix Romero Pociello",
-                      biodataFet: true,
-                      competencies: {
-                        "Orientació al servei": 8.5,
-                        "Autocontrol": 7.2,
-                        "Comunicació": 9.0,
-                        "Treball en equip": 8.8,
-                        "Resolució de problemes": 6.5,
-                        "Presa de decisions": 7.0,
-                        "Planificació": 8.0,
-                        "Responsabilitat": 9.5,
-                        "Adaptabilitat": 7.5,
-                        "Ètica professional": 9.8
-                      },
-                      biodataInforme: "Perfil altament vocacional amb excel·lents capacitats comunicatives. Es recomana treballar la rapidesa en la presa de decisions sota pressió extrema.",
-                      createdAt: serverTimestamp()
-                    });
-                    fetchData();
-                  } finally { setLoading(false); }
-                }}
+                onSeedData={loadMockReserves}
                 darkMode={darkMode}
-                loading={loading}
+              />
+            } />
+            <Route path="psicolegs" element={
+              <GestioPsicolegsView 
+                reserves={reserves}
+                fetchData={fetchData}
+                onSeedData={loadMockReserves}
+                darkMode={darkMode}
               />
             } />
             <Route path="pagaments" element={
@@ -1231,8 +1674,8 @@ function ProvaFisicaView({ darkMode }: { darkMode: boolean }) {
         <div className="flex flex-col px-12 gap-8">
           <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Gestió de les proves físiques</h3>
           <div className="flex flex-col gap-4">
-            <MenuActionLink to="#" label="Gestió d'exercici" icon={<Activity size={18} />} darkMode={darkMode} color="emerald" />
-            <MenuActionLink to="#" label="Gestió de pla d'entrenament" icon={<Calendar size={18} />} darkMode={darkMode} color="emerald" />
+            <MenuActionLink to="/admin/exercicis-fisics" label="Gestió d'exercici" icon={<Activity size={18} />} darkMode={darkMode} color="emerald" />
+            <MenuActionLink to="/admin/plans-entrenament" label="Gestió de pla d'entrenament" icon={<Calendar size={18} />} darkMode={darkMode} color="emerald" />
           </div>
         </div>
 
@@ -1243,8 +1686,155 @@ function ProvaFisicaView({ darkMode }: { darkMode: boolean }) {
         <div className="flex flex-col px-12 gap-8">
           <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Gestió de gimnasos</h3>
           <div className="flex flex-col gap-4">
-            <MenuActionLink to="/admin/gimnasos" label="Donar d'alta gimnàs nou" icon={<Plus size={18} />} darkMode={darkMode} color="emerald" />
-            <MenuActionLink to="/admin/gimnasos" label="Gestió de gimnàs existent" icon={<MapPin size={18} />} darkMode={darkMode} color="emerald" />
+            <MenuActionLink to="/admin/gimnasos?mode=alta" label="Donar d'alta gimnàs nou" icon={<Plus size={18} />} darkMode={darkMode} color="emerald" />
+            <MenuActionLink to="/admin/gimnasos" label="Gestió de gimnàs existent" icon={<Building2 size={18} />} darkMode={darkMode} color="emerald" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreguntesBiodataView({ preguntes, type, onAdd, onDelete, onLoadMock, darkMode }: any) {
+  const [nova, setNova] = useState({ pregunta: "", resposta: "" });
+
+  const titol = type === 'personals' ? 'Preguntes Personals' : type === 'laborals' ? 'Preguntes Laborals' : 'Preguntes PGME';
+  const icon = type === 'personals' ? <ClipboardList size={20} /> : type === 'laborals' ? <Briefcase size={20} /> : <FileText size={20} />;
+  const color = "purple";
+  const collectionName = `preguntes_biodata_${type}`;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onAdd(nova);
+    setNova({ pregunta: "", resposta: "" });
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto flex flex-col gap-10 animate-in fade-in duration-500">
+      <header className="flex items-center justify-between">
+        <div className="flex items-center gap-10">
+          <BackButton darkMode={darkMode} />
+          <div>
+            <span className="text-purple-500 font-bold uppercase tracking-[0.2em] text-[10px]">Backoffice / Psicotècnica / Biodata</span>
+            <h1 className={`text-4xl font-black mt-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+              Gestió <span className="text-purple-500 uppercase">Biodata</span>
+            </h1>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <div className={`px-4 py-2 rounded-full border flex items-center gap-2 ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-black uppercase text-slate-500">Conexió a la BBDD estable</span>
+          </div>
+          <button 
+            onClick={onLoadMock}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${darkMode ? 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-100'}`}
+          >
+            <Wand2 size={16} /> Test ( No BBDD )
+          </button>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+        {/* COLUMNA ESQUERRA: FORMULARI ALTA */}
+        <div className="lg:col-span-4 flex flex-col gap-8">
+          <div className={`p-8 rounded-[3rem] border-2 shadow-xl ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+             <div className="flex items-center gap-4 mb-8">
+                <div className="p-3 bg-purple-500 text-white rounded-2xl shadow-lg shadow-purple-500/20">
+                   <Plus size={24} />
+                </div>
+                <h3 className={`text-xl font-black uppercase italic tracking-tighter ${darkMode ? 'text-white' : 'text-slate-800'}`}>Donar d'alta {type}</h3>
+             </div>
+
+             <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400 px-1 tracking-widest">Enunciat de la pregunta</label>
+                  <textarea 
+                    required
+                    rows={3}
+                    value={nova.pregunta}
+                    onChange={e => setNova({...nova, pregunta: e.target.value})}
+                    placeholder="Escriu la pregunta aquí..."
+                    className={`w-full p-5 rounded-2xl border-none outline-none font-bold text-sm resize-none ${darkMode ? 'bg-slate-900 text-white placeholder:text-slate-700' : 'bg-slate-50 text-slate-800'}`}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400 px-1 tracking-widest">Resposta suggerida / Guia</label>
+                  <textarea 
+                    required
+                    rows={5}
+                    value={nova.resposta}
+                    onChange={e => setNova({...nova, resposta: e.target.value})}
+                    placeholder="Escriu la resposta aquí..."
+                    className={`w-full p-5 rounded-2xl border-none outline-none font-bold text-sm resize-none ${darkMode ? 'bg-slate-900 text-white placeholder:text-slate-700' : 'bg-slate-50 text-slate-800'}`}
+                  />
+                </div>
+
+                <button 
+                  type="submit"
+                  className="w-full py-5 bg-purple-600 hover:bg-purple-500 text-white rounded-3xl font-black uppercase italic tracking-widest text-sm shadow-xl shadow-purple-600/20 flex items-center justify-center gap-3 transition-all transform active:scale-95"
+                >
+                  Registrar Pregunta Biodata
+                </button>
+             </form>
+          </div>
+        </div>
+
+        {/* COLUMNA DRETA: BANC DE PREGUNTES */}
+        <div className="lg:col-span-8 flex flex-col gap-6">
+          <div className={`p-8 rounded-[3rem] border-2 flex flex-col gap-8 ${darkMode ? 'bg-slate-900/20 border-slate-800/50' : 'bg-white border-slate-100 shadow-sm'}`}>
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-purple-500/10 text-purple-500 rounded-2xl">
+                   {icon}
+                </div>
+                <div>
+                   <h3 className={`text-2xl font-black uppercase tracking-tighter italic ${darkMode ? 'text-white' : 'text-slate-800'}`}>Banc de preguntes existent</h3>
+                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total: {preguntes.length}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 max-h-[700px] overflow-y-auto pr-2 custom-scrollbar">
+              {preguntes.map((q: any) => (
+                <div key={q.id} className={`p-6 rounded-[2rem] border-2 transition-all flex items-center justify-between gap-8 group ${darkMode ? 'bg-slate-800/50 border-slate-700/50 hover:border-purple-500/50' : 'bg-white border-slate-100 hover:border-purple-500 shadow-sm'}`}>
+                  <div className="flex flex-col gap-3 flex-1">
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${darkMode ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-50 text-purple-600'}`}>
+                        {type}
+                      </span>
+                      <span className="text-slate-300 dark:text-slate-700 text-[10px]">•</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter italic opacity-0 group-hover:opacity-100 transition-opacity">ID: {q.id}</span>
+                    </div>
+                    <h4 className={`text-lg font-bold italic tracking-tight leading-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                      "{q.pregunta}"
+                    </h4>
+                    <p className="text-[11px] text-slate-400 leading-relaxed max-w-2xl line-clamp-2 italic">{q.resposta}</p>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 shrink-0">
+                    <button 
+                      onClick={() => onDelete(`${collectionName}/${q.id}`, q.id)}
+                      className="p-4 rounded-2xl text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 size={24} />
+                    </button>
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${darkMode ? 'bg-slate-900/60 text-purple-400' : 'bg-slate-50 text-slate-300 group-hover:text-purple-500 group-hover:bg-purple-50'}`}>
+                      {icon}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {preguntes.length === 0 && (
+                <div className="py-24 flex flex-col items-center justify-center text-center px-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem]">
+                  <ClipboardList size={56} className="text-slate-200 dark:text-slate-800 mb-8" />
+                  <p className="font-black uppercase italic tracking-widest text-[11px] text-slate-400">No hi ha cap pregunta registrada encara</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -1278,9 +1868,9 @@ function ProvaPsicotecnicaView({ darkMode }: { darkMode: boolean }) {
         <div className="flex flex-col px-8 gap-8">
           <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Biodata</h3>
           <div className="flex flex-col gap-4">
-            <MenuActionLink to="#" label="Gestió preguntes personals" icon={<ClipboardList size={18} />} darkMode={darkMode} color="purple" />
-            <MenuActionLink to="#" label="Gestió preguntes laborals" icon={<Briefcase size={18} />} darkMode={darkMode} color="purple" />
-            <MenuActionLink to="#" label="Gestió preguntes PGME" icon={<FileText size={18} />} darkMode={darkMode} color="purple" />
+            <MenuActionLink to="/admin/biodata/personals" label="Gestió preguntes personals" icon={<ClipboardList size={18} />} darkMode={darkMode} color="purple" />
+            <MenuActionLink to="/admin/biodata/laborals" label="Gestió preguntes laborals" icon={<Briefcase size={18} />} darkMode={darkMode} color="purple" />
+            <MenuActionLink to="/admin/biodata/pgme" label="Gestió preguntes PGME" icon={<FileText size={18} />} darkMode={darkMode} color="purple" />
           </div>
         </div>
 
@@ -1291,7 +1881,7 @@ function ProvaPsicotecnicaView({ darkMode }: { darkMode: boolean }) {
         <div className="flex flex-col px-8 gap-8">
           <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Entrevista</h3>
           <div className="flex flex-col gap-4">
-            <MenuActionLink to="#" label="Gestió de preguntes d'entrevista" icon={<MessageSquare size={18} />} darkMode={darkMode} color="purple" />
+            <MenuActionLink to="/admin/entrevista" label="Gestió de preguntes d'entrevista" icon={<MessageSquare size={18} />} darkMode={darkMode} color="purple" />
           </div>
         </div>
 
@@ -1302,8 +1892,8 @@ function ProvaPsicotecnicaView({ darkMode }: { darkMode: boolean }) {
         <div className="flex flex-col px-8 gap-8">
           <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Gestió Clients</h3>
           <div className="flex flex-col gap-4">
-            <MenuActionLink to="/admin/psicologia" label="Gestió de cites d'usuari" icon={<Calendar size={18} />} darkMode={darkMode} color="purple" />
-            <MenuActionLink to="#" label="Gestió de psicòlegs en cites d'usuari" icon={<Users2 size={18} />} darkMode={darkMode} color="purple" />
+            <MenuActionLink to="/admin/cites" label="Gestió de cites d'usuari" icon={<Calendar size={18} />} darkMode={darkMode} color="emerald" />
+            <MenuActionLink to="/admin/psicolegs" label="Gestió de psicòlegs i assignacions" icon={<Users2 size={18} />} darkMode={darkMode} color="blue" />
           </div>
         </div>
       </div>
@@ -1352,6 +1942,183 @@ function MenuActionLink({ to, label, icon, darkMode, color = "blue" }: { to: str
     </Link>
   );
 }
+function PreguntesEntrevistaView({ preguntes, onAdd, onDelete, onLoadMock, darkMode }: any) {
+  const SECCIONS_ENTREVISTA = [
+    "PREGUNTES INICIALS",
+    "FORMACIÓ",
+    "EXPERIÈNCIA LABORAL",
+    "PREGUNTES PERSONALS",
+    "PREGUNTES SOBRE MMEE"
+  ];
+
+  const [nova, setNova] = useState({ pregunta: "", seccio: SECCIONS_ENTREVISTA[0] });
+  const [filterSeccio, setFilterSeccio] = useState("Totes les seccions");
+
+  const preguntesFiltrades = preguntes.filter((q: any) => 
+    filterSeccio === "Totes les seccions" || q.seccio === filterSeccio
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onAdd(nova);
+    setNova({ pregunta: "", seccio: SECCIONS_ENTREVISTA[0] });
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto flex flex-col gap-10 animate-in fade-in duration-500">
+      <header className="flex items-center justify-between">
+        <div className="flex items-center gap-10">
+          <BackButton darkMode={darkMode} />
+          <div>
+            <span className="text-cyan-500 font-bold uppercase tracking-[0.2em] text-[10px]">Backoffice / Psicotècnica / Entrevista</span>
+            <h1 className={`text-4xl font-black mt-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+              Gestió <span className="text-cyan-600 uppercase">Entrevista</span>
+            </h1>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <div className={`px-4 py-2 rounded-full border flex items-center gap-2 ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-black uppercase text-slate-500">Conexió a la BBDD estable</span>
+          </div>
+          <button 
+            onClick={onLoadMock}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${darkMode ? 'bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500 hover:text-white' : 'bg-cyan-50 text-cyan-600 hover:bg-cyan-600 hover:text-white border border-cyan-100'}`}
+          >
+            <Wand2 size={16} /> Carregar Exemples
+          </button>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+        {/* COLUMNA ESQUERRA: FORMULARI ALTA */}
+        <div className="lg:col-span-4 flex flex-col gap-8">
+          <div className={`p-8 rounded-[3rem] border-2 shadow-xl ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+             <div className="flex items-center gap-4 mb-8">
+                <div className="p-3 bg-cyan-500 text-white rounded-2xl shadow-lg shadow-cyan-500/20">
+                   <Plus size={24} />
+                </div>
+                <h3 className={`text-xl font-black uppercase italic italic tracking-tighter ${darkMode ? 'text-white' : 'text-slate-800'}`}>Donar d'alta pregunta</h3>
+             </div>
+
+             <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400 px-1 tracking-widest">Secció de l'entrevista</label>
+                  <select 
+                    value={nova.seccio}
+                    onChange={e => setNova({...nova, seccio: e.target.value})}
+                    className={`w-full p-5 rounded-2xl border-none outline-none font-bold text-sm appearance-none cursor-pointer ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'}`}
+                  >
+                    {SECCIONS_ENTREVISTA.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400 px-1 tracking-widest">Enunciat de la pregunta</label>
+                  <textarea 
+                    required
+                    rows={4}
+                    value={nova.pregunta}
+                    onChange={e => setNova({...nova, pregunta: e.target.value})}
+                    placeholder="Ex: Què faria si veiés un company cometent una il·legalitat?"
+                    className={`w-full p-5 rounded-2xl border-none outline-none font-bold text-sm resize-none ${darkMode ? 'bg-slate-900 text-white placeholder:text-slate-700' : 'bg-slate-50 text-slate-800'}`}
+                  />
+                </div>
+
+                <button 
+                  type="submit"
+                  className="w-full py-5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-3xl font-black uppercase italic tracking-widest text-sm shadow-xl shadow-cyan-600/20 flex items-center justify-center gap-3 transition-all transform active:scale-95"
+                >
+                  Confirmar i Publicar
+                </button>
+             </form>
+          </div>
+
+          <div className={`p-8 rounded-[3rem] border-2 flex flex-col gap-4 ${darkMode ? 'bg-slate-900/40 border-slate-800/50' : 'bg-slate-50 border-slate-100'}`}>
+             <div className="flex items-center gap-3">
+               <Info size={18} className="text-cyan-500" />
+               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Instruccions</span>
+             </div>
+             <p className="text-[11px] leading-relaxed text-slate-500 font-medium italic">
+               Recorda que les preguntes han de ser representatives de situacions reals. Evita preguntes redundants dins d'una mateixa secció.
+             </p>
+          </div>
+        </div>
+
+        {/* COLUMNA DRETA: BANC DE PREGUNTES */}
+        <div className="lg:col-span-8 flex flex-col gap-6">
+          <div className={`p-8 rounded-[3rem] border-2 flex flex-col gap-8 ${darkMode ? 'bg-slate-900/20 border-slate-800/50' : 'bg-white border-slate-100 shadow-sm'}`}>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-cyan-500/10 text-cyan-500 rounded-2xl">
+                   <MessageSquare size={20} />
+                </div>
+                <div>
+                   <h3 className={`text-2xl font-black uppercase tracking-tighter italic ${darkMode ? 'text-white' : 'text-slate-800'}`}>Banc de preguntes</h3>
+                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mostrant {preguntesFiltrades.length} de {preguntes.length} preguntes</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 min-w-[250px]">
+                 <div className={`flex items-center gap-3 w-full px-5 py-3 rounded-2xl ${darkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                    <Filter size={16} className="text-slate-400" />
+                    <select 
+                      value={filterSeccio}
+                      onChange={e => setFilterSeccio(e.target.value)}
+                      className="bg-transparent border-none outline-none font-bold text-[11px] uppercase tracking-tighter w-full text-slate-500"
+                    >
+                      <option>Totes les seccions</option>
+                      {SECCIONS_ENTREVISTA.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                 </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 max-h-[700px] overflow-y-auto pr-2 custom-scrollbar">
+              {preguntesFiltrades.map((q: any) => (
+                <div key={q.id} className={`p-6 rounded-[2rem] border-2 transition-all flex items-center justify-between gap-8 group ${darkMode ? 'bg-slate-800/50 border-slate-700/50 hover:border-cyan-500/50' : 'bg-white border-slate-100 hover:border-cyan-500 shadow-sm'}`}>
+                  <div className="flex flex-col gap-3 flex-1">
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${darkMode ? 'bg-cyan-500/20 text-cyan-400' : 'bg-cyan-50 text-cyan-600'}`}>
+                        {q.seccio}
+                      </span>
+                      <span className="text-slate-300 dark:text-slate-700 text-[10px]">•</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter italic opacity-0 group-hover:opacity-100 transition-opacity">ID: {q.id}</span>
+                    </div>
+                    <h4 className={`text-lg font-bold italic tracking-tight leading-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                      "{q.pregunta}"
+                    </h4>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 shrink-0">
+                    <button 
+                      onClick={() => onDelete(`preguntes_entrevista/${q.id}`, q.id)}
+                      className="p-4 rounded-2xl text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 size={24} />
+                    </button>
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${darkMode ? 'bg-slate-900/60 text-cyan-400' : 'bg-slate-50 text-slate-300 group-hover:text-cyan-500 group-hover:bg-cyan-50'}`}>
+                      <ChevronRight size={24} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {preguntesFiltrades.length === 0 && (
+                <div className="py-24 flex flex-col items-center justify-center text-center px-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem]">
+                  <MessageSquare size={56} className="text-slate-200 dark:text-slate-800 mb-8" />
+                  <p className="font-black uppercase italic tracking-widest text-[11px] text-slate-400">No s'ha trobat cap pregunta en aquesta secció</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DashboardView({ preguntes, actualitats, darkMode }: { preguntes: any[], actualitats: any[], darkMode: boolean }) {
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-10">
@@ -3041,49 +3808,237 @@ function PsicotecnicsPreguntesView({ preguntes, tipus, novaPregunta, setNovaPreg
 /**
  * VIEW: Gimnasos
  */
-function GimnasosView({ gimnasos, onDelete, onAdd, darkMode }: any) {
-  const [nouGimnas, setNouGimnas] = useState({ nom: "", poblacio: "", direccio: "", telefon: "", estat: "activa" });
-
+/**
+ * VIEW: Gestió d'Exercicis Físics
+ * Permet donar d'alta els tipus d'exercicis (LEGO) que s'usaran en els plans.
+ */
+function ExercicisFisicsView({ exercicis, nouExercici, setNouExercici, onSubmit, onLoadMock, onDelete, loading, success, darkMode }: any) {
+  const [extraFiltre, setExtraFiltre] = useState("");
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-10">
-      <header className="flex items-center gap-10">
-        <BackButton darkMode={darkMode} />
-        <div>
-          <span className="text-blue-600 font-bold uppercase tracking-[0.2em] text-[10px]">Gym management</span>
-          <h1 className={`text-4xl font-black mt-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Gestió de <span className="text-blue-600">Gimnasos</span></h1>
+      <header className="flex items-center justify-between w-full">
+        <div className="flex items-center gap-10">
+          <BackButton darkMode={darkMode} />
+          <div>
+            <span className="text-emerald-600 font-bold uppercase tracking-[0.2em] text-[10px]">Backoffice / Prova Física</span>
+            <h1 className={`text-4xl font-black tracking-tight mt-1 uppercase italic ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+              Gestió d'<span className="text-emerald-600">Exercicis</span>
+            </h1>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          {success && (
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="px-4 py-2 bg-emerald-500/10 text-emerald-500 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-500/20"
+            >
+              ✓ Actualitzat
+            </motion.div>
+          )}
+          <button 
+            onClick={onLoadMock}
+            disabled={loading}
+            className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${darkMode ? 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-100'}`}
+          >
+            <Wand2 size={16} /> Test ( No BBDD )
+          </button>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
-        <div className={`p-8 rounded-[2.5rem] border shadow-xl ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-          <h3 className="text-xl font-black mb-6 uppercase italic">Nou Gimnàs</h3>
-          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); onAdd(nouGimnas); setNouGimnas({ nom: "", poblacio: "", direccio: "", telefon: "", estat: "activa" }); }}>
-            <input placeholder="Nom del Gimnàs" required value={nouGimnas.nom} onChange={e => setNouGimnas({...nouGimnas, nom: e.target.value})} className={`w-full p-4 rounded-xl border ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-100 text-slate-800'}`} />
-            <input placeholder="Població" required value={nouGimnas.poblacio} onChange={e => setNouGimnas({...nouGimnas, poblacio: e.target.value})} className={`w-full p-4 rounded-xl border ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-100 text-slate-800'}`} />
-            <input placeholder="Direcció" value={nouGimnas.direccio} onChange={e => setNouGimnas({...nouGimnas, direccio: e.target.value})} className={`w-full p-4 rounded-xl border ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-100 text-slate-800'}`} />
-            <input placeholder="Telèfon" value={nouGimnas.telefon} onChange={e => setNouGimnas({...nouGimnas, telefon: e.target.value})} className={`w-full p-4 rounded-xl border ${darkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-100 text-slate-800'}`} />
-            <button type="submit" className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-lg shadow-blue-600/20">Registrar Gimnàs</button>
-          </form>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        {/* FORMULARI O BOTÓ D'OBRIR */}
+        <div className="lg:col-span-5 flex flex-col gap-4">
+           {!isFormOpen ? (
+             <button 
+               onClick={() => setIsFormOpen(true)}
+               className={`w-full p-8 rounded-[2.5rem] border-2 border-dashed flex items-center justify-between group transition-all ${darkMode ? 'bg-slate-800/20 border-slate-700 hover:border-emerald-500 hover:bg-slate-800/40' : 'bg-white border-slate-200 hover:border-emerald-500 hover:shadow-xl hover:shadow-emerald-500/5'}`}
+             >
+                <div className="flex items-center gap-6">
+                   <div className="w-14 h-14 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                      <Plus size={28} strokeWidth={3} />
+                   </div>
+                   <div className="text-left">
+                      <h3 className={`text-xl font-black uppercase italic ${darkMode ? 'text-white' : 'text-slate-800'}`}>Afegir Exercici</h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Nou component local o BBDD</p>
+                   </div>
+                </div>
+                <ChevronRight size={24} className={`text-slate-300 group-hover:text-emerald-500 transition-all group-hover:translate-x-1`} />
+             </button>
+           ) : (
+             <motion.div 
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               className={`p-8 rounded-[2.5rem] border-2 shadow-2xl relative ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-50'}`}
+             >
+                <button 
+                  onClick={() => setIsFormOpen(false)}
+                  className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                   <X size={20} />
+                </button>
+
+                <h3 className={`text-xl font-black uppercase italic mb-6 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Nou Exercici</h3>
+                
+                <form onSubmit={(e) => { onSubmit(e); setIsFormOpen(false); }} className="flex flex-col gap-5">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Nom de l'exercici</label>
+                    <input 
+                      required
+                      value={nouExercici.nom}
+                      onChange={e => setNouExercici({...nouExercici, nom: e.target.value})}
+                      placeholder="Ex: Sèries de velocitat 20m"
+                      className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'}`}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Categoria de Prova</label>
+                    <select 
+                      value={nouExercici.categoria}
+                      onChange={e => setNouExercici({...nouExercici, categoria: e.target.value})}
+                      className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm appearance-none cursor-pointer ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'}`}
+                    >
+                      <option value="Course Navette">Course Navette</option>
+                      <option value="Circuit Agilitat">Circuit Agilitat</option>
+                      <option value="Press de Banca">Press de Banca</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Temps / Repeticions</label>
+                    <input 
+                      required
+                      value={nouExercici.temps}
+                      onChange={e => setNouExercici({...nouExercici, temps: e.target.value})}
+                      placeholder="Ex: 30 segons"
+                      className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'}`}
+                    />
+                  </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">URL Imatge / Vídeo (Placeholder)</label>
+                  <input 
+                    required
+                    value={nouExercici.imatge}
+                    onChange={e => setNouExercici({...nouExercici, imatge: e.target.value})}
+                    className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'}`}
+                  />
+                </div>
+
+                {/* CONSELLS TÈCNICS */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Consells Tècnics (3 punts)</label>
+                  {nouExercici.consells.map((c: string, idx: number) => (
+                    <input 
+                      key={idx}
+                      required
+                      value={c}
+                      onChange={e => {
+                        const newConsells = [...nouExercici.consells];
+                        newConsells[idx] = e.target.value;
+                        setNouExercici({...nouExercici, consells: newConsells});
+                      }}
+                      placeholder={`Consell ${idx + 1}...`}
+                      className={`w-full p-3 rounded-xl border-none outline-none text-xs font-medium ${darkMode ? 'bg-slate-900 text-slate-400' : 'bg-slate-50 text-slate-500'}`}
+                    />
+                  ))}
+                </div>
+
+                <button 
+                  disabled={loading}
+                  type="submit"
+                  className={`w-full py-4 mt-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase italic tracking-widest transition-all active:scale-95 shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-3`}
+                >
+                  {loading ? "Processant..." : <><Activity size={18} /> Registrar Exercici</>}
+                </button>
+                {success && <p className="text-emerald-500 text-[10px] font-black uppercase text-center mt-2">✓ Exercici creat correctament</p>}
+              </form>
+             </motion.div>
+           )}
         </div>
 
-        <div className="lg:col-span-2 space-y-4">
-          {gimnasos.map((g: any) => (
-            <div key={g.id} className={`p-6 rounded-[2rem] border flex items-center justify-between group transition-all ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500">
-                  <Dumbbell size={24} />
-                </div>
-                <div>
-                  <h4 className="font-bold">{g.nom}</h4>
-                  <p className="text-xs text-slate-400 font-medium">{g.poblacio} • {g.telefon}</p>
-                </div>
+        {/* BANC D'EXERCICIS AMB FILTRES */}
+        <div className="lg:col-span-7">
+           <div className={`p-6 rounded-[2.5rem] border-2 flex flex-col gap-6 h-full ${darkMode ? 'bg-slate-800/20 border-slate-700/50' : 'bg-white border-slate-100 shadow-2xl shadow-slate-200/50'}`}>
+              
+              {/* CAPÇALERA BANC COMPACTA */}
+              <div className="flex flex-col gap-4 border-b border-slate-500/10 pb-6">
+                 <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                       <Filter size={20} />
+                    </div>
+                    <div>
+                       <h3 className={`text-lg font-black uppercase italic ${darkMode ? 'text-white' : 'text-slate-800'}`}>Banc d'Exercicis</h3>
+                    </div>
+                 </div>
+
+                 {/* FILTRES D'ESTIL COMPACTE */}
+                 <div className="flex flex-wrap items-center gap-1.5">
+                    {["Tots", "Course Navette", "Circuit Agilitat", "Press de Banca"].map((cat) => (
+                       <button
+                         key={cat}
+                         onClick={() => setExtraFiltre(cat === "Tots" ? "" : cat)}
+                         className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                            (cat === "Tots" ? extraFiltre === "" : extraFiltre === cat)
+                            ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
+                            : darkMode ? 'bg-slate-900 text-slate-500 hover:text-white' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
+                         }`}
+                       >
+                         {cat}
+                       </button>
+                    ))}
+                 </div>
               </div>
-              <button onClick={() => onDelete(`gimnasos/${g.id}`)} className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
-                <Trash2 size={20} />
-              </button>
-            </div>
-          ))}
-          {gimnasos.length === 0 && <p className="text-center p-10 text-slate-400 uppercase font-black text-xs tracking-widest">No hi ha gimnasos registrats</p>}
+
+              {/* LLISTAT COMPACTE */}
+              <div className="flex flex-col gap-2 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                 {exercicis
+                   .filter((ex: any) => extraFiltre === "" ? true : ex.categoria === extraFiltre)
+                   .length === 0 ? (
+                    <div className="py-20 flex flex-col items-center justify-center text-center px-6">
+                       <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-300 dark:text-slate-800 mb-4">
+                          <Dumbbell size={32} />
+                       </div>
+                       <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Cap exercici trobat per aquest filtre</p>
+                       <button 
+                         onClick={onLoadMock}
+                         className="px-4 py-2 bg-emerald-500/10 text-emerald-600 text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-500 hover:text-white transition-all"
+                       >
+                         Carregar exercicis de prova
+                       </button>
+                    </div>
+                   ) : (
+                    exercicis
+                      .filter((ex: any) => extraFiltre === "" ? true : ex.categoria === extraFiltre)
+                      .map((ex: any) => (
+                        <div key={ex.id} className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${darkMode ? 'bg-slate-900/30 border-transparent hover:border-slate-700' : 'bg-slate-50/50 border-transparent hover:border-slate-100'}`}>
+                           <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-900 shrink-0">
+                                 <img src={ex.imatge} className="w-full h-full object-cover opacity-60" />
+                              </div>
+                              <div className="min-w-0">
+                                 <h4 className={`font-black uppercase italic text-xs truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>{ex.nom}</h4>
+                                 <div className="flex items-center gap-2">
+                                    <span className="text-[8px] font-bold text-emerald-500 uppercase">{ex.categoria}</span>
+                                    <span className="text-[8px] font-medium text-slate-400 uppercase">{ex.temps}</span>
+                                 </div>
+                              </div>
+                           </div>
+                           <button 
+                             onClick={() => onDelete(`exercicis_fisics/${ex.id}`, ex.id)}
+                             className={`p-2 rounded-lg transition-all shrink-0 ${darkMode ? 'hover:bg-red-500/20 text-slate-600 hover:text-red-400' : 'hover:bg-red-50 text-slate-300 hover:text-red-500'}`}
+                           >
+                              <Trash2 size={14} />
+                           </button>
+                        </div>
+                      ))
+                   )}
+              </div>
+           </div>
         </div>
       </div>
     </div>
@@ -3091,18 +4046,463 @@ function GimnasosView({ gimnasos, onDelete, onAdd, darkMode }: any) {
 }
 
 /**
- * VIEW: Psicologia / Reserves
+ * VIEW: Gestió de Plans d'Entrenament
+ * Permet combinar exercicis existents en una setmana específica per a una prova.
  */
-function PsicologiaView({ reserves, onUpdateStatus, onSeedData, loading, darkMode }: any) {
-  const [userInfoModal, setUserInfoModal] = useState<any>(null);
-  const [biodataModal, setBiodataModal] = useState<any>(null);
+function PlansEntrenamentView({ plans, exercicisDisponibles, nouPla, setNouPla, onSubmit, onLoadMock, onDelete, loading, success, darkMode }: any) {
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
-  // Funció per determinar el torn
-  const getTorn = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const hour = date.getHours();
-    return hour < 14 ? "Matí" : "Tarda";
+  return (
+    <div className="max-w-6xl mx-auto flex flex-col gap-10">
+      <header className="flex items-center justify-between w-full">
+        <div className="flex items-center gap-10">
+          <BackButton darkMode={darkMode} />
+          <div>
+            <span className="text-emerald-600 font-bold uppercase tracking-[0.2em] text-[10px]">Backoffice / Prova Física</span>
+            <h1 className={`text-4xl font-black tracking-tight mt-1 uppercase italic ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+              Plans d'<span className="text-emerald-600">Entrenament</span>
+            </h1>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+           {success && (
+             <motion.div 
+               initial={{ opacity: 0, x: 20 }}
+               animate={{ opacity: 1, x: 0 }}
+               className="px-4 py-2 bg-emerald-500/10 text-emerald-500 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-500/20"
+             >
+               ✓ Pla Publicat
+             </motion.div>
+           )}
+           <button 
+             onClick={onLoadMock}
+             disabled={loading}
+             className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${darkMode ? 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-100'}`}
+           >
+             <Wand2 size={16} /> Test ( No BBDD )
+           </button>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        {/* FORMULARI O BOTÓ D'OBRIR */}
+        <div className="lg:col-span-5 flex flex-col gap-4">
+           {!isFormOpen ? (
+              <button 
+                onClick={() => setIsFormOpen(true)}
+                className={`w-full p-8 rounded-[2.5rem] border-2 border-dashed flex items-center justify-between group transition-all ${darkMode ? 'bg-slate-800/20 border-slate-700 hover:border-emerald-500 hover:bg-slate-800/40' : 'bg-white border-slate-200 hover:border-emerald-500 hover:shadow-xl hover:shadow-emerald-500/5'}`}
+              >
+                 <div className="flex items-center gap-6">
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                       <Plus size={28} strokeWidth={3} />
+                    </div>
+                    <div className="text-left">
+                       <h3 className={`text-xl font-black uppercase italic ${darkMode ? 'text-white' : 'text-slate-800'}`}>Afegir Pla</h3>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Combinació local d'exercicis</p>
+                    </div>
+                 </div>
+                 <ChevronRight size={24} className={`text-slate-300 group-hover:text-emerald-500 transition-all group-hover:translate-x-1`} />
+              </button>
+           ) : (
+             <motion.div 
+               initial={{ opacity: 0, scale: 0.95 }}
+               animate={{ opacity: 1, scale: 1 }}
+               className={`p-8 rounded-[2.5rem] border-2 shadow-2xl relative ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-50'}`}
+             >
+                <button 
+                  onClick={() => setIsFormOpen(false)}
+                  className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                   <X size={20} />
+                </button>
+
+                <h3 className={`text-xl font-black uppercase italic mb-6 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Nou Pla Setmanal</h3>
+                
+                <form onSubmit={(e) => { onSubmit(e); setIsFormOpen(false); }} className="flex flex-col gap-5">
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Setmana núm.</label>
+                        <input 
+                          type="number"
+                          min="1"
+                          max="52"
+                          required
+                          value={nouPla.setmana}
+                          onChange={e => setNouPla({...nouPla, setmana: parseInt(e.target.value)})}
+                          className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'}`}
+                        />
+                     </div>
+                     <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Prova</label>
+                        <select 
+                          value={nouPla.tipusProva}
+                          onChange={e => setNouPla({...nouPla, tipusProva: e.target.value})}
+                          className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm appearance-none cursor-pointer ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'}`}
+                        >
+                          <option value="Course Navette">Course Navette</option>
+                          <option value="Circuit Agilitat">Circuit Agilitat</option>
+                          <option value="Press de Banca">Press de Banca</option>
+                        </select>
+                     </div>
+                  </div>
+
+                  <div className="space-y-3">
+                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 flex items-center justify-between">
+                        Exercicis del pla (Select Multip)
+                        <span className="text-[8px] opacity-50 italic">Tria per ordre d'execució</span>
+                     </label>
+                     
+                     <div className={`grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto p-2 rounded-2xl ${darkMode ? 'bg-slate-900/50' : 'bg-slate-50'}`}>
+                        {exercicisDisponibles.length === 0 ? (
+                          <p className="p-4 text-[10px] text-center opacity-30 uppercase font-bold uppercase tracking-widest">No hi ha exercicis creats!</p>
+                        ) : (
+                          exercicisDisponibles.map((ex: any) => {
+                            const isSelected = nouPla.exercicisIds.includes(ex.id);
+                            return (
+                              <button
+                                key={ex.id}
+                                type="button"
+                                onClick={() => {
+                                  const ids = isSelected 
+                                    ? nouPla.exercicisIds.filter((id: string) => id !== ex.id)
+                                    : [...nouPla.exercicisIds, ex.id];
+                                  setNouPla({...nouPla, exercicisIds: ids});
+                                }}
+                                className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                                  isSelected 
+                                    ? 'bg-emerald-600 border-emerald-500 text-white' 
+                                    : darkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-100 text-slate-600'
+                                }`}
+                              >
+                                 <div className={`w-5 h-5 rounded-md flex items-center justify-center border ${isSelected ? 'bg-white text-emerald-600 border-white' : 'border-slate-500'}`}>
+                                    {isSelected && <Check size={14} strokeWidth={4} />}
+                                 </div>
+                                 <span className="text-[11px] font-black uppercase truncate">{ex.nom}</span>
+                              </button>
+                            );
+                          })
+                        )}
+                     </div>
+                  </div>
+
+                  <button 
+                    disabled={loading || nouPla.exercicisIds.length === 0}
+                    type="submit"
+                    className={`w-full py-4 mt-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-2xl font-black uppercase italic tracking-widest transition-all shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-3`}
+                  >
+                    {loading ? "Processant..." : <><Calendar size={18} /> Publicar Pla</>}
+                  </button>
+                  {success && <p className="text-emerald-500 text-[10px] font-black uppercase text-center mt-2">✓ Pla publicat amb èxit</p>}
+                </form>
+             </motion.div>
+           )}
+        </div>
+
+        {/* LLISTAT DE PLANS PUBLICATS */}
+        <div className="lg:col-span-7 flex flex-col gap-6">
+           <h3 className={`text-base font-black uppercase tracking-widest px-4 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Banc de Plans Publicats</h3>
+           
+           <div className="flex flex-col gap-4">
+              {plans.length === 0 ? (
+                <div className="py-20 flex flex-col items-center justify-center text-center opacity-30 px-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem]">
+                   <Calendar size={48} className="text-slate-300 dark:text-slate-700 mb-6" />
+                   <p className="font-black uppercase italic tracking-widest text-xs mb-6">No hi ha plans publicats encara</p>
+                   <button 
+                     onClick={onLoadMock}
+                     className="px-6 py-3 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-xl shadow-emerald-500/20"
+                   >
+                     Generar plans de prova ràpidament
+                   </button>
+                </div>
+              ) : (
+                plans.map((p: any) => (
+                  <div key={p.id} className={`p-6 rounded-[2.5rem] border-2 transition-all flex flex-col gap-6 group ${darkMode ? 'bg-slate-800 border-slate-700/50 hover:border-emerald-500/50' : 'bg-white border-slate-100 hover:border-emerald-500 shadow-sm shadow-slate-200/50'}`}>
+                     <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-6">
+                           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${darkMode ? 'bg-emerald-900/40 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                              <Calendar size={24} />
+                           </div>
+                           <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                 <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">SETMANA {p.setmana}</span>
+                                 <div className="w-1 h-1 rounded-full bg-slate-400"></div>
+                                 <span className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{p.tipusProva}</span>
+                              </div>
+                              <h4 className={`text-lg font-black uppercase italic tracking-tighter ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                                 Rutina de {p.exercicisIds?.length || 0} exercicis
+                              </h4>
+                           </div>
+                        </div>
+                        <button 
+                           onClick={() => onDelete(`plans_entrenament/${p.id}`, p.id)}
+                           className={`p-3 rounded-xl transition-all ${darkMode ? 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white' : 'bg-red-50 text-red-400 hover:bg-red-500 hover:text-white'}`}
+                        >
+                           <Trash2 size={18} />
+                        </button>
+                     </div>
+
+                     {/* MINI LLISTAT D'EXERCICIS DINS EL PLA */}
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 opacity-60 group-hover:opacity-100 transition-opacity">
+                        {p.exercicisIds?.map((exId: string, idx: number) => {
+                           const ex = exercicisDisponibles.find((e: any) => e.id === exId);
+                           if (!ex) return null;
+                           return (
+                              <div key={exId} className={`flex items-center gap-3 p-2 rounded-xl ${darkMode ? 'bg-slate-900/40' : 'bg-slate-50'}`}>
+                                 <span className="text-[10px] font-black text-emerald-500 w-4">{idx + 1}</span>
+                                 <span className={`text-[10px] font-bold uppercase truncate ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>{ex.nom}</span>
+                              </div>
+                           );
+                        })}
+                     </div>
+                  </div>
+                ))
+              )}
+           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GimnasosView({ gimnasos, onDelete, onAdd, onLoadMock, darkMode }: any) {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const mode = searchParams.get('mode');
+  const isAltaMode = mode === 'alta';
+
+  const [nouGimnas, setNouGimnas] = useState({ 
+    nom: "", 
+    imatges: [] as string[], 
+    descripcio: "", 
+    entrenament: [] as string[], 
+    preus: "", 
+    telefon: "", 
+    correu: "", 
+    provincia: "", 
+    comarca: "", 
+    municipi: "", 
+    infoPrivada: "" 
+  });
+
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [filtreProvincia, setFiltreProvincia] = useState("");
+  const [filtreEntrenament, setFiltreEntrenament] = useState("");
+  const [urlImatge, setUrlImatge] = useState("");
+
+  const provincias = ["Barcelona", "Girona", "Lleida", "Tarragona"];
+  const modalitats = ["Circuit Agilitat", "Course Navette", "Press de Banca"];
+
+  const toggleEntrenament = (mod: string) => {
+    setNouGimnas(prev => ({
+      ...prev,
+      entrenament: prev.entrenament.includes(mod)
+        ? prev.entrenament.filter(m => m !== mod)
+        : [...prev.entrenament, mod]
+    }));
   };
+
+  const addImatge = () => {
+    if (urlImatge.trim()) {
+      setNouGimnas(prev => ({ ...prev, imatges: [...prev.imatges, urlImatge] }));
+      setUrlImatge("");
+    }
+  };
+
+  const removeImatge = (index: number) => {
+    setNouGimnas(prev => ({
+      ...prev,
+      imatges: prev.imatges.filter((_, i) => i !== index)
+    }));
+  };
+
+  const gimnasosFiltrats = gimnasos.filter((g: any) => {
+    const matchProvincia = filtreProvincia === "" || g.provincia === filtreProvincia;
+    const matchEntrenament = filtreEntrenament === "" || g.entrenament?.includes(filtreEntrenament);
+    return matchProvincia && matchEntrenament;
+  });
+
+  const comarquesDisponibles = nouGimnas.provincia ? Object.keys(DATA_CATALUNYA[nouGimnas.provincia as keyof typeof DATA_CATALUNYA] || {}) : [];
+  const municipisDisponibles = (nouGimnas.provincia && nouGimnas.comarca) ? (DATA_CATALUNYA[nouGimnas.provincia as keyof typeof DATA_CATALUNYA]?.[nouGimnas.comarca] || []) : [];
+
+  const FormContent = () => (
+    <form onSubmit={async (e) => { e.preventDefault(); await onAdd(nouGimnas); setIsFormOpen(false); if (isAltaMode) navigate('/admin/gimnasos'); }} className="space-y-8">
+      {/* SECCIÓ 1: DADES BÀSIQUES */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase text-slate-500 px-1">Nom del centre</label>
+          <input 
+            required
+            value={nouGimnas.nom}
+            onChange={e => setNouGimnas({...nouGimnas, nom: e.target.value})}
+            placeholder="Ex: Eurofitness Sant Cugat"
+            className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase text-slate-500 px-1">Tipus d'entrenament disponible</label>
+          <div className="flex flex-wrap gap-2">
+              {modalitats.map(mod => {
+                const isSelected = nouGimnas.entrenament.includes(mod);
+                return (
+                  <button
+                    key={mod}
+                    type="button"
+                    onClick={() => toggleEntrenament(mod)}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all border-2 ${
+                      isSelected ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-transparent border-slate-200 text-slate-400'
+                    }`}
+                  >
+                    {mod}
+                  </button>
+                );
+              })}
+          </div>
+        </div>
+      </div>
+
+      {/* SECCIÓ 2: LOCALITZACIÓ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase text-slate-500 px-1">Província</label>
+          <select 
+            required
+            value={nouGimnas.provincia}
+            onChange={e => setNouGimnas({...nouGimnas, provincia: e.target.value, comarca: "", municipi: ""})}
+            className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm appearance-none ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+          >
+            <option value="">Selecciona província</option>
+            {Object.keys(DATA_CATALUNYA).map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase text-slate-500 px-1">Comarca</label>
+          <select 
+            required
+            disabled={!nouGimnas.provincia}
+            value={nouGimnas.comarca}
+            onChange={e => setNouGimnas({...nouGimnas, comarca: e.target.value, municipi: ""})}
+            className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm appearance-none transition-all ${!nouGimnas.provincia ? 'opacity-30' : ''} ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+          >
+            <option value="">Selecciona comarca</option>
+            {comarquesDisponibles.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase text-slate-500 px-1">Municipi</label>
+          <select 
+            required
+            disabled={!nouGimnas.comarca}
+            value={nouGimnas.municipi}
+            onChange={e => setNouGimnas({...nouGimnas, municipi: e.target.value})}
+            className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm appearance-none transition-all ${!nouGimnas.comarca ? 'opacity-30' : ''} ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+          >
+            <option value="">Selecciona municipi</option>
+            {municipisDisponibles.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* SECCIÓ 3: CONTACTE I PREUS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pt-4 border-t border-slate-100 dark:border-slate-800">
+        <div className="space-y-6">
+          <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-slate-500 px-1">Telèfon de contacte</label>
+              <input 
+                value={nouGimnas.telefon}
+                onChange={e => setNouGimnas({...nouGimnas, telefon: e.target.value})}
+                placeholder="Ex: 93 XXXXXXX"
+                className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+              />
+          </div>
+          <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-slate-500 px-1">Correu electrònic</label>
+              <input 
+                value={nouGimnas.correu}
+                onChange={e => setNouGimnas({...nouGimnas, correu: e.target.value})}
+                placeholder="Ex: hola@gimnas.com"
+                className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+              />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase text-slate-500 px-1">Preus i Tarifes</label>
+          <textarea 
+              value={nouGimnas.preus}
+              onChange={e => setNouGimnas({...nouGimnas, preus: e.target.value})}
+              placeholder="Detalla els packs, matrícules o preus per sessió..."
+              className={`w-full h-[140px] p-4 rounded-2xl border-none outline-none font-bold text-sm resize-none ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+          />
+        </div>
+      </div>
+
+      {/* SECCIÓ 4: DESCRIPCIÓ I IMATGES */}
+      <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase text-slate-500 px-1">Descripció del centre</label>
+          <textarea 
+            value={nouGimnas.descripcio}
+            onChange={e => setNouGimnas({...nouGimnas, descripcio: e.target.value})}
+            placeholder="Breu descripció del gimnàs i les seves instal·lacions..."
+            className={`w-full h-24 p-4 rounded-2xl border-none outline-none font-bold text-sm resize-none ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+          />
+        </div>
+        
+        <div className="space-y-4">
+          <label className="text-[10px] font-black uppercase text-slate-500 px-1">Imatges del centre (URLs)</label>
+          <div className="flex gap-2">
+            <input 
+              value={urlImatge}
+              onChange={e => setUrlImatge(e.target.value)}
+              placeholder="Afegeix URL de la imatge..."
+              className={`flex-1 p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+            />
+            <button 
+              type="button"
+              onClick={addImatge}
+              className="px-6 bg-slate-800 text-white rounded-2xl font-black uppercase text-[10px] hover:bg-slate-700 transition-all"
+            >
+              Afegir
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {nouGimnas.imatges.map((img, idx) => (
+              <div key={idx} className="relative group w-24 h-24 rounded-2xl overflow-hidden border-2 border-slate-100 dark:border-slate-800">
+                <img src={img} alt="preview" className="w-full h-full object-cover" />
+                <button 
+                  type="button"
+                  onClick={() => removeImatge(idx)}
+                  className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                >
+                  <Trash2 size={20} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* SECCIÓ 5: INFO PRIVADA */}
+      <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+        <label className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-500 px-1">
+          <LockIcon size={12} /> Informació Privada (Només per a nosaltres)
+        </label>
+        <textarea 
+          value={nouGimnas.infoPrivada}
+          onChange={e => setNouGimnas({...nouGimnas, infoPrivada: e.target.value})}
+          placeholder="Comentaris sobre comissionat, tracte especial, acords de pagament, etc."
+          className={`w-full h-24 p-4 rounded-2xl border-none outline-none font-bold text-[11px] resize-none ${darkMode ? 'bg-amber-500/5 text-amber-500' : 'bg-amber-50 text-amber-900'}`}
+        />
+      </div>
+
+      <button 
+        type="submit"
+        className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-[2rem] font-black uppercase italic tracking-widest text-lg shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-3 transition-all"
+      >
+        Registrar Gimnàs i Publicar
+      </button>
+    </form>
+  );
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-10">
@@ -3110,243 +4510,492 @@ function PsicologiaView({ reserves, onUpdateStatus, onSeedData, loading, darkMod
         <div className="flex items-center gap-10">
           <BackButton darkMode={darkMode} />
           <div>
-            <span className="text-emerald-600 font-bold uppercase tracking-[0.2em] text-[10px]">Psychology & bookings</span>
-            <h1 className={`text-4xl font-black mt-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Gestió de <span className="text-emerald-600">Reserves</span></h1>
+            <span className="text-emerald-500 font-bold uppercase tracking-[0.2em] text-[10px]">Backoffice / Prova Física</span>
+            <h1 className={`text-4xl font-black mt-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+              {isAltaMode ? 'Alta de ' : 'Gestió de '} 
+              <span className="text-emerald-500 uppercase">Gimnasos</span>
+            </h1>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={onLoadMock}
+            className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${darkMode ? 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-100'}`}
+          >
+            <Wand2 size={16} /> Test ( No BBDD )
+          </button>
+          {!isAltaMode && (
+            <button 
+              onClick={() => setIsFormOpen(true)}
+              className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${darkMode ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-100'}`}
+            >
+              <Plus size={16} /> Donar d'alta un gimnàs nou
+            </button>
+          )}
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        {/* CAS 1: MODE ALTA DIRECTA (SENSE MODAL) */}
+        {isAltaMode ? (
+          <div className="lg:col-span-12">
+            <motion.div 
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               className={`rounded-[3rem] border p-12 shadow-xl ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'}`}
+            >
+              <div className="mb-10 flex items-center justify-between">
+                 <div>
+                   <span className="text-emerald-500 font-black uppercase text-[10px] tracking-widest">Registre d'instal·lació</span>
+                   <h3 className="text-3xl font-black uppercase italic mt-1">Nou Gimnàs Col·laborador</h3>
+                 </div>
+                 <Link 
+                   to="/admin/gimnasos"
+                   className="px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
+                 >
+                   Veure banc de gimnasos
+                 </Link>
+              </div>
+              <FormContent />
+            </motion.div>
+          </div>
+        ) : (
+          <>
+            {/* CAS 2: BANC DE GIMNASOS EXISTENT AMB FILTRES I OPCIÓ DE MODAL SI ES VOL */}
+            <AnimatePresence>
+              {isFormOpen && (
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+                  <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsFormOpen(false)} />
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                    className={`relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[3rem] border p-10 shadow-2xl ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'}`}
+                  >
+                    <button 
+                      onClick={() => setIsFormOpen(false)}
+                      className="absolute top-8 right-8 p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      <X size={24} />
+                    </button>
+
+                    <div className="mb-10">
+                       <span className="text-emerald-500 font-black uppercase text-[10px] tracking-widest">Registre d'instal·lació</span>
+                       <h3 className="text-2xl font-black uppercase italic mt-1">Nou Gimnàs Col·laborador</h3>
+                    </div>
+                    <FormContent />
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
+
+            <div className="lg:col-span-12 flex flex-col gap-8">
+               <div className="flex flex-col md:flex-row items-center justify-between gap-6 px-4">
+                  <h3 className={`text-base font-black uppercase tracking-widest ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Banc de gimnasos existent</h3>
+                  
+                  <div className="flex flex-wrap items-center gap-4">
+                     <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase text-slate-400">Província:</span>
+                        <select 
+                           value={filtreProvincia}
+                           onChange={e => setFiltreProvincia(e.target.value)}
+                           className={`px-4 py-2 rounded-xl border-none outline-none font-bold text-[10px] uppercase tracking-tighter ${darkMode ? 'bg-slate-800' : 'bg-white shadow-sm'}`}
+                        >
+                           <option value="">Totes</option>
+                           {provincias.map(p => <option key={p} value={p}>{p}</option>)}
+                        </select>
+                     </div>
+                     <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase text-slate-400">Entrenament:</span>
+                        <select 
+                           value={filtreEntrenament}
+                           onChange={e => setFiltreEntrenament(e.target.value)}
+                           className={`px-4 py-2 rounded-xl border-none outline-none font-bold text-[10px] uppercase tracking-tighter ${darkMode ? 'bg-slate-800' : 'bg-white shadow-sm'}`}
+                        >
+                           <option value="">Tots</option>
+                           {modalitats.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                     </div>
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-5 duration-500">
+                  {gimnasosFiltrats.map((g: any) => (
+                    <div key={g.id} className={`p-6 rounded-[2.5rem] border-2 transition-all flex flex-col gap-6 group ${darkMode ? 'bg-slate-800 border-slate-700/50 hover:border-emerald-500/50' : 'bg-white border-slate-100 hover:border-emerald-500 shadow-sm shadow-slate-200/50'}`}>
+                       {/* CAPÇALERA CARD */}
+                       <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-4">
+                             <div className={`w-16 h-16 rounded-3xl overflow-hidden shrink-0 border-2 ${darkMode ? 'border-slate-700' : 'border-slate-50'}`}>
+                                {g.imatges?.[0] ? (
+                                   <img src={g.imatges[0]} alt={g.nom} className="w-full h-full object-cover" />
+                                ) : (
+                                   <div className="w-full h-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                                      <Dumbbell size={24} />
+                                   </div>
+                                )}
+                             </div>
+                             <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                   <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 text-[8px] font-black uppercase rounded-md">{g.provincia}</span>
+                                   <span className="text-slate-300 dark:text-slate-600">•</span>
+                                   <span className="text-[9px] font-bold text-slate-400 uppercase">{g.municipi}</span>
+                                </div>
+                                <h4 className={`text-lg font-black uppercase italic tracking-tighter ${darkMode ? 'text-white' : 'text-slate-800'}`}>{g.nom}</h4>
+                             </div>
+                          </div>
+                          <button 
+                            onClick={() => onDelete(`gimnasos/${g.id}`, g.id)}
+                            className={`p-3 rounded-xl transition-all ${darkMode ? 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white' : 'bg-red-50 text-red-400 hover:bg-red-500 hover:text-white'}`}
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                       </div>
+
+                       {/* CONTINGUT CARD */}
+                       <div className="space-y-4">
+                          <div className="flex flex-wrap gap-1.5">
+                             {g.entrenament?.map((mod: string) => (
+                               <span key={mod} className="px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-lg text-[8px] font-black uppercase text-slate-500">{mod}</span>
+                             ))}
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-3 pb-4 border-b border-slate-50 dark:border-slate-700/50">
+                             <div className="flex items-center gap-2 opacity-60">
+                                <Phone size={12} className="text-emerald-500" />
+                                <span className="text-[10px] font-bold">{g.telefon || "Sense tlf"}</span>
+                             </div>
+                             <div className="flex items-center gap-2 opacity-60">
+                                <Mail size={12} className="text-emerald-500" />
+                                <span className="text-[10px] font-bold truncate">{g.correu || "Sense correu"}</span>
+                             </div>
+                          </div>
+
+                          {g.preus && (
+                            <div className={`p-3 rounded-2xl ${darkMode ? 'bg-slate-900/40' : 'bg-slate-50'}`}>
+                               <span className="text-[8px] font-black uppercase text-slate-400 block mb-1">Tarifes i Preus</span>
+                               <p className="text-[10px] font-medium leading-relaxed line-clamp-2">{g.preus}</p>
+                            </div>
+                          )}
+                          
+                          {g.infoPrivada && (
+                            <div className="flex items-center gap-2 p-2 px-3 bg-amber-500/5 border border-amber-500/10 rounded-xl">
+                               <LockIcon size={10} className="text-amber-500" />
+                               <span className="text-[8px] font-black uppercase text-amber-600">Info Interna Disponible</span>
+                            </div>
+                          )}
+                       </div>
+                    </div>
+                  ))}
+                  
+                  {gimnasosFiltrats.length === 0 && (
+                    <div className="lg:col-span-3 py-20 flex flex-col items-center justify-center text-center px-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem]">
+                       <Building2 size={48} className="text-slate-300 dark:text-slate-700 mb-6" />
+                       <p className="font-black uppercase italic tracking-widest text-[10px] text-slate-400 mb-6">No hi ha cap gimnàs registrat encara</p>
+                       <button 
+                         onClick={onLoadMock}
+                         className="px-6 py-3 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-xl shadow-emerald-500/20"
+                       >
+                         Carregar gimnasos de prova
+                       </button>
+                    </div>
+                  )}
+               </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * VIEW: Gestió de Cites d'Usuari (Llista simple)
+ */
+function ReservesUsuariView({ reserves, onUpdateStatus, onSeedData, darkMode }: any) {
+  return (
+    <div className="max-w-7xl mx-auto flex flex-col gap-10 animate-in fade-in duration-500">
+      <header className="flex items-center justify-between">
+        <div className="flex items-center gap-10">
+          <BackButton darkMode={darkMode} />
+          <div>
+            <span className="text-emerald-500 font-bold uppercase tracking-[0.2em] text-[10px]">Backoffice / Serveis / Cites</span>
+            <h1 className={`text-4xl font-black mt-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+              Cites <span className="text-emerald-600 uppercase">Usuaris</span>
+            </h1>
           </div>
         </div>
         <button 
           onClick={onSeedData}
-          className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-600/20 transition-all active:scale-95 disabled:opacity-50"
-          disabled={loading}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${darkMode ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-100'}`}
         >
-          {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={16} />}
-          Generar Reserva de Prova
+          <Wand2 size={16} /> Generar Cites de Prova
         </button>
       </header>
 
-      {/* MODAL: INFO USUARI */}
-      <AnimatePresence>
-        {userInfoModal && (
-          <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-md" onClick={() => setUserInfoModal(null)} />
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className={`relative w-full max-w-md rounded-[2.5rem] border p-8 shadow-2xl ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}
-            >
-              <div className="flex justify-between items-center mb-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
-                    <User size={24} />
-                  </div>
-                  <div>
-                    <h3 className={`text-xl font-black uppercase tracking-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>Fitxa de l'Usuari</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Informació Personal</p>
-                  </div>
-                </div>
-                <button onClick={() => setUserInfoModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-all">
-                  <X size={20} className="text-slate-400" />
-                </button>
-              </div>
-
-              <div className="space-y-5">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
-                    <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Nom Real</span>
-                    <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{userInfoModal.usuariNom}</span>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
-                    <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Edat</span>
-                    <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{userInfoModal.edat || "24"} anys</span>
-                  </div>
-                </div>
-                
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
-                  <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Correu Electrònic</span>
-                  <span className="text-sm font-bold text-blue-500">{userInfoModal.usuariEmail}</span>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
-                  <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Telèfon de Contacte</span>
-                  <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{userInfoModal.telefon || "634 12 88 45"}</span>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
-                  <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">Motiu de la Cita</span>
-                  <p className={`text-xs italic leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                    {userInfoModal.notes || "Preparació per a l'entrevista oficial de Mossos d'Esquadra."}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* MODAL: RESUM BIODATA */}
-      <AnimatePresence>
-        {biodataModal && (
-          <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-md" onClick={() => setBiodataModal(null)} />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className={`relative w-full max-w-4xl rounded-[2.5rem] border p-10 shadow-2xl ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}
-            >
-              <div className="flex justify-between items-center mb-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-violet-500/10 flex items-center justify-center text-violet-500">
-                    <FileText size={24} />
-                  </div>
-                  <div>
-                    <h3 className={`text-xl font-black uppercase tracking-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>Informe de Competències Mossos</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Resultats basats en Biodata AI - Alumne: {biodataModal.usuariNom}</p>
-                  </div>
-                </div>
-                <button onClick={() => setBiodataModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-all">
-                  <X size={20} className="text-slate-400" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div className="space-y-4">
-                   <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-500 mb-4">Competències Clau</h4>
-                   {Object.entries(biodataModal.competencies || {}).map(([name, val]: any) => (
-                      <div key={name} className="space-y-1">
-                         <div className="flex justify-between items-end">
-                            <span className={`text-[10px] font-bold uppercase ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{name}</span>
-                            <span className="text-xs font-black text-violet-500">{val}/10</span>
-                         </div>
-                         <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                            <motion.div 
-                               initial={{ width: 0 }}
-                               animate={{ width: `${(val as number) * 10}%` }}
-                               transition={{ duration: 1, ease: "easeOut" }}
-                               className="h-full bg-violet-500 rounded-full"
-                            />
-                         </div>
-                      </div>
-                   ))}
-                </div>
-
-                <div className="flex flex-col gap-6">
-                   <div className={`p-8 rounded-2xl border flex-1 leading-relaxed text-sm ${darkMode ? 'bg-slate-900/50 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
-                      <div className="flex items-center gap-2 mb-4">
-                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                         <span className="font-bold text-slate-400 uppercase text-[9px] tracking-widest underline decoration-emerald-500/40">Conclusions del Sistema</span>
-                      </div>
-                      <p className="italic">
-                        {biodataModal.biodataInforme || "Perfil equilibrat amb bones perspectives per l'entrevista."}
-                      </p>
-                   </div>
-                   <button className="w-full py-4 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-violet-600/20 active:scale-95 text-center">
-                      Descarregar Informe Complet (PDF)
-                   </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      <div className={`rounded-[2.5rem] border overflow-hidden transition-colors ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+      <div className={`rounded-[3rem] border-2 overflow-hidden ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100 shadow-xl'}`}>
         <table className="w-full text-left">
           <thead>
             <tr className={`border-b text-[10px] font-black uppercase tracking-widest ${darkMode ? 'bg-slate-900/40 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
-              <th className="p-6">Usuari</th>
-              <th className="p-6">Visita (Torn/Hora)</th>
-              <th className="p-6">Psicòleg</th>
-              <th className="p-6">Estat</th>
-              <th className="p-6">Biodata</th>
-              <th className="p-6 text-right">Accions</th>
+              <th className="p-8">Usuari</th>
+              <th className="p-8">Data i Hora</th>
+              <th className="p-8">Estat</th>
+              <th className="p-8 text-right">Accions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {reserves.map((r: any) => (
               <tr key={r.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-colors">
-                <td className="p-6">
-                  <div className="flex items-center gap-3">
-                    <div className="flex flex-col">
-                      <span className="font-bold">{r.usuariNom}</span>
-                      <span className="text-[10px] text-slate-400 font-medium">{r.usuariEmail}</span>
-                    </div>
-                    <button 
-                      onClick={() => setUserInfoModal(r)}
-                      className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 hover:bg-blue-500 hover:text-white transition-all"
-                      title="Informació Usuari"
-                    >
-                      <Info size={12} />
-                    </button>
+                <td className="p-8">
+                  <div className="flex flex-col">
+                    <span className={`text-lg font-black italic tracking-tighter ${darkMode ? 'text-white' : 'text-slate-800'}`}>{r.usuariNom || "Candidat"}</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{r.usuariEmail}</span>
                   </div>
                 </td>
-                <td className="p-6">
-                   <div className="flex flex-col">
-                      <span className="text-xs font-bold uppercase">{new Date(r.dataSessio).toLocaleDateString('ca-ES', { day: '2-digit', month: 'long' })}</span>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${getTorn(r.dataSessio) === 'Matí' ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}`}>
-                           {getTorn(r.dataSessio)}
-                        </span>
-                        <Clock size={10} className="text-slate-400 ml-1" />
-                        <span className="text-[10px] text-slate-400 font-bold">{new Date(r.dataSessio).toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' })}h</span>
-                      </div>
-                   </div>
-                </td>
-                <td className="p-6">
-                   <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                         <User size={14} />
-                      </div>
-                      <span className="text-xs font-bold text-slate-500">{r.psicoleg || "Aleix Romero Pociello"}</span>
-                   </div>
-                </td>
-                <td className="p-6">
-                   <div className="flex items-center gap-2">
-                    <div className={`w-1.5 h-1.5 rounded-full ${
-                        r.estat === 'confirmada' ? 'bg-emerald-500' : 
-                        r.estat === 'cancel·lada' ? 'bg-red-500' :
-                        r.estat === 'cancel·lada_usuari' ? 'bg-amber-500' : 'bg-blue-500'
-                    }`} />
-                    <span className={`text-[9px] font-black uppercase tracking-tighter ${
-                        r.estat === 'confirmada' ? 'text-emerald-500' : 
-                        r.estat === 'cancel·lada' ? 'text-red-500' :
-                        r.estat === 'cancel·lada_usuari' ? 'text-amber-500' : 'text-blue-500'
-                    }`}>
-                        {r.estat === 'confirmada' ? 'Acceptat' : 
-                         r.estat === 'cancel·lada' ? 'Cancel·lat (Admin)' :
-                         r.estat === 'cancel·lada_usuari' ? 'Cancel·lat (Usuari)' : 'Pendent'}
+                <td className="p-8">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold uppercase italic">{r.dataSessio ? new Date(r.dataSessio).toLocaleDateString('ca-ES', { day: '2-digit', month: 'long' }) : "Pendent"}</span>
+                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
+                       {r.dataSessio ? new Date(r.dataSessio).toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' }) : "--:--"}
                     </span>
-                   </div>
+                  </div>
                 </td>
-                <td className="p-6">
-                   <div className="flex items-center gap-3">
-                      <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${r.biodataFet ? 'bg-violet-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
-                        {r.biodataFet ? 'FET' : 'NO FET'}
-                      </span>
-                      {r.biodataFet && (
-                         <button 
-                           onClick={() => setBiodataModal(r)}
-                           className="text-violet-500 hover:text-violet-600 flex items-center gap-1 text-[9px] font-black uppercase tracking-widest"
-                          >
-                           <Eye size={12} /> Informe
-                         </button>
-                      )}
-                   </div>
+                <td className="p-8">
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                    r.estat === 'confirmada' ? 'bg-emerald-500/10 text-emerald-500' : 
+                    r.estat === 'cancel·lada' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'
+                  }`}>
+                    {r.estat || 'pendent'}
+                  </span>
                 </td>
-                <td className="p-6 text-right space-x-1">
-                  <button onClick={() => onUpdateStatus(r.id, 'confirmada')} className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg" title="Acceptar"><UserCheck size={18} /></button>
-                  <button onClick={() => onUpdateStatus(r.id, 'cancel·lada')} className="p-2 text-red-500 hover:bg-red-50 rounded-lg" title="Cancel·lar"><UserX size={18} /></button>
+                <td className="p-8 text-right space-x-2">
+                   <button onClick={() => onUpdateStatus(r.id, 'confirmada')} className="p-3 text-emerald-500 hover:bg-emerald-500/10 rounded-xl transition-all" title="Confirmar"><UserCheck size={20} /></button>
+                   <button onClick={() => onUpdateStatus(r.id, 'cancel·lada')} className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-all" title="Anul·lar"><UserX size={20} /></button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
         {reserves.length === 0 && (
-          <div className="p-32 text-center flex flex-col items-center gap-6">
-            <span className="text-slate-400 font-bold uppercase text-xs tracking-widest">No hi ha reserves pendents</span>
+          <div className="py-32 flex flex-col items-center justify-center text-center opacity-50">
+            <Calendar size={48} className="mb-4" />
+            <p className="font-black uppercase italic tracking-widest text-xs">No hi ha cites registrades</p>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * VIEW: Gestió de Psicòlegs (Assignació i Detalls)
+ */
+function GestioPsicolegsView({ reserves, fetchData, onSeedData, darkMode }: any) {
+  const getLocalDateString = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const [selectedDate, setSelectedDate] = useState(getLocalDateString(new Date()));
+  const [psicolegs] = useState([
+    "Aleix Romeo Pociello",
+    "Maria Blazquez Godia"
+  ]);
+
+  // Filtrar reserves pel dia seleccionat
+  const reservesDia = reserves.filter((r: any) => {
+    // Intentem parsejar la data segons el format que tinguem
+    let rDateStr = "";
+    
+    // Si és un objecte Date (mock data createdAt o r.data)
+    if (r.dataSessio && typeof r.dataSessio === 'string') {
+      // Per dades ISO: 2024-05-18T10:00:00.000Z
+      // Hem de ser curosos amb el timezone si volem "Local Date"
+      const d = new Date(r.dataSessio);
+      rDateStr = getLocalDateString(d);
+    } else if (r.data instanceof Date) {
+      rDateStr = getLocalDateString(r.data);
+    } else if (r.data && r.data.toDate) {
+      rDateStr = getLocalDateString(r.data.toDate());
+    }
+    
+    return rDateStr === selectedDate;
+  });
+
+  const handleAssignPsicolog = async (reservaId: string, psicoleg: string) => {
+    if (reservaId.startsWith('mock-')) {
+      alert(`Simulació: Assignant psicòleg ${psicoleg} a la cita local.`);
+      // O podríem actualitzar l'estat localment si volguéssim fer-ho més pro
+      return;
+    }
+    try {
+      const resRef = doc(db, "reserves_psicologia", reservaId);
+      await updateDoc(resRef, { psicoleg: psicoleg });
+      fetchData();
+    } catch (error) {
+      console.error("Error assignant psicòleg:", error);
+    }
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto flex flex-col gap-10 animate-in fade-in duration-500">
+      <header className="flex items-center justify-between">
+        <div className="flex items-center gap-10">
+          <BackButton darkMode={darkMode} />
+          <div>
+            <span className="text-emerald-500 font-bold uppercase tracking-[0.2em] text-[10px]">Backoffice / Serveis / Psicologia</span>
+            <h1 className={`text-4xl font-black mt-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+              Gestió <span className="text-emerald-600 uppercase">Cites</span>
+            </h1>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => onSeedData(selectedDate)}
+            className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all mr-4 ${darkMode ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-100'}`}
+          >
+            <Wand2 size={16} /> Cites de Prova
+          </button>
+
+          <div className={`px-6 py-3 rounded-2xl border flex items-center gap-4 ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200 shadow-sm'}`}>
+            <span className="text-[10px] font-black uppercase text-slate-400">Selecciona Dia:</span>
+            <input 
+              type="date" 
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className={`bg-transparent border-none outline-none font-black text-sm uppercase cursor-pointer ${darkMode ? 'text-white' : 'text-slate-800'}`}
+            />
+          </div>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+        {/* COLUMNA ESQUERRA: RESUM O INFO */}
+        <div className="lg:col-span-3 flex flex-col gap-6">
+           <div className={`p-8 rounded-[2.5rem] border-2 ${darkMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-100 shadow-sm'}`}>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 bg-emerald-500 text-white rounded-2xl shadow-lg">
+                  <Calendar size={24} />
+                </div>
+                <h3 className={`text-lg font-black uppercase italic tracking-tighter ${darkMode ? 'text-white' : 'text-emerald-900'}`}>{selectedDate}</h3>
+              </div>
+              <p className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest mb-6">Resum de la jornada</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between px-2">
+                  <span className="text-[10px] font-black text-slate-400">CITES AVUI:</span>
+                  <span className={`text-sm font-black ${darkMode ? 'text-white' : 'text-slate-800'}`}>{reservesDia.length}</span>
+                </div>
+              </div>
+           </div>
+
+           <div className={`p-8 rounded-[2.5rem] border-2 ${darkMode ? 'bg-slate-800/40 border-slate-700/50' : 'bg-white border-slate-100 shadow-sm'}`}>
+              <h4 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest px-2">Psicòlegs Actius</h4>
+              <div className="space-y-4">
+                {psicolegs.map(p => (
+                  <div key={p} className={`flex items-center gap-4 p-3 rounded-2xl ${darkMode ? 'bg-slate-900/40 text-slate-200' : 'bg-slate-50 text-slate-700'}`}>
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[11px] font-bold">{p}</span>
+                  </div>
+                ))}
+              </div>
+           </div>
+        </div>
+
+        {/* COLUMNA DRETA: LLISTAT DE CITES */}
+        <div className="lg:col-span-9 flex flex-col gap-6">
+           <div className={`p-8 rounded-[3rem] border-2 flex flex-col gap-8 ${darkMode ? 'bg-slate-900/40 border-slate-800/50' : 'bg-white border-slate-100 shadow-sm'}`}>
+              <div className="flex items-center justify-between px-2">
+                <h3 className={`text-2xl font-black uppercase tracking-tighter italic ${darkMode ? 'text-white' : 'text-slate-800'}`}>Cites Programades</h3>
+                <div className="flex items-center gap-4">
+                  <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 text-[10px] font-black uppercase rounded-full">Total: {reservesDia.length}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6">
+                {reservesDia.map((r: any) => {
+                  let hora = "Pendent";
+                  if (r.data instanceof Date) {
+                    hora = r.data.toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' });
+                  } else if (r.data && r.data.toDate) {
+                    hora = r.data.toDate().toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' });
+                  } else if (r.dataSessio) {
+                    const d = new Date(r.dataSessio);
+                    hora = d.toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' });
+                  }
+
+                  return (
+                    <div key={r.id} className={`p-8 rounded-[2.5rem] border-2 transition-all flex flex-col gap-8 group ${darkMode ? 'bg-slate-800 border-slate-700/50 hover:border-emerald-500/50' : 'bg-slate-50/50 border-slate-100 hover:border-emerald-500 shadow-sm'}`}>
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="flex items-center gap-6">
+                          <div className={`w-20 h-20 rounded-2xl flex flex-col items-center justify-center font-black transition-all ${darkMode ? 'bg-slate-900 text-emerald-400' : 'bg-white text-emerald-600 shadow-sm shadow-emerald-500/5 group-hover:shadow-emerald-500/20'}`}>
+                            <span className="text-[10px] uppercase opacity-50 mb-1">HORA</span>
+                            <span className="text-xl italic">{hora}</span>
+                          </div>
+                          <div>
+                            <h4 className={`text-2xl font-black uppercase italic tracking-tighter leading-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>{r.usuariNom || "Candidat sense nom"}</h4>
+                            <div className="flex items-center gap-2 mt-1">
+                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{r.usuariEmail || "sense email"}</p>
+                               <span className="text-slate-300 dark:text-slate-700 text-[10px]">•</span>
+                               <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${r.estat === 'completada' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>{r.estat || 'pendent'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3">
+                           <button 
+                             onClick={() => alert('Generant i descarregant informe Biodata del candidat...')}
+                             className={`flex items-center gap-2 px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${darkMode ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-100'}`}
+                           >
+                              <FileDown size={18} /> descarregar PDF Biodata
+                           </button>
+                        </div>
+                      </div>
+
+                      <div className={`p-6 rounded-[2rem] border-2 flex flex-col md:flex-row md:items-center justify-between gap-6 ${darkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-100 shadow-inner'}`}>
+                         <div className="flex items-center gap-4">
+                            <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
+                               <Users size={18} />
+                            </div>
+                            <div>
+                               <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Assignació de Psicòleg responsable</span>
+                               <p className="text-[11px] font-bold text-slate-400 italic">Assigna el professional que realitzarà la sessió</p>
+                            </div>
+                         </div>
+                         
+                         <div className="flex items-center gap-3">
+                           <select 
+                             value={r.psicoleg || ""}
+                             onChange={(e) => handleAssignPsicolog(r.id, e.target.value)}
+                             className={`min-w-[220px] px-6 py-3.5 rounded-2xl border-none outline-none font-black text-[11px] uppercase tracking-tighter appearance-none cursor-pointer transition-all ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800 hover:bg-slate-100 shadow-sm'}`}
+                           >
+                             <option value="">-- No assignat encara --</option>
+                             {psicolegs.map(p => <option key={p} value={p}>{p}</option>)}
+                           </select>
+                           
+                           {r.psicoleg && (
+                             <div className="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 animate-in zoom-in">
+                               <Check size={20} />
+                             </div>
+                           )}
+                         </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {reservesDia.length === 0 && (
+                  <div className="py-24 flex flex-col items-center justify-center text-center px-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem]">
+                    <Calendar size={56} className="text-slate-200 dark:text-slate-800 mb-8" />
+                    <h4 className="text-xl font-black uppercase italic tracking-tighter text-slate-500 mb-2">No hi ha cites per aquest dia</h4>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Selecciona una altra data al calendari superior</p>
+                  </div>
+                )}
+              </div>
+           </div>
+        </div>
       </div>
     </div>
   );
