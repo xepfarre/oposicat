@@ -55,7 +55,15 @@ export default function FormulariAutenticacio({
         return 'La contrasenya és massa feble. Ha de tenir un mínim de 6 caràcters.';
       case 'auth/popup-closed-by-user':
         return 'S’ha tancat la finestra de Google abans de completar l’accés.';
+      case 'permission-denied':
+      case 'firestore/permission-denied':
+        return 'Error d’accés o sessió desactualitzada. Si us plau, tanca la sessió o refresca l’aplicació i torna a entrar.';
       default:
+        // Comentari planer per a no-programadors:
+        // Si el codi de l'error conté caràcters de refús de permisos de Firestore, no donem la culpa a Internet
+        if (codi && (codi.includes('permission') || codi.includes('denied') || codi.includes('unauthorized'))) {
+          return 'Error de validació de credencials segures. S’han actualitzat les regles de l’aplicació, si us plau, tanca sessió i torna a entrar en la tauleta.';
+        }
         return 'Hi ha hagut un inconvenient de connexió. Comprova la teva xarxa i torna-ho a provar.';
     }
   };
