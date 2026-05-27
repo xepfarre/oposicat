@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import PantallaBenvinguda from './pantalles/PantallaBenvinguda';
+import PantallaVerificacioCorreu from './pantalles/PantallaVerificacioCorreu';
 import Pantalla_Inici from './pantalles/pantalla_inici';
 import OposiMossosInici from './pantalles/oposimossos/oposi_mossos_inici';
 import ProvaTeoricaInici from './pantalles/oposimossos/prova_teorica/prova_teorica_inici';
@@ -403,28 +404,41 @@ export default function App() {
             </div>
           )}
 
-          <div className="contents">
-            {pantalla === 'benvinguda_alpha' && (
-            <PantallaBenvinguda 
-              onEntrarComAdmin={() => setPantalla('inici')} 
-              onEntrarComUsuari={(perfil) => {
-                console.log("Alumne entrat:", perfil);
+          {user !== null && !user.emailVerified ? (
+            <PantallaVerificacioCorreu 
+              onVerificatCorrectament={() => {
+                // Forcem l'actualització del state de l'usuari amb la instància actualitzada de Firebase
+                setUser(auth.currentUser ? { ...auth.currentUser } : null);
                 setPantalla('inici');
               }}
-            />
-          )}
-          
-          {pantalla === 'inici' && (
-            <Pantalla_Inici 
-              onEntrar={handleEntrar} 
-              onAdminClick={() => window.location.href = "/admin"} 
-              usuariActiu={user}
-              onLogout={async () => {
-                await tancarSessio();
+              onTancarSessio={() => {
+                setUser(null);
                 setPantalla('benvinguda_alpha');
               }}
             />
-          )}
+          ) : (
+            <div className="contents">
+              {pantalla === 'benvinguda_alpha' && (
+              <PantallaBenvinguda 
+                onEntrarComAdmin={() => setPantalla('inici')} 
+                onEntrarComUsuari={(perfil) => {
+                  console.log("Alumne entrat:", perfil);
+                  setPantalla('inici');
+                }}
+              />
+            )}
+            
+            {pantalla === 'inici' && (
+              <Pantalla_Inici 
+                onEntrar={handleEntrar} 
+                onAdminClick={() => window.location.href = "/admin"} 
+                usuariActiu={user}
+                onLogout={async () => {
+                  await tancarSessio();
+                  setPantalla('benvinguda_alpha');
+                }}
+              />
+            )}
           
           {pantalla === 'mossos' && (
             <OposiMossosInici 
@@ -685,7 +699,9 @@ export default function App() {
               progresDetallat={progres.detall}
             />
           )}
-        </div></div>
+            </div>
+          )}
+        </div>
       } />
     </Routes>
   );
