@@ -1,8 +1,8 @@
 {
   "entities": {
     "Usuari": {
-      "title": "Perfil d'Usuari",
-      "description": "Dades de perfil de l'usuari registrat a l'aplicació per al control d'accés i personalització.",
+      "title": "Perfil d'Usuari de l'Opositor",
+      "description": "Dades públiques i de seguiment d'estudis de l'opositor registrat a OposiCAT.",
       "type": "object",
       "properties": {
         "uid": {
@@ -11,35 +11,113 @@
         },
         "email": {
           "type": "string",
-          "description": "Adreça de correu electrònic de l'usuari utilitzada per iniciar sessió"
+          "description": "Adreça de correu electrònic principal"
         },
-        "nom": {
+        "displayName": {
           "type": "string",
-          "description": "Nom complet de l'usuari"
+          "description": "Nom complet de l'opositor per a ús de visualització"
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Enllaç de perfil opcional"
         },
         "rol": {
           "type": "string",
-          "enum": ["usuari", "admin"],
-          "description": "Rol de l'usuari dins de l'aplicació"
+          "enum": ["opositor", "admin"],
+          "description": "Rang de privilegis o rol de l'estudiant"
         },
-        "createdAt": {
+        "haPagat": {
+          "type": "boolean",
+          "description": "Comprovació veloç de l'estat activat del pagament pel curs"
+        },
+        "estatSubscripcio": {
+          "type": "string",
+          "enum": ["activa", "caducada", "pendent_de_pagament"],
+          "description": "Estat cronològic detallat de l'accés de subscripció"
+        },
+        "creatEl": {
           "type": "string",
           "format": "date-time",
-          "description": "Data de creació del perfil de l'usuari"
+          "description": "Data inicial en què l'opositor s'ha inscrit al portal"
         },
-        "updatedAt": {
+        "ultimAccesEl": {
           "type": "string",
           "format": "date-time",
-          "description": "Data de la darrera actualització del perfil"
+          "description": "Últim registre temporal del darrer accés asíncron"
+        },
+        "correuVerificat": {
+          "type": "boolean",
+          "description": "Indicador si ha rebutjat i completat la bústia de confirmació d'email"
+        },
+        "idSessioActiva": {
+          "type": "string",
+          "description": "ID de seguretat aleatòria per blindar l'accés de dispositiu únic"
         }
       },
-      "required": ["uid", "email", "rol"]
+      "required": ["uid", "email", "rol", "haPagat", "estatSubscripcio", "creatEl", "correuVerificat"]
+    },
+    "DadesSensiblesUsuari": {
+      "title": "Dades de Facturació i Privacitat RGPD",
+      "description": "Secció privada i protegida sota xifrat d'informació d'origen personal del contractant del curs.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Identificador únic per contrast de coherència amb la fitxa principal"
+        },
+        "nomCompletFacturacio": {
+          "type": "string",
+          "description": "Nom del receptor del cobrament fiscal"
+        },
+        "cognomsFacturacio": {
+          "type": "string",
+          "description": "Cognoms fiscals corporatius o personals"
+        },
+        "dniFacturacio": {
+          "type": "string",
+          "description": "DNI/NIE corresponent a l'emissor de la factura tributària"
+        },
+        "telefonContacte": {
+          "type": "string",
+          "description": "Mòbil per contacte en resolució d'incidències"
+        },
+        "adrecaPostal": {
+          "type": "string",
+          "description": "Domicili física d'enviament legal"
+        },
+        "codiPostal": {
+          "type": "string",
+          "description": "Codi d'identificació de correu regional"
+        },
+        "provincia": {
+          "type": "string",
+          "description": "Província o regió"
+        },
+        "facturaSol·licitada": {
+          "type": "boolean",
+          "description": "Enviament automatitzat posterior a l'adhesió"
+        },
+        "registreIpOriginal": {
+          "type": "string",
+          "description": "Auditoria de seguretat de ports i adreces de xarxa"
+        },
+        "actualitzatEl": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Històric del darrer canvi llançat per l'estudiant"
+        }
+      },
+      "required": ["uid", "facturaSol·licitada"]
     }
   },
   "firestore": {
-    "users/{userId}": {
+    "usuaris/{userId}": {
       "schema": "Usuari",
-      "description": "Secció de perfils d'usuari protegits per l'UID propi de Firebase Auth"
+      "description": "Col·lecció de seguiment de perfils d'opositors gestionats mitjançant l'UID propi de Firebase Auth"
+    },
+    "usuaris/{userId}/dades_privades/{docId}": {
+      "schema": "DadesSensiblesUsuari",
+      "description": "Subcol·lecció altament blindada contra accessos no autenticats per l'emissió confidencial de factures"
     }
   }
 }

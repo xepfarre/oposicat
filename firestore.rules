@@ -7,7 +7,7 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Helpers
+    // Funcions de suport del motor de regles de Firestore
     function isSignedIn() {
       return request.auth != null;
     }
@@ -16,6 +16,7 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Filtre d'identificador segur i lliure d'injecció
     function isValidId(id) {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
@@ -28,57 +29,76 @@ service cloud.firestore {
       return resource.data;
     }
 
-    // Role-based helper from a trusted document and trusted list of admins (runtime emails)
+    // Rol d'administració autoritzat directament per a accés Backoffice d'OposiCAT
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.email == "xepfarre@gmail.com" ||
         request.auth.token.email == "sergivinu@gmail.com" ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rol == "admin")
+        (exists(/databases/$(database)/documents/usuaris/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/usuaris/$(request.auth.uid)).data.rol == "admin")
       );
     }
 
-    // Validation helper for Usuari (Zero-Trust Anti-Update-Gap)
-    function isValidUsuari(data) {
-      return data.uid is string && data.uid.size() <= 128 && data.uid == request.auth.uid &&
-             data.email is string && data.email.size() <= 256 &&
-             data.rol is string && (data.rol == "usuari" || data.rol == "admin") &&
-             (!("nom" in data) || (data.nom is string && data.nom.size() <= 128));
-    }
-
-    // 1. Users Profile Collection
-    match /users/{userId} {
-      // Allow single read and update/delete
+    // 1. Col·lecció principal dels usuaris autenticats a OposiCAT (en català)
+    match /usuaris/{userId} {
+      
+      // Permetem lectura del perfil si és l'amo de les dades o administrador
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin(); // Users should not query the entire list of users
+      
+      // Prohibim a estudiants llistar tots els companys per privacitat
+      allow list: if isAdmin();
 
+      // CREACIÓ DE FITXA DES DE ZERO:
+      // S'assegura que un nouvingut es registri només com a "opositor" actiu i amb els camps obligatoris
       allow create: if isOwner(userId) &&
                        isValidId(userId) &&
-                       incoming().keys().hasAll(['uid', 'email', 'rol', 'createdAt', 'updatedAt']) &&
-                       (incoming().keys().size() == 5 || (incoming().keys().size() == 6 && "nom" in incoming())) &&
-                       isValidUsuari(incoming()) &&
-                       incoming().createdAt == request.time &&
-                       incoming().updatedAt == request.time &&
-                       incoming().rol == "usuari"; // Standard sign-up defaults to standard role
+                       incoming().uid == request.auth.uid &&
+                       incoming().email is string &&
+                       incoming().displayName is string &&
+                       incoming().rol == "opositor" &&
+                       (incoming().haPagat == true || incoming().haPagat == false) &&
+                       incoming().estatSubscripcio is string &&
+                       (incoming().correuVerificat == true || incoming().correuVerificat == false);
 
-      allow update: if isOwner(userId) &&
+      // ACTUALITZACIÓ DE FITXA EN TEMPS REAL:
+      // Comentari planer per a no-programadors:
+      // Es permet a l'alumne canviar o actualitzar el seu propi document de dades però protegim completament
+      // la immutabilitat dels camps sensibles: el rol d'estudiant, el correu i l'estat del pagament real.
+      allow update: if (isOwner(userId) &&
                        isValidId(userId) &&
-                       incoming().keys().hasAll(['uid', 'email', 'rol', 'createdAt', 'updatedAt']) &&
-                       (incoming().keys().size() == 5 || (incoming().keys().size() == 6 && "nom" in incoming())) &&
-                       isValidUsuari(incoming()) &&
-                       incoming().updatedAt == request.time &&
-                       // Immutable fields check
                        incoming().uid == existing().uid &&
                        incoming().email == existing().email &&
-                       incoming().createdAt == existing().createdAt &&
-                       (
-                         // Prevents standard users from escalating their own role
-                         incoming().rol == existing().rol ||
-                         // Admins are permitted to change roles
-                         isAdmin()
-                       );
+                       incoming().rol == existing().rol &&
+                       incoming().haPagat == existing().haPagat &&
+                       incoming().estatSubscripcio == existing().estatSubscripcio &&
+                       incoming().correuVerificat == existing().correuVerificat &&
+                       (!("idSessioActiva" in incoming()) || (incoming().idSessioActiva is string && incoming().idSessioActiva.size() <= 128)) &&
+                       (!("displayName" in incoming()) || (incoming().displayName is string && incoming().displayName.size() <= 128)) &&
+                       (!("photoURL" in incoming()) || (incoming().photoURL is string && incoming().photoURL.size() <= 512))
+                      ) || 
+                      isAdmin();
 
+      // Només d'esborrat des del Backoffice d'OposiCAT
       allow delete: if isAdmin();
+
+      // 1.1 Subcol·lecció de dades de facturació i de privacitat RGPD (dades_privades)
+      match /dades_privades/{docId} {
+        allow get: if isOwner(userId) || isAdmin();
+        allow list: if isAdmin();
+        
+        // Permetre crear-se el seu primer calaix de facturació securitzat
+        allow create: if isOwner(userId) &&
+                         isValidId(docId) &&
+                         incoming().uid == userId;
+
+        // Permetre modificar dades personals lliurement pel propietari
+        allow update: if (isOwner(userId) && 
+                         incoming().uid == userId && 
+                         incoming().uid == existing().uid) || 
+                         isAdmin();
+
+        allow delete: if isAdmin();
+      }
     }
   }
 }
