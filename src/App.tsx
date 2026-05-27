@@ -34,7 +34,7 @@ import AdminPanel from './pantalles/admin/AdminPanel';
 import AdminLogin from './pantalles/admin/AdminLogin';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { tancarSessio } from './lib/authService';
+import { tancarSessio, garantirFitxaPerfilFirestore } from './lib/authService';
 import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
@@ -91,25 +91,51 @@ export default function App() {
 
     const docRef = doc(db, 'usuaris', user.uid);
 
-    // 2. Intentem registrar la nostra clau de sessió única a Firestore
+    // 2. Intentem registrar la nostra clau de sessió única a la base de dades (Firestore)
+    // Comentari planer per a no-programadors:
+    // Aquesta funció s'encarrega de desar a la fitxa de l'estudiant quina és la seva sessió activa del mòbil/tauleta.
+    // Si la fitxa oficial de l'usuari encara no existís a Firestore durant el registre o refresc (per un retard asíncron),
+    // detectem l'error immediatament i li creem una fitxa de perfil nova, neta i segura de forma silenciosa amb "garantirFitxaPerfilFirestore()".
+    // Això evita que l'aplicació mostri errors de connexió o de document absent a la tauleta de l'alumne.
     const registrarSessio = async () => {
       try {
         await updateDoc(docRef, {
           idSessioActiva: laMevaSessio,
           ultimAccesEl: new Date()
         });
-      } catch (err) {
-        // En cas que l'usuari s'acabi de registrar i estigui creant-se el perfil, ho reintentem amb un retard
-        setTimeout(async () => {
+      } catch (err: any) {
+        const errorText = err?.message || String(err);
+        
+        // Comentari planer:
+        // Si el Firestore diu que no troba cap document a actualitzar (No document to update),
+        // vol dir que l'usuari existeix a Google/Email però falta inicialitzar la seva col·lecció de dades a OposiCAT.
+        // Cridem al servei per construir silenciósament la fitxa i després ho provem de nou.
+        if (errorText.includes("No document to update") || errorText.includes("not-found")) {
           try {
+            console.log("Creant fitxa de perfil absent o recuperant dades des de Firestore pel control de sessions de l'estudiant:", user.uid);
+            await garantirFitxaPerfilFirestore(user);
+            
+            // Un cop la fitxa està garantida a la base de dades, tornem a desar el dispositiu actual de manera neta
             await updateDoc(docRef, {
               idSessioActiva: laMevaSessio,
               ultimAccesEl: new Date()
             });
-          } catch (e) {
-            console.error("No s'ha pogut establir la clau de sessió única simultània:", e);
+          } catch (errorCreacio) {
+            console.error("No s'ha pogut auto-crear o actualizar la fitxa durant el controlador de sessió única:", errorCreacio);
           }
-        }, 1500);
+        } else {
+          // En qualsevol altre cas de retard o concurrència, ho reintentem amb un interval de seguretat
+          setTimeout(async () => {
+            try {
+              await updateDoc(docRef, {
+                idSessioActiva: laMevaSessio,
+                ultimAccesEl: new Date()
+              });
+            } catch (e) {
+              console.error("No s'ha pogut establir la clau de sessió única simultània al segon intent:", e);
+            }
+          }, 1500);
+        }
       }
     };
 
