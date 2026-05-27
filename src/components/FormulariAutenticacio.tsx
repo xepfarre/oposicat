@@ -55,15 +55,23 @@ export default function FormulariAutenticacio({
         return 'La contrasenya és massa feble. Ha de tenir un mínim de 6 caràcters.';
       case 'auth/popup-closed-by-user':
         return 'S’ha tancat la finestra de Google abans de completar l’accés.';
+      case 'auth/unauthorized-domain':
+        return 'Domini de producció no autoritzat a Firebase. Si us plau, demana a l’administrador d’OposiCAT que afegeixi aquest enllaç de Vercel/tauleta a la llista de "Authorized domains" dins de la Consola de Firebase -> Authentication -> Settings.';
       case 'permission-denied':
       case 'firestore/permission-denied':
         return 'Error d’accés o sessió desactualitzada. Si us plau, tanca la sessió o refresca l’aplicació i torna a entrar.';
       default:
         // Comentari planer per a no-programadors:
-        // Si el codi de l'error conté caràcters de refús de permisos de Firestore, no donem la culpa a Internet
-        if (codi && (codi.includes('permission') || codi.includes('denied') || codi.includes('unauthorized'))) {
+        // Només activem la protecció de regles de Firestore si l'error és de Firestore i no de l'autenticació (auth/)
+        if (codi && (codi.includes('permission-denied') || codi.includes('firestore/permission-denied'))) {
           return 'Error de validació de credencials segures. S’han actualitzat les regles de l’aplicació, si us plau, tanca sessió i torna a entrar en la tauleta.';
         }
+        
+        // Si l'error conté elements d'autenticació i domini de Vercel o externa
+        if (codi && codi.includes('auth/')) {
+          return `Inconvenient en la autenticació de Firebase (${codi}). Comprova que el domini estigui estricte i autoritzat a la Consola de Firebase.`;
+        }
+        
         return 'Hi ha hagut un inconvenient de connexió. Comprova la teva xarxa i torna-ho a provar.';
     }
   };
