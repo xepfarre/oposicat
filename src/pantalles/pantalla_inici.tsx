@@ -8,10 +8,14 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
  */
 export default function Pantalla_Inici({ 
   onEntrar, 
-  onAdminClick 
+  onAdminClick,
+  usuariActiu,
+  onLogout
 }: { 
   onEntrar: (nom: string) => void;
   onAdminClick: () => void;
+  usuariActiu?: any;
+  onLogout?: () => void;
 }) {
   const [index, setIndex] = useState(0);
 
@@ -56,12 +60,25 @@ export default function Pantalla_Inici({
     <div className={`flex h-screen w-full flex-col items-center justify-between pb-6 px-10 transition-colors duration-700 overflow-hidden ${cos.color}`}>
       
       {/* CAPÇALERA: Amb contenidor protector suau per garantir contrast permanent del logotip */}
-      <header className="pt-14 w-full flex justify-center">
-        <div className="bg-black/30 backdrop-blur-md px-10 py-4 rounded-3xl shadow-xl border border-white/10">
+      <header className="pt-14 w-full flex flex-col items-center gap-2">
+        <div className="bg-black/30 backdrop-blur-md px-10 py-4 rounded-3xl shadow-xl border border-white/10 flex flex-col items-center">
           <h1 className="text-4xl font-black italic tracking-tighter select-none">
             <span className="text-white">Oposi</span>
             <span className="text-[#FFDF00]">CAT</span>
           </h1>
+          {usuariActiu && (
+            <div className="mt-2 text-center flex flex-col items-center">
+              <span className="text-[11px] text-[#FFDF00] uppercase font-black italic tracking-wider">
+                Alumne: {usuariActiu.displayName || usuariActiu.email || "Estudiant"}
+              </span>
+              <button 
+                onClick={onLogout}
+                className="mt-1 text-[9px] text-red-400 hover:text-red-500 font-extrabold uppercase tracking-widest cursor-pointer transition-colors"
+              >
+                Tancar sessió
+              </button>
+            </div>
+          )}
         </div>
       </header>
 

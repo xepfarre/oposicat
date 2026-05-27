@@ -1,100 +1,45 @@
 {
   "entities": {
-    "Question": {
-      "title": "Pregunta d'Examen",
-      "description": "Una pregunta per al simulador de Mossos.",
+    "Usuari": {
+      "title": "Perfil d'Usuari",
+      "description": "Dades de perfil de l'usuari registrat a l'aplicació per al control d'accés i personalització.",
       "type": "object",
       "properties": {
-        "pregunta": { "type": "string" },
-        "opcions": {
-          "type": "array",
-          "items": { "type": "string" }
+        "uid": {
+          "type": "string",
+          "description": "Identificador únic de l'usuari provinent de Firebase Authentication"
         },
-        "correcta": { "type": "number" },
-        "explicacio": { "type": "string" },
-        "ambit": { "type": "string", "enum": ["A", "B", "C"] },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "email": {
+          "type": "string",
+          "description": "Adreça de correu electrònic de l'usuari utilitzada per iniciar sessió"
+        },
+        "nom": {
+          "type": "string",
+          "description": "Nom complet de l'usuari"
+        },
+        "rol": {
+          "type": "string",
+          "enum": ["usuari", "admin"],
+          "description": "Rol de l'usuari dins de l'aplicació"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Data de creació del perfil de l'usuari"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Data de la darrera actualització del perfil"
+        }
       },
-      "required": ["pregunta", "opcions", "correcta", "ambit"]
-    },
-    "Actualitat": {
-      "title": "Notícia d'Actualitat",
-      "description": "Una notícia per a la secció d'actualitat.",
-      "type": "object",
-      "properties": {
-        "titol": { "type": "string" },
-        "descripcio": { "type": "string" },
-        "data": { "type": "string" },
-        "categoria": { "type": "string" },
-        "url": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["titol", "descripcio", "data", "categoria"]
-    },
-    "Gimnas": {
-      "title": "Gimnàs Col·laborador",
-      "description": "Un gimnàs per a la preparació de les proves físiques.",
-      "type": "object",
-      "properties": {
-        "nom": { "type": "string" },
-        "direccio": { "type": "string" },
-        "poblacio": { "type": "string" },
-        "telefon": { "type": "string" },
-        "estat": { "type": "string", "enum": ["actiu", "inactiu"] },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["nom", "poblacio", "estat"]
-    },
-    "ReservaPsicologia": {
-      "title": "Reserva de Psicologia",
-      "description": "Una reserva per a sessions de preparació psicològica.",
-      "type": "object",
-      "properties": {
-        "usuariId": { "type": "string" },
-        "usuariNom": { "type": "string" },
-        "dataSessio": { "type": "string", "format": "date-time" },
-        "estat": { "type": "string", "enum": ["pendent", "confirmada", "cancel·lada"] },
-        "notes": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["usuariNom", "dataSessio", "estat"]
-    },
-    "Subscripcio": {
-      "title": "Subscripció d'Usuari",
-      "description": "Informació sobre la subscripció i pagaments d'un usuari.",
-      "type": "object",
-      "properties": {
-        "usuariId": { "type": "string" },
-        "usuariEmail": { "type": "string" },
-        "pla": { "type": "string", "enum": ["basic", "estandard", "premium"] },
-        "estat": { "type": "string", "enum": ["actiu", "pendent", "expirat"] },
-        "dataFinalitzacio": { "type": "string", "format": "date-time" },
-        "pendentDePagament": { "type": "boolean" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["usuariEmail", "pla", "estat"]
+      "required": ["uid", "email", "rol"]
     }
   },
   "firestore": {
-    "examens/mossos/preguntes": {
-      "schema": "Question",
-      "description": "Preguntes del simulador de mossos"
-    },
-    "actualitat": {
-      "schema": "Actualitat",
-      "description": "Notícies d'actualitat"
-    },
-    "gimnasos": {
-      "schema": "Gimnas",
-      "description": "Llistat de gimnasos col·laboradors"
-    },
-    "reserves_psicologia": {
-      "schema": "ReservaPsicologia",
-      "description": "Gestió de reserves de psicologia"
-    },
-    "subscripcions": {
-      "schema": "Subscripcio",
-      "description": "Gestió de subscripcions i pagaments"
+    "users/{userId}": {
+      "schema": "Usuari",
+      "description": "Secció de perfils d'usuari protegits per l'UID propi de Firebase Auth"
     }
   }
 }

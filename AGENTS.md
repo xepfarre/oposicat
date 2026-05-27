@@ -28,3 +28,15 @@ Aquest fitxer conté les regles i criteris que s'han de mantenir durant tot el d
 - Exemple: `1.1.1` es refereix a l'Àmbit A, Tema 1, Punt 1.
 - L'assistent ha de mapejar aquests números als índexs corresponents del codi (tinguent en compte que en programació sovint es comença pel zero).
 
+## 6. Acompanyament Didàctic i Consells de BBDD ("A futur")
+- Sempre que l'usuari demani implementar, modificar o dissenyar alguna part de la Base de Dades (BBDD), l'assistent afegirà en les explicacions del xat un bloc dedicat titulat amb el format: **"Et recomano, modificaria i/o recorda que pot passar... a futur"**.
+- Aquests consells s'han d'explicar de manera molt tranquil·la, plana i digestible, per evitar que la informació aclapari l'usuari, ajudant-lo a prendre decisions arquitectòniques sanes una a una a mesura que avança l'aplicació.
+
+## 7. Llista de Verificació per al Pas a Producció (Checklist de BBDD i Seguretat)
+Quan l'aplicació s'hagi de publicar oficialment (pas a producció), hem de repassar junts els següents punts per garantir que el sistema sigui segur, robust i no falli:
+1. **Regles de Seguretat de Firestore (`firestore.rules`):** Canviar l'accés d'escriptura/lectura oberta per regles estrictes de validació (per exemple, que un usuari només pugui llegir/escriure el seu propi perfil i un admin pugui gestionar-ho tot).
+2. **Còpies de Seguretat (Backups):** Configurar còpies de seguretat automàtiques (diàries o setmanals) directament a la consola del proveïdor cloud (com Firebase/Google Cloud) per tenir la possibilitat de restaurar l'estat en cas d'un desastre accidental.
+3. **Logs i Logging Asíncron:** El registre de logs de comportament no ha de ser indispensable per al funcionament central. Si el log del mòbil d'un usuari falla per manca de cobertura, l'usuari ha de poder seguir estudiant tranquil·lament.
+4. **Validació del Registre ("Sign Up" i "Log In"):** Configurar correctament els proveïdors d'autenticació (per correu, Google, etc.) i assegurar-se que els dominis autoritzats estiguin limitats només al web de producció d'OposiCAT.
+5. **Control de Rols:** Validar de manera segura al Backend (servidor o regles de base de dades) si un usuari té rol de "Administrador" abans de permetre-li accedir a panells de configuració o cridar mètodes d'esborrat de dades.
+

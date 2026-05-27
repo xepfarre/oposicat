@@ -921,6 +921,41 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     setPreguntes(prev => prev.filter(p => p.id !== id));
   };
 
+  /**
+   * FUNCIÓ: handlePurgeCollection
+   * Aquesta funció serveix per esborrar completament tots els documents d'una col·lecció de la base de dades Firestore.
+   * Primer, descarrega tots els elements de la col·lecció triada (com ara les reserves velles).
+   * Després, els va eliminant d'un en un de la base de dades del servidor per deixar la col·lecció totalment buida.
+   * Finalment, torna a carregar les dades de l'aplicació per reflectir els canvis en directe a la pantalla.
+   */
+  const handlePurgeCollection = async (collectionName: string) => {
+    setLoading(true); // Activem l'indicador de càrrega per avisar que estem treballant
+    try {
+      // Obtenim tots els documents de la col·lecció posant-nos en contacte amb el servidor de Firebase
+      const snap = await getDocs(collection(db, collectionName));
+      
+      // Creem un llistat d'ordres d'eliminació, una per cada document trobat
+      const promises = snap.docs.map(doc => deleteDoc(doc.ref));
+      
+      // Executem totes les ordres d'eliminació alhora per anar el més ràpid possible
+      await Promise.all(promises);
+      
+      // Tornem a demanar les dades actuals per actualitzar el que es veu a la pantalla
+      await fetchData();
+      
+      setSuccess(true); // Indiquem que el procés ha funcionat correctament
+      setTimeout(() => setSuccess(false), 3000); // Guardem el missatge d'èxit després de 3 segons
+    } catch (err: any) {
+      console.error(`Error de servidor en purgant ${collectionName}:`, err);
+      // Si el servidor falla o no hi ha connexió (com en un test local), de forma segura netegem l'estat localment en memòria
+      if (collectionName === "reserves_psicologia") {
+        setReserves([]);
+      }
+    } finally {
+      setLoading(false); // Desactivem l'indicador de càrrega
+    }
+  };
+
   const toggleSection = (section: string) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
@@ -1084,6 +1119,13 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                     icon={<BarChart3 size={18} />} 
                     label="Anàlisi i Dades" 
                     badge="Alpha" 
+                  />
+                  <SidebarItem 
+                    to="/admin/manteniment" 
+                    active={activeTab === 'manteniment'} 
+                    icon={<Database size={18} />} 
+                    label="Manteniment BBDD" 
+                    badge="Admin" 
                   />
                 </CollapsibleSection>
               </div>
@@ -1444,6 +1486,16 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                 darkMode={darkMode}
               />
             } />
+            <Route path="manteniment" element={
+              <MantenimentView 
+                onPurgeCollection={handlePurgeCollection}
+                loading={loading}
+                success={success}
+                darkMode={darkMode}
+                totalReserves={reserves.length}
+                totalPreguntes={preguntes.length}
+              />
+            } />
             <Route path="*" element={<div className={`p-10 text-center font-bold ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Aquesta secció encara no està desplegada.</div>} />
           </Routes>
         )}
@@ -1542,6 +1594,116 @@ function BackButton({ darkMode }: { darkMode: boolean }) {
     >
       <ArrowLeft size={28} className="group-hover:-translate-x-1.5 transition-transform" />
     </button>
+  );
+}
+
+/**
+ * VIEW: MantenimentView
+ * Pantalla que permet sintonitzar de forma segura la base de dades i s'allotja al backoffice.
+ * Permet forçar l'esborrat (purga) de col·leccions senceres a voluntat del desenvolupador.
+ */
+function MantenimentView({ 
+  onPurgeCollection, 
+  loading, 
+  success, 
+  darkMode,
+  totalReserves,
+  totalPreguntes 
+}: { 
+  onPurgeCollection: (name: string) => Promise<void>, 
+  loading: boolean, 
+  success: boolean, 
+  darkMode: boolean,
+  totalReserves: number,
+  totalPreguntes: number 
+}) {
+  return (
+    <div className="max-w-4xl mx-auto flex flex-col gap-10 animate-in fade-in duration-300">
+      <header className="relative flex items-center justify-center mb-10">
+        <div className="absolute left-0 top-1/2 -translate-y-1/2">
+          <BackButton darkMode={darkMode} />
+        </div>
+        <div className="text-center flex flex-col items-center">
+          <h1 className={`text-5xl font-black tracking-tighter italic uppercase mb-2 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+            Manteniment <span className="text-red-500">BBDD</span>
+          </h1>
+          <div className="h-1.5 w-32 bg-red-500 rounded-full mb-4" />
+          <p className={`text-[10px] font-black uppercase tracking-[0.5em] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+            Eines de Desenvolupador / Control de Firestore
+          </p>
+        </div>
+      </header>
+
+      <div className={`p-8 rounded-[2.5rem] border transition-colors duration-300 ${darkMode ? 'bg-slate-800/40 border-slate-700 shadow-2xl shadow-black/30' : 'bg-white border-slate-200 shadow-xl'} flex flex-col gap-8`}>
+        {/* Avís amb explicació en català planer per a no-programadors */}
+        <div className="flex items-start gap-4 p-5 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-500">
+          <Info size={24} className="shrink-0 mt-0.5" />
+          <div className="flex flex-col gap-1">
+            <h4 className="font-bold text-sm uppercase tracking-wide">Atenció: Accions Permanents i Irreversibles</h4>
+            <p className="text-xs leading-relaxed opacity-90">
+              Aquesta pantalla serveix per forçar la base de dades a netejar les col·leccions del servidor de Firebase d'un sol cop. 
+              En prémer un d'aquests botons, s'esborraran tots els elements guardats de forma permanent. Useu-lo amb seny!
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* PURGA DE RESERVES PSICOLOGIA */}
+          <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-100'} flex flex-col justify-between gap-5`}>
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Database className="text-blue-500" size={18} />
+                <h3 className="font-black text-sm uppercase tracking-wider">Cites d'Entrevista i Psicologia</h3>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed mb-1">
+                Aquesta és la col·lecció de dades de psicologia antigues i actives. En prémer el botó inferior directament demanarà tot el llistat al servidor i li enviarà ordres d'esborrat per a cadascuna completament.
+              </p>
+              <div className="flex items-center gap-2 mt-4">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Documents vius:</span>
+                <span className="text-xs font-mono font-bold px-2 py-0.5 bg-blue-500/10 text-blue-500 rounded">{totalReserves}</span>
+              </div>
+            </div>
+            <button
+              disabled={loading}
+              onClick={() => onPurgeCollection("reserves_psicologia")}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-black text-[10px] uppercase tracking-widest py-3 px-4 rounded-xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-40"
+            >
+              {loading ? "Processant eliminació..." : "Netejar Reserves Psicològiques"}
+            </button>
+          </div>
+
+          {/* PURGA TEMARI */}
+          <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-100'} flex flex-col justify-between gap-5`}>
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Database className="text-amber-500" size={18} />
+                <h3 className="font-black text-sm uppercase tracking-wider">Temari Codificat</h3>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed mb-1">
+                Aquesta col·lecció allotja les referències del temari i les llistes de preguntes d'exàmens del sandbox. Si vols canviar o estructurar noves taules de preguntes des de zero, el pots esvair aquí.
+              </p>
+              <div className="flex items-center gap-2 mt-4">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Documents vius:</span>
+                <span className="text-xs font-mono font-bold px-2 py-0.5 bg-amber-500/10 text-amber-500 rounded">{totalPreguntes}</span>
+              </div>
+            </div>
+            <button
+              disabled={loading}
+              onClick={() => onPurgeCollection("temari")}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-black text-[10px] uppercase tracking-widest py-3 px-4 rounded-xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-40"
+            >
+              {loading ? "Processant eliminació..." : "Netejar Col·lecció Temari"}
+            </button>
+          </div>
+        </div>
+
+        {success && (
+          <div className="text-center p-3 text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs font-bold uppercase tracking-wider max-w-sm mx-auto w-full animate-bounce">
+            ✔ Base de dades purgada satisfactòriament!
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

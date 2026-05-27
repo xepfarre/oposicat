@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PantallaBenvinguda from './pantalles/PantallaBenvinguda';
 import Pantalla_Inici from './pantalles/pantalla_inici';
 import OposiMossosInici from './pantalles/oposimossos/oposi_mossos_inici';
 import ProvaTeoricaInici from './pantalles/oposimossos/prova_teorica/prova_teorica_inici';
@@ -31,10 +32,12 @@ import ExamenPsicotecnicInici from './pantalles/oposimossos/prova_teorica/examen
 import ActualitatInici from './pantalles/oposimossos/prova_teorica/actualitat_inici';
 import AdminPanel from './pantalles/admin/AdminPanel';
 import AdminLogin from './pantalles/admin/AdminLogin';
-import { auth } from './lib/firebase';
+import { auth, db } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { tancarSessio } from './lib/authService';
 import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 
 import { TEMARI_DETALL } from './constants/temari';
 import { CONTINGUT_TEMARI_TEXTS } from './constants/contingut_textos';
@@ -47,15 +50,16 @@ import LaMevaOposicio from './pantalles/oposimossos/la_meva_oposicio';
  */
 export default function App() {
   // Estat per saber quina pantalla estem mostrant
-  type Pantalla = 'inici' | 'mossos' | 'prova_teorica' | 'prova_practica' | 'prova_psicologica' | 'examen_teoric' | 'em_costa_estudiar' | 'la_meva_oposicio' | 
+  type Pantalla = 'benvinguda_alpha' | 'inici' | 'mossos' | 'prova_teorica' | 'prova_practica' | 'prova_psicologica' | 'examen_teoric' | 'em_costa_estudiar' | 'la_meva_oposicio' | 
     'temari_oficial' | 'temari_ambit_a' | 'temari_ambit_b' | 'temari_ambit_c' | 'detall_tema' | 'lector_contingut' |
     'temari_oposimossos' | 'temari_oposimossos_ambit_a' | 'temari_oposimossos_ambit_b' | 'temari_oposimossos_ambit_c' | 'detall_tema_oposimossos' | 'lector_contingut_oposimossos' |
     'classes_premium' | 'clase_luna' | 'classes_directe' | 'examens_oficials_passats' | 'examen_psicotecnic' | 'actualitat' | 'examens_oposimossos' | 'examens_oposimossos_simulador';
-  const [pantalla, setPantalla] = useState<Pantalla>('inici');
+  const [pantalla, setPantalla] = useState<Pantalla>('benvinguda_alpha');
   
   // Estats per al Backoffice
   const [mode, setMode] = useState<'app' | 'admin'>('app');
   const [user, setUser] = useState<any>(null);
+  const [errorSessioDuplicada, setErrorSessioDuplicada] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -63,6 +67,77 @@ export default function App() {
     });
     return () => unsub();
   }, []);
+
+  // --------------------------------------------------------------------------
+  // CONTROLADOR DE SESSIÓ ÚNICA SIMULTÀNIA (EVITA COMPTES COMPARTITS - RGPD)
+  // Explicació per a no-programadors:
+  // Cada vegada que l'alumne entra, li assignem una clau de sessió única en el navegador (sessionStorage).
+  // Després guardem aquesta clau a Firebase. Si l'alumne obre un l'aplicació des d'un altre mòbil amb el seu compte,
+  // el servidor rebrà una clau nova. L'aplicació del mòbil antic detectarà aquest canvi en temps
+  // real directament i tancarà la seva sessió dient-li que "Has entrat en un altre dispositiu".
+  // --------------------------------------------------------------------------
+  useEffect(() => {
+    if (!user) {
+      setErrorSessioDuplicada(false);
+      return;
+    }
+
+    // 1. Definim o recuperem la clau aleatòria d'aquest dispositiu
+    let laMevaSessio = sessionStorage.getItem('idSessioActiva');
+    if (!laMevaSessio) {
+      laMevaSessio = 'sessio_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now().toString(36);
+      sessionStorage.setItem('idSessioActiva', laMevaSessio);
+    }
+
+    const docRef = doc(db, 'usuaris', user.uid);
+
+    // 2. Intentem registrar la nostra clau de sessió única a Firestore
+    const registrarSessio = async () => {
+      try {
+        await updateDoc(docRef, {
+          idSessioActiva: laMevaSessio,
+          ultimAccesEl: new Date()
+        });
+      } catch (err) {
+        // En cas que l'usuari s'acabi de registrar i estigui creant-se el perfil, ho reintentem amb un retard
+        setTimeout(async () => {
+          try {
+            await updateDoc(docRef, {
+              idSessioActiva: laMevaSessio,
+              ultimAccesEl: new Date()
+            });
+          } catch (e) {
+            console.error("No s'ha pogut establir la clau de sessió única simultània:", e);
+          }
+        }, 1500);
+      }
+    };
+
+    registrarSessio();
+
+    // 3. Listener en temps real sobre Firestore per detectar si un altre dispositiu entra
+    const unsubSessio = onSnapshot(docRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const dades = snapshot.data();
+        const sessioABBDD = dades.idSessioActiva;
+
+        // Comprovació crucial: si a la BBDD hi ha una clau de sessió i no és la nostra, algú més ha entrat!
+        if (sessioABBDD && sessioABBDD !== laMevaSessio) {
+          console.warn("Doble sessió detectada! Desconnectant aquest dispositiu per evitar l'ús fraudulent de comptes.");
+          setErrorSessioDuplicada(true);
+          tancarSessio().then(() => {
+            setPantalla('benvinguda_alpha');
+          });
+        }
+      }
+    }, (error) => {
+      console.error("Error en escoltar canvis de sessió única (permisos de Firebase o desconnexió):", error);
+    });
+
+    return () => {
+      unsubSessio();
+    };
+  }, [user]);
   
   // Estat per a la configuració del simulador
   const [simuladorConfig, setSimuladorConfig] = useState<{ 
@@ -267,9 +342,62 @@ export default function App() {
 
       {/* RUTA DE L'APP: Experiència d'usuari (actual) */}
       <Route path="*" element={
-        <div className="contents">
+        <div className="relative min-h-screen">
+          {/* MODAL DE SESSIÓ DUPLICADA (Control anti-compartir compte) */}
+          {errorSessioDuplicada && (
+            <div id="modal-sessio-duplicada" className="fixed inset-0 z-[9999] bg-[#00274d]/95 backdrop-blur-xl flex items-center justify-center p-6">
+              <div className="bg-slate-900 border border-red-500/20 rounded-3xl p-8 max-w-sm text-center shadow-2xl flex flex-col items-center gap-5">
+                <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center text-red-500">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-white text-lg font-black italic uppercase tracking-wider">
+                    Sessió Tancada
+                  </h3>
+                  <p className="text-white/70 text-xs font-semibold leading-relaxed">
+                    S'ha detectat que has iniciat sessió des d'un altre dispositiu (mòbil, tauleta o ordinador d'un amic).
+                  </p>
+                  <p className="text-[#FFDF00] text-[9px] uppercase font-black tracking-widest leading-loose">
+                    Control d’accés privat actiu
+                  </p>
+                </div>
+                <button
+                  id="btn-tancar-modal-sessio"
+                  onClick={() => {
+                    setErrorSessioDuplicada(false);
+                    setPantalla('benvinguda_alpha');
+                  }}
+                  className="w-full bg-red-600 hover:bg-red-700 active:scale-95 text-white text-xs font-black italic uppercase tracking-wider py-4 rounded-xl transition-all cursor-pointer"
+                >
+                  D'acord, tornar a l'inici
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="contents">
+            {pantalla === 'benvinguda_alpha' && (
+            <PantallaBenvinguda 
+              onEntrarComAdmin={() => setPantalla('inici')} 
+              onEntrarComUsuari={(perfil) => {
+                console.log("Alumne entrat:", perfil);
+                setPantalla('inici');
+              }}
+            />
+          )}
+          
           {pantalla === 'inici' && (
-            <Pantalla_Inici onEntrar={handleEntrar} onAdminClick={() => window.location.href = "/admin"} />
+            <Pantalla_Inici 
+              onEntrar={handleEntrar} 
+              onAdminClick={() => window.location.href = "/admin"} 
+              usuariActiu={user}
+              onLogout={async () => {
+                await tancarSessio();
+                setPantalla('benvinguda_alpha');
+              }}
+            />
           )}
           
           {pantalla === 'mossos' && (
@@ -531,7 +659,7 @@ export default function App() {
               progresDetallat={progres.detall}
             />
           )}
-        </div>
+        </div></div>
       } />
     </Routes>
   );
