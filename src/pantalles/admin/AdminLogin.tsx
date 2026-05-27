@@ -1,14 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { auth } from "../../lib/firebase";
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { ShieldAlert, Mail, Lock, LogIn, Chrome } from "lucide-react";
 import { motion } from "motion/react";
 
-export default function AdminLogin({ onLoginSuccess }: { onLoginSuccess: () => void }) {
+export default function AdminLogin({ onLoginSuccess, initialError }: { onLoginSuccess: () => void; initialError?: string }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError || "");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (initialError) {
+      setError(initialError);
+    }
+  }, [initialError]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();

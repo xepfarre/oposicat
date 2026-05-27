@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { auth, db } from "../../lib/firebase";
 import { 
   collection, 
   addDoc, 
   getDocs, 
+  getDoc,
   serverTimestamp, 
   query, 
   orderBy,
@@ -13,6 +14,7 @@ import {
   setDoc,
   collectionGroup
 } from "firebase/firestore";
+import AdminLogin from "./AdminLogin";
 import { DATA_CATALUNYA } from "../../data/municipis";
 import { 
   Plus, 
@@ -68,11 +70,63 @@ import {
   Building2,
   Phone,
   Mail,
-  Lock as LockIcon
+  Lock as LockIcon,
+  Shield
 } from "lucide-react";
 import { TEMARI_DETALL } from "../../constants/temari";
 import { motion, AnimatePresence } from "motion/react";
 import { Routes, Route, Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+
+// Comentari planer per a no-programadors:
+// Definim els tipus d'operacions possibles a la base de dades
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+// Representació estàndard de dades d'error de Firestore exigida pel skill de Firebase
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+// Gestor d'errors segur com indica el protocol de "firebase-integration"
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error capturat de forma segura: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 /**
  * PANTALLA: AdminPanel (Web de Gestió)
@@ -81,6 +135,9 @@ import { Routes, Route, Link, useLocation, useNavigate, useSearchParams } from "
 export default function AdminPanel({ onExit }: { onExit: () => void }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [isAdminVerified, setIsAdminVerified] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -166,6 +223,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
   const [preguntesEntrevista, setPreguntesEntrevista] = useState<any[]>([]);
   
   const [psicolegs, setPsicolegs] = useState<any[]>([]);
+  const [usuaris, setUsuaris] = useState<any[]>([]);
   
   // Determinació de la secció activa segons URL
   const activeTab = location.pathname.split('/').pop() || 'dashboard';
@@ -242,14 +300,44 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
   });
 
   useEffect(() => {
-    // Verificació de seguretat (TEMPORALMENT DESACTIVADA segons petició)
-    /*
-    const adminEmails = ["xepfarre@gmail.com", "sergivinu@gmail.com"];
-    if (auth.currentUser && !adminEmails.includes(auth.currentUser.email || "")) {
-      navigate("/");
-    }
-    */
-    fetchData();
+    // Comentari planer per a no-programadors:
+    // Aquest vigilant de seguretat es posa en marxa un cop l'administrador obre la pàgina.
+    // Analitza la sessió en temps real per garantir que només els usuaris amb privilegis de
+    // gestor o administradors autoritzats puguin visualitzar el contingut privat del Backoffice.
+    const unsub = auth.onAuthStateChanged(async (currentUser) => {
+      setCheckingAuth(true);
+      if (currentUser) {
+        // Llista blindada d'emails administradors oficials de l'ecosistema OposiCAT
+        const adminEmails = ["xepfarre@gmail.com", "sergivinu@gmail.com"];
+        const pertanyALlista = adminEmails.includes(currentUser.email || "");
+        
+        let teRolAdmin = false;
+        try {
+          // Consultem de forma segura la fitxa d'usuari a Firestore per verificar el camp "rol"
+          const userDoc = await getDoc(doc(db, "usuaris", currentUser.uid));
+          if (userDoc.exists() && userDoc.data().rol === "admin") {
+            teRolAdmin = true;
+          }
+        } catch (e) {
+          console.error("Error durant la consulta del rol d'administrador a la base de dades:", e);
+        }
+
+        if (pertanyALlista || teRolAdmin) {
+          setIsAdminVerified(true);
+          setAuthError(null);
+          fetchData();
+        } else {
+          setIsAdminVerified(false);
+          setAuthError("Accés denegat: Aquest perfil no disposa de permisos d'Administrador d'OposiCAT.");
+          await auth.signOut();
+        }
+      } else {
+        setIsAdminVerified(false);
+      }
+      setCheckingAuth(false);
+    });
+
+    return () => unsub();
   }, [activeTab, navigate]);
 
   const fetchData = async () => {
@@ -259,31 +347,45 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     // Timer de seguretat més llarg (30s) per donar temps a la primera connexió
     const timeout = setTimeout(() => {
       if (loading) {
-        setFetchError("La base de dades no respon. Possible falta d'índexs o mala connexió.");
+        setFetchError("La base de dades no respon de forma immediata. Possible falta d'índexs composts.");
         setLoading(false);
       }
     }, 30000);
 
+    // Comentari planer per a no-programadors:
+    // Aquesta funció fa de "escut protector". Si alguna de les col·leccions de la base de dades
+    // té un error o no està indexada, impedeix que tota l'aplicació falli.
+    const safeFetch = async (queryCall: any, label: string) => {
+      try {
+        return await getDocs(queryCall);
+      } catch (e: any) {
+        console.warn(`[RESILLIÈNCIA OPOSICAT] Avís de càrrega per a (${label}):`, e.message);
+        return { docs: [] } as any;
+      }
+    };
+
     try {
-      // Executem totes les consultes EN PARAL·LEL per anar molt més ràpid
+      // Executem totes les consultes EN PARAL·LEL i de forma aïllada i resistent a errades
       const [
         snapNew, snapOld, snapAct, snapGim, snapRes, snapSub, snapPsiTip, snapPsiPreg, snapExFis, snapPlaFis,
-        snapBioPer, snapBioLab, snapBioPGME, snapEnt
+        snapBioPer, snapBioLab, snapBioPGME, snapEnt, snapUsuaris, snapActPreg
       ] = await Promise.all([
-        getDocs(query(collectionGroup(db, "preguntes_codificades"))),
-        getDocs(query(collection(db, "examens/mossos/preguntes"))),
-        getDocs(query(collection(db, "actualitat"))),
-        getDocs(query(collection(db, "gimnasos"))),
-        getDocs(query(collection(db, "reserves_psicologia"))),
-        getDocs(query(collection(db, "subscripcions"))),
-        getDocs(query(collection(db, "psicotecnics_tipus"), orderBy("titol"))),
-        getDocs(query(collection(db, "psicotecnics_preguntes"), orderBy("createdAt", "desc"))),
-        getDocs(query(collection(db, "exercicis_fisics"), orderBy("nom"))),
-        getDocs(query(collection(db, "plans_entrenament"), orderBy("setmana"))),
-        getDocs(query(collection(db, "preguntes_biodata_personals"))),
-        getDocs(query(collection(db, "preguntes_biodata_laborals"))),
-        getDocs(query(collection(db, "preguntes_biodata_pgme"))),
-        getDocs(query(collection(db, "preguntes_entrevista"), orderBy("createdAt", "desc")))
+        safeFetch(query(collectionGroup(db, "preguntes_codificades")), "preguntes_codificades"),
+        safeFetch(query(collection(db, "examens/mossos/preguntes")), "examens/mossos/preguntes"),
+        safeFetch(query(collection(db, "actualitat")), "actualitat"),
+        safeFetch(query(collection(db, "gimnasos")), "gimnasos"),
+        safeFetch(query(collection(db, "reserves_psicologia")), "reserves_psicologia"),
+        safeFetch(query(collection(db, "subscripcions")), "subscripcions"),
+        safeFetch(query(collection(db, "psicotecnics_tipus"), orderBy("titol")), "psicotecnics_tipus"),
+        safeFetch(query(collection(db, "psicotecnics_preguntes"), orderBy("createdAt", "desc")), "psicotecnics_preguntes"),
+        safeFetch(query(collection(db, "exercicis_fisics"), orderBy("nom")), "exercicis_fisics"),
+        safeFetch(query(collection(db, "plans_entrenament"), orderBy("setmana")), "plans_entrenament"),
+        safeFetch(query(collection(db, "preguntes_biodata_personals")), "preguntes_biodata_personals"),
+        safeFetch(query(collection(db, "preguntes_biodata_laborals")), "preguntes_biodata_laborals"),
+        safeFetch(query(collection(db, "preguntes_biodata_pgme")), "preguntes_biodata_pgme"),
+        safeFetch(query(collection(db, "preguntes_entrevista"), orderBy("createdAt", "desc")), "preguntes_entrevista"),
+        safeFetch(query(collection(db, "usuaris")), "usuaris"),
+        safeFetch(query(collection(db, "actualitat_preguntes"), orderBy("createdAt", "desc")), "actualitat_preguntes")
       ]);
       
       // Processar preguntes noves
@@ -317,7 +419,6 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
       setActualitats(listAct);
 
       // Processar preguntes d'actualitat
-      const snapActPreg = await getDocs(query(collection(db, "actualitat_preguntes"), orderBy("createdAt", "desc")));
       setActualitatPreguntes(snapActPreg.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
       // Processar psicotecnics
@@ -347,6 +448,9 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
       // Processar preguntes entrevista
       setPreguntesEntrevista(snapEnt.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
+      // Processar usuaris asíncronament des de la base de dades Firestore
+      setUsuaris(snapUsuaris.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
       // Psicòlegs per defecte (si no n'hi ha a la BBDD)
       setPsicolegs([
         { id: "p1", nom: "Aleix Romeo Pociello" },
@@ -356,8 +460,8 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
       setFetchError(null);
 
     } catch (err: any) {
-      console.error("Error detallat de càrrega:", err);
-      setFetchError(err.message || "Error al connectar amb Firestore.");
+      console.error("Error durant un dels sub-processats del panell:", err);
+      setFetchError(err.message || "Error parcial en connectar amb Firestore.");
     } finally {
       clearTimeout(timeout);
       setLoading(false);
@@ -960,6 +1064,31 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
+  if (checkingAuth) {
+    return (
+      <div className="fixed inset-0 bg-[#001a33] flex flex-col items-center justify-center p-6 z-[200] text-white">
+        <div className="flex flex-col items-center text-center gap-4">
+          <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm font-black uppercase tracking-widest text-[#FFDF00]">Verificant permisos d'accés...</p>
+          <p className="text-white/60 text-xs font-semibold leading-relaxed max-w-xs">
+            Comprovant de forma segura la teva credencial d'administrador a OposiCAT.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdminVerified) {
+    return (
+      <AdminLogin 
+        onLoginSuccess={() => {
+          // L'onAuthStateChanged escoltarà el canvi, comprovarà el rol i autoritzarà l'accés
+        }} 
+        initialError={authError || undefined}
+      />
+    );
+  }
+
   return (
     <div className={`fixed inset-0 flex overflow-hidden z-[100] transition-colors duration-300 ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'}`}>
       
@@ -1091,7 +1220,6 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                     active={activeTab === 'usuaris'} 
                     icon={<Users size={18} />} 
                     label="Llista d'Usuaris" 
-                    badge="Pròximament"
                   />
                 </CollapsibleSection>
               </div>
@@ -1481,6 +1609,40 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                   try {
                     await updateDoc(doc(db, "subscripcions", id), data);
                     fetchData();
+                  } finally { setLoading(false); }
+                }}
+                darkMode={darkMode}
+              />
+            } />
+            <Route path="usuaris" element={
+              <UsuarisView 
+                usuaris={usuaris}
+                onUpdateUser={async (uid: string, data: any) => {
+                  setLoading(true);
+                  try {
+                    await updateDoc(doc(db, "usuaris", uid), data);
+                    fetchData();
+                  } catch (err) {
+                    handleFirestoreError(err, OperationType.UPDATE, `usuaris/${uid}`);
+                  } finally { setLoading(false); }
+                }}
+                onAddMockUser={async () => {
+                  setLoading(true);
+                  try {
+                    const mockUid = "mock_user_" + Math.random().toString(36).substring(2, 9);
+                    await setDoc(doc(db, "usuaris", mockUid), {
+                      uid: mockUid,
+                      displayName: "Opositor Prova Fictici (" + Math.floor(Math.random() * 100) + ")",
+                      email: "prova_" + Math.random().toString(36).substring(2, 6) + "@oposicat.cat",
+                      rol: "opositor",
+                      haPagat: false,
+                      estatSubscripcio: "pendent_de_pagament",
+                      correuVerificat: true,
+                      creatEl: new Date().toISOString()
+                    });
+                    fetchData();
+                  } catch (err) {
+                    handleFirestoreError(err, OperationType.CREATE, "usuaris");
                   } finally { setLoading(false); }
                 }}
                 darkMode={darkMode}
@@ -5213,3 +5375,419 @@ function SubscripcionsView({ subscripcions, onUpdateStatus, darkMode }: any) {
     </div>
   );
 }
+
+/**
+ * VIEW: Gestió d'Usuaris i Opositors
+ */
+function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
+  const [filterName, setFilterName] = useState("");
+  const [filterRol, setFilterRol] = useState("all");
+  const [filterEstatSubscripcio, setFilterEstatSubscripcio] = useState("all");
+  const [filterPagament, setFilterPagament] = useState("all");
+
+  // Comentari planer per a no-programadors:
+  // Aquest formatador descodifica de forma segura el format en què Firestore guarda les dates
+  // (ja sigui com a text normal, segons de Firebase o un objecte data, evitant que la web peti).
+  function renderFormatDate(dateVal: any, incloureHora: boolean = false) {
+    if (!dateVal) return "Sense registre de data";
+    
+    // Si ja és una cadena text formatejada des de la base de dades
+    if (typeof dateVal === 'string' && dateVal.includes(' de ')) {
+      return dateVal;
+    }
+
+    try {
+      let d: Date | null = null;
+      if (dateVal && typeof dateVal === 'object') {
+        if (typeof dateVal.toDate === 'function') {
+          d = dateVal.toDate();
+        } else if (dateVal instanceof Date) {
+          d = dateVal;
+        } else if (dateVal.seconds) {
+          d = new Date(dateVal.seconds * 1000);
+        } else if (dateVal._seconds) {
+          d = new Date(dateVal._seconds * 1000);
+        }
+      }
+      
+      if (!d) {
+        d = new Date(dateVal);
+      }
+      
+      if (!d || isNaN(d.getTime())) {
+        if (typeof dateVal === 'string') return dateVal;
+        return "Format data no vàlid";
+      }
+      
+      const opcions: Intl.DateTimeFormatOptions = { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric'
+      };
+
+      if (incloureHora) {
+        opcions.hour = '2-digit';
+        opcions.minute = '2-digit';
+      }
+      
+      return d.toLocaleDateString('ca-ES', opcions);
+    } catch (e) {
+      if (typeof dateVal === 'string') return dateVal;
+      return "S/D";
+    }
+  }
+
+  // Comentari planer per a no-programadors:
+  // Processem i purguem la llista en memòria per detectar quins usuaris tenen correus duplicats.
+  // Quan en detectem de duplicats (p. ex., mateix mail via Google i contrasenya clàssica), ens quedem
+  // amb la fitxa que té un rang d'administrador o que ha pagat / és activa, mantenint el darrer estat i conexió.
+  const usuarisNetejatsDeDuplicats = useMemo(() => {
+    const map = new Map<string, any>();
+    
+    if (!Array.isArray(usuaris)) return [];
+    
+    usuaris.forEach((u: any) => {
+      if (!u) return;
+      const emailNet = (u.email || "").toLowerCase().trim();
+      
+      // Si l'usuari no té correu registrat (extremadament rar), l'identifiquem pel seu ID de Firestore
+      if (!emailNet) {
+        const idAlt = u.uid || u.id || ("usuari_sense_mail_" + Math.random());
+        map.set(idAlt, u);
+        return;
+      }
+      
+      const existent = map.get(emailNet);
+      if (!existent) {
+        map.set(emailNet, u);
+      } else {
+        // Mirem si un d'ells és administrador de debò o té l'estat d'accés autoritzat (activa)
+        const existEsAdmin = existent.rol === 'admin';
+        const uEsAdmin = u.rol === 'admin';
+        const existEsActiva = existent.estatSubscripcio === 'activa';
+        const uEsActiva = u.estatSubscripcio === 'activa';
+
+        if ((uEsAdmin && !existEsAdmin) || (uEsActiva && !existEsActiva)) {
+          // Reemplacem amb el perfil superior/legal oficial actiu
+          map.set(emailNet, u);
+        } else {
+          // Comentari planer per a no-programadors:
+          // Aquesta petita funció extreu i calcula els mil·lisegons d'una data de manera robusta
+          const getSegons = (dateVal: any): number => {
+            if (!dateVal) return 0;
+            try {
+              if (typeof dateVal === 'object') {
+                if (typeof dateVal.toDate === 'function') return dateVal.toDate().getTime();
+                if (dateVal.seconds) return dateVal.seconds * 1000;
+                if (dateVal._seconds) return dateVal._seconds * 1000;
+              }
+              const parsed = new Date(dateVal).getTime();
+              return isNaN(parsed) ? 0 : parsed;
+            } catch (err) {
+              return 0;
+            }
+          };
+          
+          const existTime = getSegons(existent.creatEl || existent.creatElTimestamp);
+          const uTime = getSegons(u.creatEl || u.creatElTimestamp);
+          if (uTime > existTime) {
+            map.set(emailNet, u);
+          }
+        }
+      }
+    });
+    
+    return Array.from(map.values());
+  }, [usuaris]);
+
+  // Comentari planer per a no-programadors:
+  // Aquest filtre exhaustiu s'executa ara sobre la llista neta de duplicats d'abans,
+  // descartant al vol les cerques ràpides de l'usuari segons el rol, estat d'accés o cercador per text.
+  const usuarisFiltrats = useMemo(() => {
+    if (!Array.isArray(usuarisNetejatsDeDuplicats)) return [];
+    
+    return usuarisNetejatsDeDuplicats.filter((u: any) => {
+      if (!u) return false;
+      const nomSencer = String(u.displayName || "").toLowerCase();
+      const correu = String(u.email || "").toLowerCase();
+      const cerca = (filterName || "").toLowerCase();
+      
+      const coincideixNom = nomSencer.includes(cerca) || correu.includes(cerca);
+      const coincideixRol = filterRol === "all" || u.rol === filterRol;
+      const coincideixEstat = filterEstatSubscripcio === "all" || u.estatSubscripcio === filterEstatSubscripcio;
+      
+      let coincideixPagament = true;
+      if (filterPagament === "pagat") {
+        coincideixPagament = u.haPagat === true;
+      } else if (filterPagament === "no_pagat") {
+        coincideixPagament = u.haPagat !== true;
+      }
+
+      return coincideixNom && coincideixRol && coincideixEstat && coincideixPagament;
+    });
+  }, [usuarisNetejatsDeDuplicats, filterName, filterRol, filterEstatSubscripcio, filterPagament]);
+
+  return (
+    <div className="max-w-6xl mx-auto flex flex-col gap-10">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="flex items-center gap-10">
+          <BackButton darkMode={darkMode} />
+          <div>
+            <span className="text-yellow-500 font-bold uppercase tracking-[0.2em] text-[10px]">Gestió de control d'alumnat</span>
+            <h1 className={`text-4xl font-black mt-1 uppercase italic tracking-tighter ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+              Llistat d' <span className="text-yellow-500">Usuaris</span>
+            </h1>
+          </div>
+        </div>
+
+        {/* Accions de prova de la base de dades */}
+        <button
+          onClick={onAddMockUser}
+          className="flex items-center justify-center gap-2 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-slate-900 font-extrabold text-xs uppercase tracking-wider py-4 px-6 rounded-2xl shadow-xl shadow-yellow-500/10 transition-all hover:-translate-y-0.5"
+        >
+          <Plus size={16} />
+          <span>Generar Usuari Prova</span>
+        </button>
+      </header>
+
+      {/* Bloc de Filtres */}
+      <div className={`p-6 sm:p-8 rounded-[2rem] border ${
+        darkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-white border-slate-200'
+      } flex flex-col gap-6`}>
+        <div className="flex items-center gap-3">
+          <div className="w-1.5 h-6 bg-yellow-500 rounded-full"></div>
+          <h3 className={`font-black text-xs uppercase tracking-wider ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>Filtres de Cerca Actius</h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Cerca de Text */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Buscar per nom o correu</label>
+            <input
+              type="text"
+              placeholder="Ex: Joan..."
+              value={filterName}
+              onChange={(e) => setFilterName(e.target.value)}
+              className={`w-full px-4 py-3 rounded-xl border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
+                darkMode ? 'bg-slate-900/50 border-slate-700 text-white placeholder-slate-600' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'
+              }`}
+            />
+          </div>
+
+          {/* Filtre Rol */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Filtrar per Rol</label>
+            <select
+              value={filterRol}
+              onChange={(e) => setFilterRol(e.target.value)}
+              className={`w-full px-4 py-3 rounded-xl border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
+                darkMode ? 'bg-slate-900/50 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="all">Tots els Rols</option>
+              <option value="opositor">Opositors</option>
+              <option value="admin">Administradors</option>
+            </select>
+          </div>
+
+          {/* Filtre Estat Subscripció */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Estat de Subscripció</label>
+            <select
+              value={filterEstatSubscripcio}
+              onChange={(e) => setFilterEstatSubscripcio(e.target.value)}
+              className={`w-full px-4 py-3 rounded-xl border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
+                darkMode ? 'bg-slate-900/50 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="all">Tots els estats</option>
+              <option value="activa">Subscripció Activa</option>
+              <option value="caducada">Accés Caducat</option>
+              <option value="pendent_de_pagament">Pendent de pagament</option>
+            </select>
+          </div>
+
+          {/* Filtre Pagament */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Verificació Pagat / No Pagat</label>
+            <select
+              value={filterPagament}
+              onChange={(e) => setFilterPagament(e.target.value)}
+              className={`w-full px-4 py-3 rounded-xl border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
+                darkMode ? 'bg-slate-900/50 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="all">Tots els pagaments</option>
+              <option value="pagat">Al corrent de pagament</option>
+              <option value="no_pagat">Sense pagar (Pendent)</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Resum dels registres filtrats */}
+        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex flex-wrap gap-x-6 gap-y-1">
+          <span>S'han trobat <span className="text-yellow-500 font-black">{usuarisFiltrats.length}</span> opositors sense duplicar.</span>
+          {usuaris.length > usuarisNetejatsDeDuplicats.length && (
+            <span className="text-emerald-500">✔ S'han unificat i netejat {usuaris.length - usuarisNetejatsDeDuplicats.length} duplicacions de compte per email.</span>
+          )}
+        </div>
+      </div>
+
+      {/* Comentari planer per a no-programadors:
+          Aquesta és la secció on dibuixem la llista de tots els nostres opositors.
+          Abans es veien com a línies llargues i ara es mostren en format de "targetes verticals", 
+          com si fossin fitxes d'estudiant. Això és molt més net i fàcil de consultar de cop d'ull! */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {usuarisFiltrats.map((u: any) => {
+          const estatLabels: any = {
+            activa: "Activa (Al dia)",
+            caducada: "Caducada",
+            pendent_de_pagament: "Pendent d'activació"
+          };
+
+          // Determinació visual de l'avatar amb l'inicial de l'usuari de manera 100% segura
+          const inicial = String(u.displayName || u.email || "O").substring(0, 1).toUpperCase();
+          
+          return (
+            <div 
+              key={u.id || u.uid} 
+              className={`p-6 rounded-[2rem] border relative overflow-hidden transition-all duration-300 hover:shadow-xl flex flex-col justify-between gap-5 ${
+                darkMode ? 'bg-slate-800/60 border-slate-800 hover:bg-slate-800' : 'bg-white border-slate-150 hover:bg-slate-50/50 shadow-sm'
+              }`}
+            >
+              {/* Comentari planer per a no-programadors:
+                  Aquesta petita barra de color a la part superior de la targeta indica de pressa
+                  l'estat d'aquest estudiant: Verd si l'accés és actiu, tarongeta si té pagaments pendents
+                  i vermell si ja ha caducat el seu temps d'estudi. */}
+              <div className={`absolute top-0 left-0 right-0 h-1.5 ${
+                u.estatSubscripcio === 'activa' ? 'bg-emerald-500' : 
+                u.estatSubscripcio === 'pendent_de_pagament' ? 'bg-amber-500' : 'bg-rose-500'
+              }`}></div>
+
+              {/* Bloc Superior: Foto/Avatar, Nom de l'alumnat i dades principals */}
+              <div className="flex items-start gap-4 mt-2">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-base select-none flex-shrink-0 ${
+                  u.rol === 'admin' 
+                    ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' 
+                    : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
+                }`}>
+                  {u.rol === 'admin' ? <Shield size={20} /> : <span className="font-sans">{inicial}</span>}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className={`font-black text-sm truncate ${darkMode ? 'text-white' : 'text-slate-800'}`} title={u.displayName || "Novell Opositor"}>
+                      {u.displayName || "Novell Opositor"}
+                    </h3>
+                    
+                    <span className={`px-2 py-0.5 rounded-full text-[7.5px] font-black uppercase tracking-wider ${
+                      u.rol === 'admin' 
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' 
+                        : 'bg-slate-500/10 text-slate-400 border border-slate-700/20'
+                    }`}>
+                      {u.rol || "opositor"}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-400 font-medium truncate mt-0.5">{u.email}</p>
+                  <span className="text-[8px] font-mono text-slate-500 block mt-1">ID: {u.uid || u.id}</span>
+                </div>
+              </div>
+
+              {/* Comentari planer per a no-programadors:
+                  Aquest bloc és un llistat vertical amb tota la informació clau:
+                  l'estat d'accés, si té els rebuts pagats, la data en què es va registrar i quan es va connectar per últim cop. */}
+              <div className="border-t border-b border-slate-100 dark:border-slate-700/40 py-3.5 mt-1 flex flex-col gap-2.5">
+                
+                {/* Estat d'accés curs */}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Estat d'accés:</span>
+                  <span className={`font-black uppercase text-[10px] ${
+                    u.estatSubscripcio === 'activa' ? 'text-emerald-400' : 
+                    u.estatSubscripcio === 'pendent_de_pagament' ? 'text-amber-500' : 'text-rose-500'
+                  }`}>
+                    {estatLabels[u.estatSubscripcio] || u.estatSubscripcio || "SENSE SUB"}
+                  </span>
+                </div>
+
+                {/* Estat de rebut o pagament */}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Rebut de Curs:</span>
+                  <span className={`font-bold text-[10px] flex items-center gap-1.5 ${u.haPagat ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${u.haPagat ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+                    {u.haPagat ? 'Certificat Pagat' : 'Sense pagar (Pendent)'}
+                  </span>
+                </div>
+
+                {/* Data que es va registrar l'estudiant */}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Data de Registre:</span>
+                  <span className={`text-slate-400 font-mono text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                    {renderFormatDate(u.creatEl || u.creatElTimestamp)}
+                  </span>
+                </div>
+
+                {/* Última connexió efectuada per l'alumnat */}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px] flex items-center gap-1">
+                    <span className="w-1 h-1 bg-yellow-500 rounded-full animate-pulse"></span>
+                    Última connexió:
+                  </span>
+                  <span className={`text-yellow-500 font-bold text-[10px] truncate max-w-[140px]`} title={u.ultimAccesEl}>
+                    {renderFormatDate(u.ultimAccesEl || u.ultimaConnexio || u.lastLogin, true)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Comentari planer per a no-programadors:
+                  Aquests dos botons permeten als administradors de l'acadèmia donar permisos,
+                  treure'ls, o passar el compte de l'estudiant de simple alumne a administrador. */}
+              <div className="flex flex-col gap-2 mt-1">
+                {/* Botó per obrir o tancar l'aixeta de l'accés */}
+                <button
+                  onClick={() => onUpdateUser(u.id || u.uid, { 
+                    estatSubscripcio: u.estatSubscripcio === 'activa' ? 'caducada' : 'activa',
+                    haPagat: u.estatSubscripcio !== 'activa' // Si l'activem manualment, marquem com a pagat per coherència
+                  })}
+                  className={`w-full py-2.5 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                    u.estatSubscripcio !== 'activa' 
+                      ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white hover:shadow-lg hover:shadow-emerald-500/20' 
+                      : 'bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white'
+                  }`}
+                >
+                  {u.estatSubscripcio === 'activa' ? 'Anul·lar Accés' : 'Autoritzar Accés'}
+                </button>
+
+                {/* Botó per commutar el càrrec/rol (Opositor clàssic o Administrador de control) */}
+                <button
+                  onClick={() => onUpdateUser(u.id || u.uid, { 
+                    rol: u.rol === 'admin' ? 'opositor' : 'admin'
+                  })}
+                  className={`w-full py-2 px-4 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all ${
+                    u.rol === 'admin'
+                      ? 'bg-slate-200 text-slate-700 dark:bg-slate-900/50 dark:text-slate-400 hover:bg-yellow-500 hover:text-slate-900 border border-transparent'
+                      : 'border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 hover:border-amber-500 hover:text-amber-500 hover:bg-amber-500/5'
+                  }`}
+                >
+                  {u.rol === 'admin' ? 'Fer Opositor' : 'Fer Administrador'}
+                </button>
+              </div>
+
+            </div>
+          );
+        })}
+      </div>
+
+      {usuarisFiltrats.length === 0 && (
+        <div className="py-24 flex flex-col items-center justify-center text-center px-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem]">
+          <User size={56} className="text-slate-200 dark:text-slate-800 mb-8" />
+          <h4 className="text-xl font-black uppercase italic tracking-tighter text-slate-500 mb-2">No s'ha obtingut cap usuari</h4>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 max-w-sm leading-relaxed">
+            La col·lecció de la BBDD a Firestore està deserta, o bé cap usuari compleix els filtres de cerca aplicats. Pots prémer el botó superior per generar un usuari de prova a la BBDD i testar!
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+

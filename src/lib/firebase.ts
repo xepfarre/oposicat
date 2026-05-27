@@ -7,3 +7,4 @@ const app = initializeApp(firebaseConfig);
 // CRITICAL: The app will break without this line
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth();
+auth.languageCode = 'ca'; // Estableix el català com a idioma per defecte per als correus de Firebase
