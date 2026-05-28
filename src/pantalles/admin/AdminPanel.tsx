@@ -5624,20 +5624,20 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
           </div>
         </div>
 
-        {/* Resum dels registres filtrats */}
-        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex flex-wrap gap-x-6 gap-y-1">
+        {/* Resum de cerca de l'acadèmia */}
+        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex flex-wrap gap-x-6 gap-y-1 mt-2">
           <span>S'han trobat <span className="text-yellow-500 font-black">{usuarisFiltrats.length}</span> opositors sense duplicar.</span>
           {usuaris.length > usuarisNetejatsDeDuplicats.length && (
-            <span className="text-emerald-500">✔ S'han unificat i netejat {usuaris.length - usuarisNetejatsDeDuplicats.length} duplicacions de compte per email.</span>
+            <span className="text-emerald-500">✔ S'han unificat i netejat {usuaris.length - usuarisNetejatsDeDuplicats.length} duplicacions.</span>
           )}
         </div>
       </div>
 
       {/* Comentari planer per a no-programadors:
           Aquesta és la secció on dibuixem la llista de tots els nostres opositors.
-          Abans es veien com a línies llargues i ara es mostren en format de "targetes verticals", 
-          com si fossin fitxes d'estudiant. Això és molt més net i fàcil de consultar de cop d'ull! */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          En lloc d'estar dividits en columnes verticals de targetes de mida petita, ara cadascun és una línia horitzontal àmplia de punta a punta.
+          Això organitza la informació en un format molt més net per a monitors amples on es pot veure tot de manera directa, facilitant la feina! */}
+      <div className="flex flex-col gap-4">
         {usuarisFiltrats.map((u: any) => {
           const estatLabels: any = {
             activa: "Activa (Al dia)",
@@ -5651,36 +5651,35 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
           return (
             <div 
               key={u.id || u.uid} 
-              className={`p-6 rounded-[2rem] border relative overflow-hidden transition-all duration-300 hover:shadow-xl flex flex-col justify-between gap-5 ${
-                darkMode ? 'bg-slate-800/60 border-slate-800 hover:bg-slate-800' : 'bg-white border-slate-150 hover:bg-slate-50/50 shadow-sm'
+              className={`p-5 md:py-4 md:pl-8 md:pr-6 rounded-[1.5rem] border relative overflow-hidden transition-all duration-300 hover:shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-5 ${
+                darkMode ? 'bg-slate-800/60 border-slate-800/80 hover:bg-slate-800' : 'bg-white border-slate-150 hover:bg-slate-50/50 shadow-sm'
               }`}
             >
               {/* Comentari planer per a no-programadors:
-                  Aquesta petita barra de color a la part superior de la targeta indica de pressa
-                  l'estat d'aquest estudiant: Verd si l'accés és actiu, tarongeta si té pagaments pendents
-                  i vermell si ja ha caducat el seu temps d'estudi. */}
-              <div className={`absolute top-0 left-0 right-0 h-1.5 ${
+                  Aquest indicador vertical pintat al perfil esquerre ens diu el pols d'un cop d'ull:
+                  verd si tot és correcte, taronja si està esperant validació o vermell si l'accés s'ha llimitat. */}
+              <div className={`absolute top-0 bottom-0 left-0 w-2 h-full ${
                 u.estatSubscripcio === 'activa' ? 'bg-emerald-500' : 
                 u.estatSubscripcio === 'pendent_de_pagament' ? 'bg-amber-500' : 'bg-rose-500'
               }`}></div>
 
-              {/* Bloc Superior: Foto/Avatar, Nom de l'alumnat i dades principals */}
-              <div className="flex items-start gap-4 mt-2">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-base select-none flex-shrink-0 ${
+              {/* Bloc 1 (Esquerra): Perfil complet general de l'usuari/estudiant */}
+              <div className="flex items-center gap-4 min-w-0 md:w-[28%] pl-2 md:pl-0">
+                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm select-none flex-shrink-0 ${
                   u.rol === 'admin' 
                     ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' 
                     : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
                 }`}>
-                  {u.rol === 'admin' ? <Shield size={20} /> : <span className="font-sans">{inicial}</span>}
+                  {u.rol === 'admin' ? <Shield size={18} /> : <span className="font-sans">{inicial}</span>}
                 </div>
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className={`font-black text-sm truncate ${darkMode ? 'text-white' : 'text-slate-800'}`} title={u.displayName || "Novell Opositor"}>
+                    <h3 className={`font-black text-xs md:text-sm truncate ${darkMode ? 'text-white' : 'text-slate-800'}`} title={u.displayName || "Novell Opositor"}>
                       {u.displayName || "Novell Opositor"}
                     </h3>
                     
-                    <span className={`px-2 py-0.5 rounded-full text-[7.5px] font-black uppercase tracking-wider ${
+                    <span className={`px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-wider ${
                       u.rol === 'admin' 
                         ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' 
                         : 'bg-slate-500/10 text-slate-400 border border-slate-700/20'
@@ -5689,20 +5688,18 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-400 font-medium truncate mt-0.5">{u.email}</p>
-                  <span className="text-[8px] font-mono text-slate-500 block mt-1">ID: {u.uid || u.id}</span>
+                  <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">{u.email}</p>
+                  <span className="text-[8px] font-mono text-slate-500 block mt-0.5">ID: {u.uid || u.id}</span>
                 </div>
               </div>
 
-              {/* Comentari planer per a no-programadors:
-                  Aquest bloc és un llistat vertical amb tota la informació clau:
-                  l'estat d'accés, si té els rebuts pagats, la data en què es va registrar i quan es va connectar per últim cop. */}
-              <div className="border-t border-b border-slate-100 dark:border-slate-700/40 py-3.5 mt-1 flex flex-col gap-2.5">
+              {/* Bloc 2 (Centre): Detalls acadèmics organitzats en línia de dalt a baix mitjançant col·legues horitzontals */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-x-6 min-w-0 md:flex-1 md:px-6 md:border-l md:border-r border-slate-200/40 dark:border-slate-700/40 py-3.5 md:py-0">
                 
                 {/* Estat d'accés curs */}
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Estat d'accés:</span>
-                  <span className={`font-black uppercase text-[10px] ${
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px]">Estat d'accés:</span>
+                  <span className={`font-black uppercase text-[10px] truncate ${
                     u.estatSubscripcio === 'activa' ? 'text-emerald-400' : 
                     u.estatSubscripcio === 'pendent_de_pagament' ? 'text-amber-500' : 'text-rose-500'
                   }`}>
@@ -5711,47 +5708,45 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
                 </div>
 
                 {/* Estat de rebut o pagament */}
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Rebut de Curs:</span>
-                  <span className={`font-bold text-[10px] flex items-center gap-1.5 ${u.haPagat ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${u.haPagat ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
-                    {u.haPagat ? 'Certificat Pagat' : 'Sense pagar (Pendent)'}
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px]">Rebut de Curs:</span>
+                  <span className={`font-bold text-[10px] flex items-center gap-1.5 ${u.haPagat ? 'text-emerald-400' : 'text-rose-400'} truncate`}>
+                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${u.haPagat ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+                    {u.haPagat ? 'Certificat Pagat' : 'Pendent'}
                   </span>
                 </div>
 
                 {/* Data que es va registrar l'estudiant */}
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Data de Registre:</span>
-                  <span className={`text-slate-400 font-mono text-[10px] ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px]">Data de Registre:</span>
+                  <span className={`text-slate-400 font-mono text-[10px] truncate ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                     {renderFormatDate(u.creatEl || u.creatElTimestamp)}
                   </span>
                 </div>
 
                 {/* Última connexió efectuada per l'alumnat */}
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px] flex items-center gap-1">
-                    <span className="w-1 h-1 bg-yellow-500 rounded-full animate-pulse"></span>
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px] flex items-center gap-1">
+                    <span className="w-1 h-1 bg-yellow-500 rounded-full animate-pulse flex-shrink-0"></span>
                     Última connexió:
                   </span>
-                  <span className={`text-yellow-500 font-bold text-[10px] truncate max-w-[140px]`} title={u.ultimAccesEl}>
+                  <span className="text-yellow-500 font-bold text-[10px] truncate" title={u.ultimAccesEl}>
                     {renderFormatDate(u.ultimAccesEl || u.ultimaConnexio || u.lastLogin, true)}
                   </span>
                 </div>
               </div>
 
-              {/* Comentari planer per a no-programadors:
-                  Aquests dos botons permeten als administradors de l'acadèmia donar permisos,
-                  treure'ls, o passar el compte de l'estudiant de simple alumne a administrador. */}
-              <div className="flex flex-col gap-2 mt-1">
+              {/* Bloc 3 (Dreta): Accions i controls ràpids d'administració de l'aula de l'acadèmia */}
+              <div className="flex flex-row md:flex-col lg:flex-row gap-2 shrink-0 md:w-[22%]">
                 {/* Botó per obrir o tancar l'aixeta de l'accés */}
                 <button
                   onClick={() => onUpdateUser(u.id || u.uid, { 
                     estatSubscripcio: u.estatSubscripcio === 'activa' ? 'caducada' : 'activa',
                     haPagat: u.estatSubscripcio !== 'activa' // Si l'activem manualment, marquem com a pagat per coherència
                   })}
-                  className={`w-full py-2.5 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                  className={`flex-1 py-2 px-3 rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all truncate text-center cursor-pointer ${
                     u.estatSubscripcio !== 'activa' 
-                      ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white hover:shadow-lg hover:shadow-emerald-500/20' 
+                      ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white hover:shadow-md' 
                       : 'bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white'
                   }`}
                 >
@@ -5763,13 +5758,13 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
                   onClick={() => onUpdateUser(u.id || u.uid, { 
                     rol: u.rol === 'admin' ? 'opositor' : 'admin'
                   })}
-                  className={`w-full py-2 px-4 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all ${
+                  className={`flex-1 py-2 px-3 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all truncate text-center cursor-pointer ${
                     u.rol === 'admin'
                       ? 'bg-slate-200 text-slate-700 dark:bg-slate-900/50 dark:text-slate-400 hover:bg-yellow-500 hover:text-slate-900 border border-transparent'
                       : 'border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 hover:border-amber-500 hover:text-amber-500 hover:bg-amber-500/5'
                   }`}
                 >
-                  {u.rol === 'admin' ? 'Fer Opositor' : 'Fer Administrador'}
+                  {u.rol === 'admin' ? 'Fer Opositor' : 'Fer Admin'}
                 </button>
               </div>
 
