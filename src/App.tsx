@@ -45,6 +45,14 @@ import { CONTINGUT_TEMARI_TEXTS } from './constants/contingut_textos';
 // @ts-ignore
 import LaMevaOposicio from './pantalles/oposimossos/la_meva_oposicio';
 
+// Nous components Modulars de la part Web i de d’Administració (Backoffice)
+import SelectorDesenvolupament, { VistaDesenvolupament } from './components/SelectorDesenvolupament';
+import WebLandingPC from './pantalles/web/WebLandingPC';
+import WebWorkspacePC from './pantalles/web/WebWorkspacePC';
+import WebBackofficePC from './pantalles/web/WebBackofficePC';
+import WebLandingMobil from './pantalles/web/WebLandingMobil';
+import WebRedireccioMobil from './pantalles/web/WebRedireccioMobil';
+
 /**
  * COMPONENT PRINCIPAL: App
  * Gestiona la navegació entre les diferents pantalles de l'aplicació OposiCAT.
@@ -57,10 +65,38 @@ export default function App() {
     'classes_premium' | 'clase_luna' | 'classes_directe' | 'examens_oficials_passats' | 'examen_psicotecnic' | 'actualitat' | 'examens_oposimossos' | 'examens_oposimossos_simulador';
   const [pantalla, setPantalla] = useState<Pantalla>('benvinguda_alpha');
   
+  // Estat per a la vista de desenvolupament (comprovació simultània web/app)
+  // Explicació per a no-programadors:
+  // Si aquest estat està en 'app_mobil' (que és el valor per defecte),
+  // l'aplicació mòbil inicial es carrega al 100% igual que abans.
+  // Podem canviar aquest canviador mitjançant el nostre selector flotant de desenvolupament.
+  const [vistaDev, setVistaDev] = useState<VistaDesenvolupament>('app_mobil');
+  
   // Estats per al Backoffice
   const [mode, setMode] = useState<'app' | 'admin'>('app');
   const [user, setUser] = useState<any>(null);
   const [errorSessioDuplicada, setErrorSessioDuplicada] = useState(false);
+
+  // Explicació per a no-programadors:
+  // Controlarem dinàmicament el comportament del desplaçament (scroll) global del navegador.
+  // Quan s'utilitza la versió de PC (Landing d'Escriptori, Workspace o Backoffice),
+  // s'ha de poder fer scroll vertical per veure tot el contingut de la pantalla de dalt a baix.
+  // Per contra, quan l'alumne entra a l'App Mòbil, es bloqueja el desplaçament exterior
+  // per conservar l'experiència tàctil polida d'una aplicació nativa sense rebots de finestra.
+  useEffect(() => {
+    if (vistaDev === 'app_mobil') {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+      document.documentElement.style.overflow = 'auto';
+    }
+    // Desem la neteja per si es desmunta el component
+    return () => {
+      document.body.style.overflow = 'auto';
+      document.documentElement.style.overflow = 'auto';
+    };
+  }, [vistaDev]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -370,7 +406,50 @@ export default function App() {
       {/* RUTA DE L'APP: Experiència d'usuari (actual) */}
       <Route path="*" element={
         <div className="relative min-h-screen">
-          {/* MODAL DE SESSIÓ DUPLICADA (Control anti-compartir compte) */}
+          {/* EL SELECTOR FLOTANT SEMPRE ESTARÀ VISIBLE A UN COSTÓ PERÒ SUPERPOSAT SENSE INTERFERIR GENS */}
+          <SelectorDesenvolupament vistaActual={vistaDev} onChangeVista={setVistaDev} />
+
+          {/* VISTES WEB CONDICIONALS DE DESENVOLUPAMENT */}
+          {vistaDev === 'web_pc_website' && (
+            <WebLandingPC 
+              onEntrarWorkspace={() => setVistaDev('web_pc_workspace')} 
+              onEntrarBackoffice={() => setVistaDev('web_pc_backoffice')}
+              onSimularEntrarMovil={() => setVistaDev('web_mobil_website')}
+            />
+          )}
+
+          {vistaDev === 'web_pc_workspace' && (
+            <WebWorkspacePC 
+              progresOriginal={progres} 
+              onTornarLanding={() => setVistaDev('web_pc_website')}
+              onObrirAppMobilSimulacre={() => setVistaDev('app_mobil')}
+            />
+          )}
+
+          {vistaDev === 'web_pc_backoffice' && (
+            <WebBackofficePC 
+              onTornarLanding={() => setVistaDev('web_pc_website')}
+            />
+          )}
+
+          {vistaDev === 'web_mobil_website' && (
+            <WebLandingMobil 
+              onTornarLandingGral={() => setVistaDev('web_pc_website')} 
+              onAnarA_Redireccio={() => setVistaDev('web_mobil_redireccio')}
+            />
+          )}
+
+          {vistaDev === 'web_mobil_redireccio' && (
+            <WebRedireccioMobil 
+              onTornarLandingMobil={() => setVistaDev('web_mobil_website')} 
+              onLlançarAppMòbil={() => setVistaDev('app_mobil')}
+            />
+          )}
+
+          {/* NOMÉS SI ESTEM EN MODE APP MÒBIL S'EXECUTA LA LÒGICA ANTERIOR COMPLETAMENT SENSE TOCAR RES NI DESQUADRAR MARGES */}
+          {vistaDev === 'app_mobil' && (
+            <div className="contents">
+              {/* MODAL DE SESSIÓ DUPLICADA (Control anti-compartir compte) */}
           {errorSessioDuplicada && (
             <div id="modal-sessio-duplicada" className="fixed inset-0 z-[9999] bg-[#00274d]/95 backdrop-blur-xl flex items-center justify-center p-6">
               <div className="bg-slate-900 border border-red-500/20 rounded-3xl p-8 max-w-sm text-center shadow-2xl flex flex-col items-center gap-5">
@@ -698,6 +777,8 @@ export default function App() {
               onTornar={handleTornarMossos} 
               progresDetallat={progres.detall}
             />
+          )}
+            </div>
           )}
             </div>
           )}

@@ -13,6 +13,8 @@ import { EntrevistaGuia } from "./entrevista_guia";
 export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => void }) {
   const [seccio, setSeccio] = useState<'principal' | 'biodata' | 'competencies' | 'menu_entrevista' | 'entrevista' | 'cita'>('principal');
   const [seccioBiodata, setSeccioBiodata] = useState<'menu' | 'personals' | 'laborals' | 'pgme' | 'test'>('menu');
+  // Estat per a controlar la subsecció activa de la guia del test de biodata (evitant salts dobles d'enrere)
+  const [subSeccioTest, setSubSeccioTest] = useState<'menu' | 'que_es' | 'practica'>('menu');
   
   // Estats per a la cita
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -278,10 +280,16 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
       <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20" style={{ WebkitOverflowScrolling: "touch" }}>
         <header className="pt-8 w-full flex flex-col items-center shrink-0">
           <HeaderTeorica onBackClick={() => {
-              if (seccioBiodata === 'menu') {
+              // Si estem dins d'un apartat secundari del test (ex: teoria/pràctica), primer tornem al menú d'aquest test (la foto de l'usuari)
+              if (seccioBiodata === 'test' && subSeccioTest !== 'menu') {
+                setSubSeccioTest('menu');
+              } else if (seccioBiodata === 'menu') {
+                // Si ja som al menú de biodata del principi de tot, tornem al menú principal de psicos
                 setSeccio('principal');
               } else {
+                // Altres seccions (personals, laborals...) o menú de test, tornen al menú de biodata superior
                 setSeccioBiodata('menu');
+                setSubSeccioTest('menu');
               }
             }} />
           
@@ -296,6 +304,8 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
           <GuiaBiodata 
             seccio={seccioBiodata} 
             setSeccio={setSeccioBiodata}
+            subSeccioTest={subSeccioTest}
+            setSubSeccioTest={setSubSeccioTest}
           />
         </main>
 
