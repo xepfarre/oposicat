@@ -14,6 +14,7 @@ import { useState } from 'react';
 export type VistaDesenvolupament = 
   | 'app_mobil'               // APP Mòbil original
   | 'web_pc_website'          // WEB - PC - Website (landing oficial)
+  | 'web_pc_login'            // WEB - PC - Login (accès privat)
   | 'web_pc_workspace'        // WEB - PC - Workspace (zona d'estudiats web)
   | 'web_pc_backoffice'       // WEB - PC - Backoffice (gestió d'alumnes)
   | 'web_mobil_website'       // WEB - Mòbil - Website (landing adaptada)
@@ -41,6 +42,12 @@ export default function SelectorDesenvolupament({ vistaActual, onChangeVista }: 
       titol: '🖥️ WEB - PC - Website',
       descripcio: 'Pàgina corporativa d’OposiMossos per a ordinadors de casa.',
       color: 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+    },
+    {
+      valor: 'web_pc_login',
+      titol: '🔑 WEB - PC - Login',
+      descripcio: 'Pantalla de login/registre d’Escriptori amb la foto de fons de Mossos.',
+      color: 'bg-purple-500/10 text-purple-400 border-purple-500/20'
     },
     {
       valor: 'web_pc_workspace',

@@ -7,6 +7,12 @@ import biodataTestImage from '../../assets/images/biodata_test_mock_178024979809
 import ispcQuestionsImage from '../../assets/images/ispc_questions_mock_1780249816019.png';
 // @ts-ignore
 import psychoInterviewImage from '../../assets/images/psychological_interview_1780249831944.png';
+// @ts-ignore
+import fonsTeorica from '../../assets/images/fons_teorica_1780343152615.png';
+// @ts-ignore
+import fonsFisica from '../../assets/images/fons_fisica_1780343173628.png';
+// @ts-ignore
+import fonsPsicologica from '../../assets/images/fons_psicologica_1780343193032.png';
 
 // ============================================================================
 // COMPONENT: WebLandingPC
@@ -54,6 +60,11 @@ export default function WebLandingPC({ onEntrarWorkspace, onEntrarBackoffice, on
   const [sexeAgilitat, setSexeAgilitat] = useState<'home' | 'dona'>('home');
   const [musculObert, setMusculObert] = useState<string>("PECTORAL MAJOR");
   const [diesPla, setDiesPla] = useState<boolean[]>([true, true, true, false, true, true, false, false]);
+
+  // Estats interactius reals per a la simulació de la 3ra prova (Psicoprofessional) d'OposiCAT
+  const [categoriaPreguntaOberta, setCategoriaPreguntaOberta] = useState<number | null>(null);
+  const [citaTornSeleccionat, setCitaTornSeleccionat] = useState<'mati' | 'tarda'>('mati');
+  const [citaHoraSeleccionada, setCitaHoraSeleccionada] = useState<string>('10:00');
 
   // Increment automàtic del cronòmetre si l'usuari el té engegat
   useEffect(() => {
@@ -374,8 +385,14 @@ export default function WebLandingPC({ onEntrarWorkspace, onEntrarBackoffice, on
           Aquesta part descriu les proves de la base de coneixements. S'estructura dividint els mòduls en Àmbits A, B i C,
           detallant quants temes contenen i quina és la naturalesa de cadascun. */}
       {/* ========================================== */}
-      <section id="proves-teorica" className="bg-[#021329] py-20 border-t border-slate-900/60 scroll-mt-20">
-        <div className="max-w-7xl mx-auto px-6">
+      <section 
+        id="proves-teorica" 
+        className="bg-[#021329] py-20 border-t border-slate-900/60 scroll-mt-20 relative overflow-hidden bg-cover bg-center"
+        style={{
+          backgroundImage: `linear-gradient(rgba(2, 19, 41, 0.91), rgba(2, 19, 41, 0.95)), url(${fonsTeorica})`
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center max-w-2xl mx-auto space-y-3 mb-16">
             <span className="text-xs font-black italic uppercase tracking-widest text-[#FFDF00]">Fase Avaluadora 1</span>
             <h3 className="text-2xl md:text-3xl font-black italic uppercase text-white">La Prova Teòrica de Coneixements</h3>
@@ -398,9 +415,8 @@ export default function WebLandingPC({ onEntrarWorkspace, onEntrarBackoffice, on
 
             {/* CONTENIDOR SPLIT: ESQUERRA MÒBIL (LG:COLS-6), DRETA EXPLICACIOK (LG:COLS-6)
                 Comentari per a no-programadors:
-                Hem canviat el fons d'aquest contenidor de captures ('bg-[#020e1d]/50') a 'bg-[#021329]' per a que el seu color
-                sigui exactament el mateix que el color de fons de tota la secció de la landing page, eliminant qualsevol contrast residual i fent-lo més homogeni. */}
-            <div className="flex-1 grid lg:grid-cols-12 gap-8 items-center bg-[#021329] border border-slate-900/60 p-5 md:p-10 rounded-[32px]">
+                Hem canviat el fons d'aquest contenidor de captures ('bg-[#020e1d]/50') a un fons semi-transparent i desenfocat amb backdrop-blur-xl per gaudir del fons de l'acadèmia. */}
+            <div className="flex-1 grid lg:grid-cols-12 gap-8 items-center bg-[#021329]/80 backdrop-blur-xl border border-slate-900/60 p-5 md:p-10 rounded-[32px]">
               
               {/* MITJA PANTALLA DRETA: DENTRE DE LA MATEIXA FILA, LI DONEM ORDER LAST (LG:ORDER-2) PERQUÈ SURTI A LA DRETA */}
               <div className="lg:col-span-6 space-y-5 lg:order-2">
@@ -1127,8 +1143,14 @@ export default function WebLandingPC({ onEntrarWorkspace, onEntrarBackoffice, on
           la imatge del mòbil que ens has passat amb disseny de CSS natiu. L'usuari
           pot fer clic als canviadors de Home/Dona, canviar les pestanyes o "Aturar/Iniciar"
           el cronòmetre actiu per veure com funciona en temps real a la web. */}
-      <section id="prova-fisica" className="bg-[#031935] py-20 border-t border-blue-950/60 scroll-mt-20">
-        <div className="max-w-7xl mx-auto px-6">
+      <section 
+        id="prova-fisica" 
+        className="bg-[#031935] py-20 border-t border-blue-950/60 scroll-mt-20 relative overflow-hidden bg-cover bg-center"
+        style={{
+          backgroundImage: `linear-gradient(rgba(3, 25, 53, 0.91), rgba(3, 25, 53, 0.95)), url(${fonsFisica})`
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
           
           <div className="text-center max-w-2xl mx-auto space-y-3 mb-16">
             <span className="text-xs font-black italic uppercase tracking-widest text-[#FFDF00]">Fase Avaluadora 2</span>
@@ -1152,9 +1174,8 @@ export default function WebLandingPC({ onEntrarWorkspace, onEntrarBackoffice, on
 
             {/* CONTENIDOR SPLIT: ESQUERRA EXPLICACIÓ (LG:COLS-6), DRETA MÒBIL (LG:COLS-6) */}
             {/* Comentari per a no-programadors:
-                Hem definit el color de fons del contenidor del carrusel com 'bg-[#031935]' per a que s'integri completament 
-                amb el fons de la secció de la Prova Física, eliminant qualsevol divisió visual innecessària de contrast. */}
-            <div className="flex-1 grid lg:grid-cols-12 gap-8 items-center bg-[#031935] border border-slate-900/40 p-5 md:p-10 rounded-[32px]">
+                Hem canviat el fons d'aquest contenidor per un estil semi-transparent amb desenfocament 'backdrop-blur-xl' perquè la imatge d'entrenament física quedi professionalment integrada de fons. */}
+            <div className="flex-1 grid lg:grid-cols-12 gap-8 items-center bg-[#031935]/80 backdrop-blur-xl border border-slate-900/40 p-5 md:p-10 rounded-[32px]">
               
               {/* COLS-6 ESQUERRA: EXPLICACIÓ DE LA CAPTURA SELECCIONADA */}
               <div className="lg:col-span-6 space-y-5">
@@ -1832,8 +1853,14 @@ export default function WebLandingPC({ onEntrarWorkspace, onEntrarBackoffice, on
           Aquesta secció detalla i explica la prova psicoprofessional (tests psicològics, qüestionari competencial i entrevista personal).
           Està completament traduïda i explicada en català planer de cara a l'opositor. */}
       {/* ========================================== */}
-      <section id="prova-psicoprofesional" className="bg-[#010c1c] py-20 border-t border-slate-900/60 scroll-mt-20">
-        <div className="max-w-7xl mx-auto px-6">
+      <section 
+        id="prova-psicoprofesional" 
+        className="bg-[#010c1c] py-20 border-t border-slate-900/60 scroll-mt-20 relative overflow-hidden bg-cover bg-center"
+        style={{
+          backgroundImage: `linear-gradient(rgba(1, 12, 28, 0.91), rgba(1, 12, 28, 0.95)), url(${fonsPsicologica})`
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center max-w-2xl mx-auto space-y-3 mb-16">
             <span className="text-xs font-black italic uppercase tracking-widest text-[#FFDF00]">Fase Avaluadora 3</span>
             <h3 className="text-2xl md:text-3xl font-black italic uppercase text-white">L'Àrea Psicoprofessional</h3>
@@ -1856,9 +1883,8 @@ export default function WebLandingPC({ onEntrarWorkspace, onEntrarBackoffice, on
 
             {/* CONTENIDOR SPLIT: ESQUERRA MÒBIL (LG:COLS-6), DRETA EXPLICACIÓ (LG:COLS-6)
                 Comentari per a no-programadors:
-                Hem definit el color de fons del contenidor del carrusel com 'bg-[#010c1c]' per a que s'integri completament
-                amb el fons de la secció de l'Àrea Psicoprofessional, eliminant qualsevol divisió visual innecessària. */}
-            <div className="flex-1 grid lg:grid-cols-12 gap-8 items-center bg-[#010c1c] border border-slate-900/60 p-5 md:p-10 rounded-[32px]">
+                Hem canviat el fons d'aquest contenidor per un fons semi-transparent modern i elegant amb backdrop-blur-xl per a veure el despatx psicològic polidament integrat. */}
+            <div className="flex-1 grid lg:grid-cols-12 gap-8 items-center bg-[#010c1c]/80 backdrop-blur-xl border border-slate-900/60 p-5 md:p-10 rounded-[32px]">
               
               {/* MITJA PANTALLA DRETA: EXPLICACIÓ DE LA CAPTURA SELECCIONADA */}
               <div className="lg:col-span-6 space-y-5 lg:order-2">
@@ -1960,56 +1986,235 @@ export default function WebLandingPC({ onEntrarWorkspace, onEntrarBackoffice, on
                     {/* INTERIOR DE LA PANTALLA EN COMPROMÍS PROFESSIONAL */}
                     <div className="flex-1 bg-[#011c38] rounded-[38px] text-slate-100 flex flex-col justify-between relative overflow-hidden font-sans border border-blue-900/10">
                       
-                      {/* CAPTURA 0: TEST DE BIODATA INÈDITS */}
+                      {/* CAPTURA 0: TEST DE BIODATA (RESULTATS DINÀMICS I RESTRICCIONS COHERENTS) */}
                       {capturaPsicoActiva === 0 && (
-                        <div className="w-full h-full relative flex flex-col justify-between animate-fadeIn p-2.5 pt-6">
-                          <div className="flex-1 rounded-[28px] overflow-hidden border border-blue-900/30 shadow-md relative group">
-                            <img 
-                              src={biodataTestImage} 
-                              alt="Biodata Test Mock" 
-                              className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-                              referrerPolicy="no-referrer"
-                            />
-                            {/* Petits overlay indicators de l'app */}
-                            <div className="absolute bottom-2 left-2 right-2 bg-slate-950/80 border border-slate-800/80 p-1.5 rounded-xl text-center backdrop-blur-sm">
-                              <span className="text-[7px] text-[#00f296] font-extrabold uppercase tracking-widest block font-bold">TEST DE BIODATA ACTIU</span>
+                        <div className="w-full h-full relative flex flex-col justify-between animate-fadeIn p-3 pt-7 overflow-y-auto select-none">
+                          {/* Explicació per a no-programadors:
+                              Aquesta secció de dalt simula el logotip i la capçalera exacta de l'aplicació d'OposiCAT en format mòbil,
+                              mantenint un filet vermell de disseny de sota. */}
+                          <div className="flex flex-col items-center">
+                            {/* Logo OposiMossos clònic de l'app de mòbil */}
+                            <div className="w-20 py-1 bg-[#0c2440]/85 rounded-full border border-white/5 flex items-center justify-center gap-1 mt-1 text-[8px] font-black uppercase tracking-wider">
+                              <span className="text-white">Oposi</span>
+                              <span className="text-red-500 italic">Mossos</span>
                             </div>
+
+                            <h4 className="text-[12px] font-black uppercase tracking-widest text-center text-white mt-3">
+                              PROVA PSICOLÒGICA
+                            </h4>
+                            <div className="h-[1.5px] bg-red-650 w-6 my-1" />
+                            <span className="text-[7px] text-slate-400 font-extrabold tracking-[0.2em] uppercase">
+                              GUIA BIODATA
+                            </span>
+                          </div>
+
+                          {/* Diagnòstic final de l'estudiant */}
+                          <div className="mt-2.5 text-center">
+                            <span className="text-[8px] text-[#00f296] font-black uppercase tracking-widest italic block">
+                              ★ DIAGNÒSTIC FINAL
+                            </span>
+                            <h5 className="text-[9.5px] font-black italic uppercase text-white tracking-wide mt-0.5">
+                              RESULTATS DEL TEST DE BIODATA
+                            </h5>
+                            <div className="h-[1px] bg-[#00f296]/20 w-8 mx-auto mt-1" />
+                          </div>
+
+                          {/* Avís ambre de resultats d'exemple orientatius, de color de lletra molt cuidat */}
+                          <div className="mt-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl p-2 text-center">
+                            <span className="text-[7.5px] font-black uppercase tracking-wide block mb-0.5">
+                              ⚠️ RESULTAT DE PROVA FICTICI / EXEMPLE
+                            </span>
+                            <p className="text-[7px] italic leading-tight text-white/50">
+                              Estàs visualitzant un resum d'avaluació d'exemple orientatiu. Completa el teu test per visualitzar les teves mètriques competencials personalitzades.
+                            </p>
+                          </div>
+
+                          {/* Llista vertical interactiva de competències d'ISPC en format minimalista mòbil */}
+                          <div className="flex flex-col gap-2 mt-3 mb-2">
+                            {[
+                              { nom: "Adaptabilitat", nota: 8, color: "text-emerald-400", bar: "bg-emerald-400" },
+                              { nom: "Autocontrol", nota: 6, color: "text-amber-400", bar: "bg-amber-400" },
+                              { nom: "Treball en equip", nota: 9, color: "text-emerald-400", bar: "bg-emerald-400" },
+                              { nom: "Habilitats de comunicació", nota: 7, color: "text-emerald-400", bar: "bg-emerald-400" }
+                            ].map((c, i) => (
+                              <div key={i} className="bg-[#1a3a5a]/20 border border-white/5 rounded-lg p-2 flex flex-col gap-1">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-[8.5px] font-extrabold text-white/90 italic">{i + 1}. {c.nom}</span>
+                                  <div className="flex items-baseline gap-0.5 text-[8.5px] font-mono font-black">
+                                    <span className={c.color}>{c.nota}</span>
+                                    <span className="text-white/30 text-[6.5px]">/10</span>
+                                  </div>
+                                </div>
+                                <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                                  <div className={`h-full rounded-full ${c.bar}`} style={{ width: `${c.nota * 10}%` }} />
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
 
-                      {/* CAPTURA 1: PREGUNTES DE L'ISPC */}
+                      {/* CAPTURA 1: PREGUNTES DE L'ENTREVISTA PSICOLÒGICA */}
                       {capturaPsicoActiva === 1 && (
-                        <div className="w-full h-full relative flex flex-col justify-between animate-fadeIn p-2.5 pt-6">
-                          <div className="flex-1 rounded-[28px] overflow-hidden border border-blue-900/30 shadow-md relative group">
-                            <img 
-                              src={ispcQuestionsImage} 
-                              alt="ISPC Questions Mock" 
-                              className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-                              referrerPolicy="no-referrer"
-                            />
-                            {/* Petits overlay indicators de l'app */}
-                            <div className="absolute bottom-2 left-2 right-2 bg-slate-950/80 border border-slate-800/80 p-1.5 rounded-xl text-center backdrop-blur-sm">
-                              <span className="text-[7px] text-[#FFDF00] font-extrabold uppercase tracking-widest block font-bold">EXERCICIS COMPETENCIALS ISPC</span>
+                        <div className="w-full h-full relative flex flex-col justify-between animate-fadeIn p-3 pt-7 overflow-y-auto select-none">
+                          {/* Explicació per a no-programadors:
+                              En aquesta segona vista recreem l'apartat de preguntes de l'entrevista dels psicòlegs oficials.
+                              El mòbil mostra una llista on els desplegables responen en viu en ser clicats. */}
+                          <div className="flex flex-col items-center">
+                            <div className="w-full flex items-center justify-between px-1">
+                              <button className="text-[10px] text-slate-400 hover:text-white font-bold cursor-pointer">◀</button>
+                              <div className="w-20 py-1 bg-[#0c2440]/80 rounded-full border border-white/5 flex items-center justify-center gap-1 text-[8px] font-black uppercase tracking-wider">
+                                <span className="text-white">Oposi</span>
+                                <span className="text-red-500 italic">Mossos</span>
+                              </div>
                             </div>
+
+                            <h4 className="text-[12px] font-black uppercase tracking-widest text-center text-white mt-3">
+                              PROVA PSICOLÒGICA
+                            </h4>
+                            <div className="h-[1.5px] bg-red-650 w-6 my-1" />
+                            <span className="text-[7px] text-[#00f296] font-extrabold tracking-[0.2em] uppercase">
+                              PROVA - ENTREVISTA
+                            </span>
+                          </div>
+
+                          {/* Targeta interior blava explicativa */}
+                          <div className="mt-3 bg-[#113254]/30 border border-blue-900/30 rounded-xl p-2.5 text-center flex flex-col items-center gap-1.5 animate-pulse">
+                            <div className="w-5 h-5 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 text-[9px]">
+                              💬
+                            </div>
+                            <p className="text-slate-205 text-[8.5px] font-medium leading-relaxed italic px-1">
+                              "Llistat de preguntes que múltiples psicòlegs de forma oficial han avaluat durant anys a les entrevistes de la fase d'oposició"
+                            </p>
+                            <span className="text-[7px] text-[#00f296] font-black uppercase tracking-wider block mt-1">
+                              SELECCIONS UNA CATEGORIA PER VEURE LES PREGUNTES
+                            </span>
+                          </div>
+
+                          {/* Llista interactiva de categories desplegables d'acordió d'oposició */}
+                          <div className="flex flex-col gap-1.5 mt-3 mb-2">
+                            {[
+                              "PREGUNTES INICIALS",
+                              "FORMACIÓ",
+                              "EXPERIÈNCIA LABORAL",
+                              "PREGUNTES PERSONALS"
+                            ].map((cat, idx) => {
+                              const obert = categoriaPreguntaOberta === idx;
+                              return (
+                                <div key={idx} className="flex flex-col border border-white/5 rounded-xl overflow-hidden transition-all">
+                                  <button 
+                                    onClick={() => setCategoriaPreguntaOberta(obert ? null : idx)}
+                                    className={`w-full p-2 px-3 text-left flex items-center justify-between text-[8.5px] font-black uppercase tracking-wider italic transition-all cursor-pointer ${
+                                      obert ? "bg-[#113254] text-[#00f296]" : "bg-[#1a3a5a]/20 text-white/80 hover:bg-[#1a3a5a]/45"
+                                    }`}
+                                  >
+                                    <span>{cat}</span>
+                                    <span className="text-[8px] opacity-70">{obert ? "▲" : "▼"}</span>
+                                  </button>
+                                  
+                                  {obert && (
+                                    <div className="bg-[#0b213b]/65 p-2.5 text-[8.5px] italic leading-relaxed text-slate-300 font-semibold border-t border-white/5">
+                                      {idx === 0 && "• Quina és la teva motivació principal per ser Mosso d'Esquadra de Catalunya? Quins són els valors claus?"}
+                                      {idx === 1 && "• Creus que el teu bagatge educatiu i de formació formal encaixa amb els camps que treballa la policia?"}
+                                      {idx === 2 && "• Explica alguna situació laboral en la que vas haver de gestionar un conflicte directe en equip de treball."}
+                                      {idx === 3 && "• Digues tres defectes i tres virtuts de la teva personalitat relacionades amb el servei públic."}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
 
-                      {/* CAPTURA 2: ENTREVISTA PERSONALITZADA */}
+                      {/* CAPTURA 2: DEMANA CITA AMB ELS PSICÒLEGS */}
                       {capturaPsicoActiva === 2 && (
-                        <div className="w-full h-full relative flex flex-col justify-between animate-fadeIn p-2.5 pt-6">
-                          <div className="flex-1 rounded-[28px] overflow-hidden border border-blue-900/30 shadow-md relative group">
-                            <img 
-                              src={psychoInterviewImage} 
-                              alt="Psychological Interview" 
-                              className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-                              referrerPolicy="no-referrer"
-                            />
-                            {/* Petits overlay indicators de l'app */}
-                            <div className="absolute bottom-2 left-2 right-2 bg-slate-950/80 border border-slate-800/80 p-1.5 rounded-xl text-center backdrop-blur-sm">
-                              <span className="text-[7px] text-blue-400 font-extrabold uppercase tracking-widest block font-bold">SIMULACRE REAL EN DIRECTE</span>
+                        <div className="w-full h-full relative flex flex-col justify-between animate-fadeIn p-3 pt-7 overflow-y-auto select-none">
+                          {/* Explicació per a no-programadors:
+                              En aquesta tercera vista col·loquem el formulari interactiu de Demana Cita - Psicòlegs.
+                              Dóna un dinamisme absolut permetent escollir hores o canviar de matí a tarda. */}
+                          <div className="flex flex-col items-center">
+                            <h4 className="text-[12px] font-black uppercase tracking-widest text-center text-white mt-1">
+                              PROVA PSICOLÒGICA
+                            </h4>
+                            <div className="h-[1.5px] bg-red-650 w-6 my-1" />
+                            <span className="text-[7px] text-[#FFDF00] font-black tracking-[0.2em] uppercase">
+                              DEMANA CITA - PSICÒLEGS
+                            </span>
+                          </div>
+
+                          {/* Card informativa general de dades */}
+                          <div className="mt-2.5 bg-[#1a3a5a]/20 border border-white/5 rounded-xl p-2.5 text-left">
+                            <p className="text-white/85 text-[8.5px] leading-relaxed italic">
+                              Per poder-te donar una experiència personalitzada ( com en l' <span className="text-yellow-500 font-extrabold">entrevista oficial</span> ) et recomane fer el <span className="text-fuchsia-400 font-extrabold">TEST BIODATA</span> per tal de que els nostres psicolegs tinguin el teu perfil psicoprofesional i et facin una <span className="text-yellow-550 font-extrabold">sesió personalitzada</span> i no generica.
+                            </p>
+                          </div>
+
+                          {/* Botó del Test de Biodata d'inducció */}
+                          <button className="w-full mt-2 border border-slate-700/60 bg-slate-900/60 text-slate-300 rounded-lg py-1.5 text-center text-[8.5px] font-black uppercase tracking-widest hover:text-white cursor-pointer active:scale-95 transition-all">
+                            🧠 FER EL TEST DE BIODATA
+                          </button>
+
+                          {/* Formulari d'elecció de cita de simulacre */}
+                          <div className="mt-3 bg-[#0a1f38] border border-white/5 rounded-xl p-3 flex flex-col gap-2.5">
+                            <div className="flex items-center justify-between text-[8px]">
+                              <div className="flex flex-col text-left">
+                                <span className="text-white/45 font-bold uppercase tracking-wider">DIA SELECCIONAT</span>
+                                <span className="text-white font-extrabold italic text-[9.5px]">DIVENDRES, 12 DE JUNY</span>
+                              </div>
+                              <button className="text-[#00f296] hover:underline font-black cursor-pointer">CANVIAR DIA</button>
                             </div>
+
+                            <div className="h-[1px] bg-white/5" />
+
+                            {/* Elecció de torns (Matí / Tarda) */}
+                            <div className="grid grid-cols-2 gap-1.5 text-center">
+                              <button 
+                                onClick={() => setCitaTornSeleccionat('mati')}
+                                className={`py-1 rounded-lg text-center text-[8px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                  citaTornSeleccionat === 'mati' 
+                                    ? "bg-[#00f296] text-slate-950 font-black" 
+                                    : "bg-slate-950/20 text-slate-400 border border-white/5"
+                                }`}
+                              >
+                                MATÍ
+                              </button>
+                              <button 
+                                onClick={() => setCitaTornSeleccionat('tarda')}
+                                className={`py-1 rounded-lg text-center text-[8px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                  citaTornSeleccionat === 'tarda' 
+                                    ? "bg-[#00f296] text-slate-950 font-black" 
+                                    : "bg-slate-950/20 text-slate-400 border border-white/5"
+                                }`}
+                              >
+                                TARDA
+                              </button>
+                            </div>
+
+                            {/* Llista d'hores seleccionables */}
+                            <div className="grid grid-cols-3 gap-1 mt-1 text-center">
+                              {(citaTornSeleccionat === 'mati' ? ['09:00', '10:00', '11:00', '12:00', '13:00'] : ['16:00', '17:00', '18:00', '19:00', '20:00']).map((hora) => {
+                                const seleccionada = citaHoraSeleccionada === hora;
+                                return (
+                                  <button 
+                                    key={hora}
+                                    onClick={() => setCitaHoraSeleccionada(hora)}
+                                    className={`py-1.5 rounded-md text-[8.5px] font-mono leading-none flex items-center justify-center transition-all cursor-pointer ${
+                                      seleccionada 
+                                        ? "bg-[#00f296]/20 border border-[#00f296] text-[#00f296] font-black" 
+                                        : "bg-[#11233d]/40 border border-white/5 text-slate-300 hover:border-white/15"
+                                    }`}
+                                  >
+                                    {hora}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {/* Botó de reserva gran i cridador d'atenció, de color verd vibrant */}
+                            <button className="w-full mt-1.5 bg-[#00f296] hover:bg-[#00d783] active:scale-95 text-slate-950 font-black uppercase tracking-widest text-[9.5px] py-2.5 rounded-lg text-center transition-all cursor-pointer shadow-lg shadow-emerald-950/20">
+                              RESERVAR ARA
+                            </button>
                           </div>
                         </div>
                       )}

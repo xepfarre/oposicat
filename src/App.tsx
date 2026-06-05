@@ -48,6 +48,7 @@ import LaMevaOposicio from './pantalles/oposimossos/la_meva_oposicio';
 // Nous components Modulars de la part Web i de d’Administració (Backoffice)
 import SelectorDesenvolupament, { VistaDesenvolupament } from './components/SelectorDesenvolupament';
 import WebLandingPC from './pantalles/web/WebLandingPC';
+import WebLoginPC from './pantalles/web/WebLoginPC';
 import WebWorkspacePC from './pantalles/web/WebWorkspacePC';
 import WebBackofficePC from './pantalles/web/WebBackofficePC';
 import WebLandingMobil from './pantalles/web/WebLandingMobil';
@@ -70,7 +71,19 @@ export default function App() {
   // Si aquest estat està en 'app_mobil' (que és el valor per defecte),
   // l'aplicació mòbil inicial es carrega al 100% igual que abans.
   // Podem canviar aquest canviador mitjançant el nostre selector flotant de desenvolupament.
-  const [vistaDev, setVistaDev] = useState<VistaDesenvolupament>('app_mobil');
+  // També comprovem si tenim el paràmetre "?marketing" o "?compartit" a la URL per iniciar directament al web de PC.
+  const [vistaDev, setVistaDev] = useState<VistaDesenvolupament>(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('marketing') || params.has('compartit')) {
+      return 'web_pc_workspace';
+    }
+    return 'app_mobil';
+  });
+
+  // Explicació per a no-programadors:
+  // Si l'enllaç porta el paràmetre especial "?marketing", amaguem els botons de control de disseny
+  // per poder fer la presentació neta d'estudi de PC de cara al llançament o a reunions amb l'equip.
+  const esVistaMarketing = new URLSearchParams(window.location.search).has('marketing') || new URLSearchParams(window.location.search).has('compartit');
   
   // Estats per al Backoffice
   const [mode, setMode] = useState<'app' | 'admin'>('app');
@@ -406,15 +419,70 @@ export default function App() {
       {/* RUTA DE L'APP: Experiència d'usuari (actual) */}
       <Route path="*" element={
         <div className="relative min-h-screen">
-          {/* EL SELECTOR FLOTANT SEMPRE ESTARÀ VISIBLE A UN COSTÓ PERÒ SUPERPOSAT SENSE INTERFERIR GENS */}
-          <SelectorDesenvolupament vistaActual={vistaDev} onChangeVista={setVistaDev} />
+          {/* EL SELECTOR FLOTANT SEMPRE ESTARÀ VISIBLE A UN COSTÓ, EXCEPTE EN LA VISTA ESPECIAL DE PRESENTACIÓ O MÀRKETING (?marketing=true) */}
+          {!esVistaMarketing && (
+            <SelectorDesenvolupament vistaActual={vistaDev} onChangeVista={setVistaDev} />
+          )}
+
+          {/* MODAL DE SESSIÓ DUPLICADA GLOBAL (Control anti-compartir compte) */}
+          {errorSessioDuplicada && (
+            <div id="modal-sessio-duplicada" className="fixed inset-0 z-[100000] bg-[#00274d]/98 backdrop-blur-xl flex items-center justify-center p-6">
+              <div className="bg-slate-900 border border-red-500/20 rounded-3xl p-8 max-w-sm text-center shadow-2xl flex flex-col items-center gap-5">
+                <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center text-red-500">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-white text-lg font-black italic uppercase tracking-wider">
+                    Sessió Tancada
+                  </h3>
+                  <p className="text-white/70 text-xs font-semibold leading-relaxed">
+                    S'ha detectat que has iniciat sessió des d'un altre dispositiu (mòbil, tauleta o ordinador d'un amic).
+                  </p>
+                  <p className="text-[#FFDF00] text-[9px] uppercase font-black tracking-widest leading-loose">
+                    Control d’accés privat actiu
+                  </p>
+                </div>
+                <button
+                  id="btn-tancar-modal-sessio"
+                  onClick={() => {
+                    setErrorSessioDuplicada(false);
+                    if (vistaDev.startsWith('web_pc_')) {
+                      setVistaDev('web_pc_website');
+                    } else {
+                      setPantalla('benvinguda_alpha');
+                    }
+                  }}
+                  className="w-full bg-red-600 hover:bg-red-700 active:scale-95 text-white text-xs font-black italic uppercase tracking-wider py-4 rounded-xl transition-all cursor-pointer"
+                >
+                  D'acord, tornar a l'inici
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* VISTES WEB CONDICIONALS DE DESENVOLUPAMENT */}
           {vistaDev === 'web_pc_website' && (
             <WebLandingPC 
-              onEntrarWorkspace={() => setVistaDev('web_pc_workspace')} 
+              onEntrarWorkspace={() => {
+                if (user) {
+                  setVistaDev('web_pc_workspace');
+                } else {
+                  setVistaDev('web_pc_login');
+                }
+              }} 
               onEntrarBackoffice={() => setVistaDev('web_pc_backoffice')}
               onSimularEntrarMovil={() => setVistaDev('web_mobil_website')}
+            />
+          )}
+
+          {vistaDev === 'web_pc_login' && (
+            <WebLoginPC 
+              onSessioIniciada={(perfil) => {
+                setVistaDev('web_pc_workspace');
+              }}
+              onTornar={() => setVistaDev('web_pc_website')}
             />
           )}
 
@@ -449,41 +517,7 @@ export default function App() {
           {/* NOMÉS SI ESTEM EN MODE APP MÒBIL S'EXECUTA LA LÒGICA ANTERIOR COMPLETAMENT SENSE TOCAR RES NI DESQUADRAR MARGES */}
           {vistaDev === 'app_mobil' && (
             <div className="contents">
-              {/* MODAL DE SESSIÓ DUPLICADA (Control anti-compartir compte) */}
-          {errorSessioDuplicada && (
-            <div id="modal-sessio-duplicada" className="fixed inset-0 z-[9999] bg-[#00274d]/95 backdrop-blur-xl flex items-center justify-center p-6">
-              <div className="bg-slate-900 border border-red-500/20 rounded-3xl p-8 max-w-sm text-center shadow-2xl flex flex-col items-center gap-5">
-                <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center text-red-500">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-white text-lg font-black italic uppercase tracking-wider">
-                    Sessió Tancada
-                  </h3>
-                  <p className="text-white/70 text-xs font-semibold leading-relaxed">
-                    S'ha detectat que has iniciat sessió des d'un altre dispositiu (mòbil, tauleta o ordinador d'un amic).
-                  </p>
-                  <p className="text-[#FFDF00] text-[9px] uppercase font-black tracking-widest leading-loose">
-                    Control d’accés privat actiu
-                  </p>
-                </div>
-                <button
-                  id="btn-tancar-modal-sessio"
-                  onClick={() => {
-                    setErrorSessioDuplicada(false);
-                    setPantalla('benvinguda_alpha');
-                  }}
-                  className="w-full bg-red-600 hover:bg-red-700 active:scale-95 text-white text-xs font-black italic uppercase tracking-wider py-4 rounded-xl transition-all cursor-pointer"
-                >
-                  D'acord, tornar a l'inici
-                </button>
-              </div>
-            </div>
-          )}
-
-          {user !== null && !user.emailVerified ? (
+              {user !== null && !user.emailVerified ? (
             <PantallaVerificacioCorreu 
               onVerificatCorrectament={() => {
                 // Forcem l'actualització del state de l'usuari amb la instància actualitzada de Firebase
