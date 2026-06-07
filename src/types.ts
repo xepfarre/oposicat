@@ -12,7 +12,7 @@ export interface PerfilUsuari {
   email: string;          // El correu electrònic de l'usuari
   displayName: string;    // El nom complet, nom públic o sobrenom de l'opositor
   photoURL?: string;       // Una adreça on està guardada la seva foto de perfil (si n'hi ha)
-  rol: 'opositor' | 'admin'; // El rang d'accés que té (opositor estàndard o administrador del backoffice)
+  rol: string;            // El rang d'accés que té (ex: 'admin_master', 'admin', 'usuari_free_trial', 'opositor')
   
   // Seguiment de l'estat del pagament de l'aplicació (Accessible per a control)
   haPagat: boolean;       // Ens diu de forma immediata si l'usuari ha pagat l'accés o no
@@ -41,4 +41,18 @@ export interface DadesSensiblesUsuari {
   facturaSol·licitada: boolean;      // Control si vol rebre factura automàtica en PDF per correu
   registreIpOriginal?: string;       // IP de registre purament si cal per auditories de seguretat d'admissions
   actualitzatEl?: any;               // Última data de canvi de dades
+}
+
+// Interfície per a la "taula" de rols definida a Firebase Firestore.
+// Comentari planer per a no-programadors:
+// Aquest model defineix les propietats indispensables de qualsevol canvi de rol,
+// com el seu identificador clau, el seu nom en català, i una breu explicació dels seus permisos.
+export interface ConfiguracioRol {
+  id: string;           // Identificador breu (ex: 'admin_master', 'treballador_nivell_1')
+  nom: string;          // Nom bonic i visible en català (ex: 'Admin Master', 'Treballador Nivell 1')
+  descripcio: string;   // Explicació clara de quines portes obre o tanca aquest rang
+  actiu: boolean;       // Ens diu si el rol es troba actiu ara mateix en l'organigrama
+  permisos?: {          // Mapa o calaix buit per poder afegir accions o checkmarks "a futur"
+    [permisNom: string]: boolean;
+  };
 }

@@ -131,8 +131,13 @@ export default function FormulariAutenticacio({
         onSessioIniciada(resultat.perfil);
       }, 1200);
     } catch (err: any) {
-      console.error("Error en autenticació Google:", err);
-      setErrorString(traduirErrorFirebase(err.code || ''));
+      if (err.code === 'auth/cancelled-popup-request' || err.code === 'auth/popup-closed-by-user') {
+        console.warn("Autenticació Google cancel·lada o tancada:", err.message);
+        setErrorString("Pestanya de Google tancada o petició cancel·lada. Torna-ho a provar.");
+      } else {
+        console.error("Error en autenticació Google:", err);
+        setErrorString(traduirErrorFirebase(err.code || ''));
+      }
     } finally {
       setCarregant(false);
     }

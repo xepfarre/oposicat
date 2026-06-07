@@ -13,6 +13,7 @@ import {
   doc, 
   getDoc, 
   setDoc, 
+  updateDoc,
   serverTimestamp 
 } from 'firebase/firestore';
 import { PerfilUsuari, DadesSensiblesUsuari } from '../types';
@@ -55,6 +56,32 @@ export async function inicialitzarDadesSensiblesSilenciós(uid: string): Promise
 }
 
 /**
+ * Funció de conveniència per assignar el rang d'accés (rol) en funció del correu d'entrada.
+ * Comentari planer per a no-programadors:
+ * Aquesta eina analitza l'estudiant que vol entrar i l'equip d'estudi:
+ * - xepfarre@gmail.com serà Admin Master (el rol amb més permisos).
+ * - xepfarre7@gmail.com, o qualsevol amb el correu que comenci o contingui sergi o eudald seran Administradors normals.
+ * - Qualsevol altre entra per defecte com a "usuari_free_trial" (compte de 3 dies de prova).
+ */
+export function determinarRolSegonsEmail(email: string | null | undefined, rolActual?: string): string {
+  if (!email) return rolActual || 'usuari_free_trial';
+  const emailLower = email.toLowerCase();
+  
+  if (emailLower === 'xepfarre@gmail.com') {
+    return 'admin_master';
+  }
+  
+  if (
+    emailLower === 'xepfarre7@gmail.com' ||
+    emailLower === 'sergivinu@gmail.com'
+  ) {
+    return 'admin';
+  }
+  
+  return rolActual || 'usuari_free_trial';
+}
+
+/**
  * FUNCIO CRÍTICA (BLINDATGE CONTRA DESSINCRONITZACIÓ DE BASE DE DADES):
  * Comprova si l'estudiant té un document a Firestore i, si per un error de connexió o de xarxa
  * no el tenia, el crea silenciósament a l'instant amb paràmetres temporals/segurs.
@@ -71,16 +98,25 @@ export async function garantirFitxaPerfilFirestore(firebaseUser: FirebaseUser, n
     if (instantDoc.exists()) {
       // Si el document ja existeix, el retornem exactament com està
       perfil = instantDoc.data() as PerfilUsuari;
+      
+      // Auto-actualització del rol si escau (ex: si és un admin master o admin nou de la llista)
+      const rolCorrecte = determinarRolSegonsEmail(firebaseUser.email, perfil.rol);
+      if (perfil.rol !== rolCorrecte) {
+        perfil.rol = rolCorrecte;
+        await updateDoc(referencaDocument, { rol: rolCorrecte });
+      }
     } else {
       // SI NO EXISTEIX: El creem a l'instant! Evitem que l'opositor tingui un perfil incomplet ("dessincronització")
       console.warn(`L'estudiant ${firebaseUser.uid} no tenia fitxa de perfil. L'estem autocreant silenciósament.`);
+      
+      const rolInicial = determinarRolSegonsEmail(firebaseUser.email, 'usuari_free_trial');
       
       const nouPerfil: PerfilUsuari = {
         uid: firebaseUser.uid,
         email: firebaseUser.email || '',
         displayName: nomDefault || firebaseUser.displayName || 'Nou Opositor',
         photoURL: firebaseUser.photoURL || '',
-        rol: 'opositor', // Per defecte tothom qui entra és estudiant/opositor
+        rol: rolInicial, // Per defecte tothom qui entra comença amb aquest rol decidit
         haPagat: false,  // Per seguretat, comença sempre com a pendent fins que comprovem el pagament
         estatSubscripcio: 'pendent_de_pagament',
         creatEl: serverTimestamp(),
@@ -104,7 +140,7 @@ export async function garantirFitxaPerfilFirestore(firebaseUser: FirebaseUser, n
       uid: firebaseUser.uid,
       email: firebaseUser.email || '',
       displayName: nomDefault || firebaseUser.displayName || 'Estudiant en mode desconectat',
-      rol: 'opositor',
+      rol: 'usuari_free_trial', // Per defecte és Free Trial
       haPagat: false,
       estatSubscripcio: 'pendent_de_pagament',
       creatEl: new Date(),
@@ -131,7 +167,7 @@ export async function crearCompteAmbCorreu(email: string, contrasenya: string, n
     uid: firebaseUser.uid,
     email: email,
     displayName: nomEstudiant,
-    rol: 'opositor',
+    rol: 'usuari_free_trial', // Per defecte a OposiCAT el registre atorga un compte de Prova gratuït (Free Trial admès de 3 dies)
     haPagat: false, // Per defecte és gratuït (no té el pagament registrat)
     estatSubscripcio: 'pendent_de_pagament',
     creatEl: serverTimestamp(),

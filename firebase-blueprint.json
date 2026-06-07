@@ -108,6 +108,145 @@
         }
       },
       "required": ["uid", "facturaSol·licitada"]
+    },
+    "Rol": {
+      "title": "Perfil de Rol i Permisos",
+      "description": "Model que defineix el nom, codi i capacitats de cada rol d'usuari a OposiCAT.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador textual i clau del rol (ex: admin, treballador_nivell_1)"
+        },
+        "nom": {
+          "type": "string",
+          "description": "Nom complet i bonic en català per mostrar a pantalles"
+        },
+        "descripcio": {
+          "type": "string",
+          "description": "Explicació detallada de quin personal ostenta aquest rol i què se suposa que pot fer"
+        },
+        "permisos": {
+          "type": "object",
+          "description": "Mapa clau-valor que conté si té permís o no per realitzar accions (de moment buit de contingut)"
+        },
+        "actiu": {
+          "type": "boolean",
+          "description": "Control de si el rol està habilitat temporalment o no"
+        }
+      },
+      "required": ["id", "nom", "descripcio"]
+    },
+    "Notificacio": {
+      "title": "Avís o Notificació del Centre de Control",
+      "description": "Notificacions de l'aplicació llançades pels administradors de forma immediata o programada.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador únic de la notificació"
+        },
+        "titol": {
+          "type": "string",
+          "description": "Títol o encapçalat de l'avís"
+        },
+        "cos": {
+          "type": "string",
+          "description": "Cos o descripció textual de l'avís"
+        },
+        "canal": {
+          "type": "string",
+          "enum": ["WEB_APP", "EMAIL", "PUSH_MOBIL"],
+          "description": "Canal d'entrega de la notificació"
+        },
+        "audiencia": {
+          "type": "string",
+          "description": "Filtre d'audiència de l'avís (ex: TOTS ELS ALUMNES)"
+        },
+        "accio": {
+          "type": "string",
+          "enum": ["ENVIAR", "PLANTILLA", "PROGRAMAR"],
+          "description": "Acció o propòsit original"
+        },
+        "suspesa": {
+          "type": "boolean",
+          "description": "Control de si la notificació programada s'ha detingut o posat en pausa"
+        },
+        "dataProgramada": {
+          "type": "string",
+          "description": "Data de sortida asíncrona registrada en format text"
+        },
+        "horaProgramada": {
+          "type": "string",
+          "description": "Hora de sortida registrada en format text"
+        },
+        "creadaEl": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Instant d'alta a la base de dades"
+        },
+        "creadaPer": {
+          "type": "string",
+          "description": "Correu electrònic de l'administrador que ha redactat l'avís"
+        }
+      },
+      "required": ["id", "titol", "cos", "canal", "audiencia", "accio", "creadaEl"]
+    },
+    "TokensDispositiu": {
+      "title": "Token Push de l'Smartphone",
+      "description": "Identificador de subscripció FCM (Firebase Cloud Messaging) de l'estudiant per rebre avisos al mòbil.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID de l'opositor propietari del telèfon"
+        },
+        "token": {
+          "type": "string",
+          "description": "Token i claus de l'Smartphone per hacer l'envio seguro des de FCM/APNs"
+        },
+        "plataforma": {
+          "type": "string",
+          "enum": ["android", "ios", "web_pc"],
+          "description": "Tipus de sistema operatiu detectat per l'Smartphone"
+        },
+        "actualitzatEl": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Últim pols de connexió per evitar duplicat de tokens"
+        }
+      },
+      "required": ["userId", "token", "plataforma", "actualitzatEl"]
+    },
+    "TokensDispositiuGlobal": {
+      "title": "Token Push de l'Smartphone Arrel",
+      "description": "Identificador de subscripció FCM global directament a l'arrel amb dades de contacte ràpid.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Identificador únic d'usuari a Firebase Auth"
+        },
+        "email": {
+          "type": "string",
+          "description": "Adreça de correu de l'estudiant per enllaç de contacte ràpid"
+        },
+        "token": {
+          "type": "string",
+          "description": "Token únic de FCM per a entrega de notificacions de tota la vida"
+        },
+        "plataforma": {
+          "type": "string",
+          "enum": ["android", "ios", "web_pc"],
+          "description": "Plataforma del dispositiu mòbil o ordinador"
+        },
+        "creadaEl": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Data i hora exacta de registre en calent"
+        }
+      },
+      "required": ["userId", "email", "token", "plataforma", "creadaEl"]
     }
   },
   "firestore": {
@@ -118,6 +257,22 @@
     "usuaris/{userId}/dades_privades/{docId}": {
       "schema": "DadesSensiblesUsuari",
       "description": "Subcol·lecció altament blindada contra accessos no autenticats per l'emissió confidencial de factures"
+    },
+    "usuaris/{userId}/tokens_fcm/{tokenId}": {
+      "schema": "TokensDispositiu",
+      "description": "Subcol·lecció on es guarden els claus asíncrons dels telèfons intel·ligents de l'opositor per a ús de Push de mòbil"
+    },
+    "fcm_tokens/{tokenId}": {
+      "schema": "TokensDispositiuGlobal",
+      "description": "Col·lecció global de registre de claus físics FCM d'opositors per fer enviaments directes i multilaterals des de l'administració"
+    },
+    "rols/{rolId}": {
+      "schema": "Rol",
+      "description": "Col·lecció de configuració dels diferents rols de l'ecosistema i organització de treball de OposiCAT"
+    },
+    "notificacions/{notificacioId}": {
+      "schema": "Notificacio",
+      "description": "Col·lecció de notificacions enviades, plantilles i avisos programats creats pels administradors"
     }
   }
 }

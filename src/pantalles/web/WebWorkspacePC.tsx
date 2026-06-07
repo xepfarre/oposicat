@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { auth, db } from '../../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { TEMARI_DETALL } from '../../constants/temari';
 import { CONTINGUT_TEMARI_TEXTS } from '../../constants/contingut_textos';
 import { 
@@ -45,29 +45,136 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
   const [nomEstudiantReal, setNomEstudiantReal] = useState<string>('👤 Estudiant');
   const [desplegablePerfilObert, setDesplegablePerfilObert] = useState<boolean>(false);
   
-  // Explicació per a no-programadors: Llista dinàmica de 10 notificacions corporatives de preparació a l'oposició. Ens permetrà mostrar notificacions d'alta qualitat sobre el temari, simulacres i psicotècnics. L'estudiant pot veure-les de forma interactiva en format d'scroll vertical i marcar-les com a llegides.
-  const [notificacions, setNotificacions] = useState([
-    { id: 1, titol: "📅 Simulacre de Prova Física de dissabte", text: "S'ha obert la convocatòria per al simulacre presencial del cap de setmana a l'escola de Policia de Sabadell. Reserva la teva plaça ja!", llegida: false, data: "Fa 5 min", importancia: "poc" },
-    { id: 2, titol: "📝 Temari Actualitzat: Tema 1.2 d'Estatut", text: "Nou pdf ujador a 'Actualitat' sobre les darreres esmenes de l'Estatut d'Autonomia de Catalunya. Recomanat llegir-lo avui.", llegida: false, data: "Fa 20 min", importancia: "important" },
-    { id: 3, titol: "🚀 Nou Examen Teòric de l'Àmbit A", text: "Ja pots fer el test interactiu sobre la Constitució Espanyola de 1978 per comprovar el teu nivell d'estudis ràpidament.", llegida: false, data: "Fa 1 hora", importancia: "molt" },
-    { id: 4, titol: "🧠 Psicotècnics d'Orientació Espacial ràpids", text: "S'han afegit 30 noves preguntes de sèries florals de figures i blocs tridimensionals a la secció de psicotècnics.", llegida: false, data: "Fa 3 hores", importancia: "poc" },
-    { id: 5, titol: "🥑 Dieta Personalitzada d'Alt Rendiment", text: "Instruccions de la dieta descarregable de la setmana per obtenir una recuperació muscular ràpida després del press de banca.", llegida: false, data: "Fa 1 dia", importancia: "important" },
-    { id: 6, titol: "💡 Consell Psicologia: Gestió d'Ansietat", text: "Llegeix el nou article explicatiu de la nostra psicòloga sobre el control del rumb cardíac el dia de l'oposició.", llegida: false, data: "Fa 2 dies", importancia: "poc" },
-    { id: 7, titol: "🎙️ Nou Podcast de Repàs de l'Àmbit B", text: "Àudio disponible per escoltat sobre el Parlament de Catalunya per memoritzar-lo fàcilment de camí cap al treball.", llegida: false, data: "Fa 3 dies", importancia: "poc" },
-    { id: 8, titol: "💪 Seguiment de resistència: Course Navette", text: "No t'oblidis de pujar les teves darreres marques d'atletisme a l'eina de recerca d'evolució diària.", llegida: false, data: "Fa 4 dies", importancia: "important" },
-    { id: 9, titol: "📋 Simulacre General d'Examen Tipus Test", text: "Nou simulacre de model oficial llimat amb preguntes del darrer any de Mossos d'Esquadra i Bombers de la Generalitat.", llegida: false, data: "Fa 5 dies", importancia: "molt" },
-    { id: 10, titol: "🔔 Vídeo en Directe del Webinar de Dubtes", text: "Vídeo disponible del webinar en directe on s'explica la composició i el funcionament de la junta de seguretat.", llegida: false, data: "Fa 1 setmana", importancia: "poc" }
-  ]);
+  // Explicació per a no-programadors: Estats reactius de control que guarden si Firebase ja ha resolt l'espera de la sessió del navegador (authCarregada) i quina és la fitxa activa de l'estudiant loguejat (usuariActiu). Això blinda completament la sincronització de dades.
+  const [usuariActiu, setUsuariActiu] = useState<any>(null);
+  const [authCarregada, setAuthCarregada] = useState<boolean>(false);
+  
+  // Explicació per a no-programadors: Guardem en el navegador de l'alumne (localStorage) quines notificacions de Firestore ja ha llegit per no barrejar dades entre diferents estudiants que comparteixen la maieixa base de dades.
+  const [notificacionsLlegidesIds, setNotificacionsLlegidesIds] = useState<string[]>(() => {
+    try {
+      const deLocalStorage = localStorage.getItem('oposicat_notificacions_llegides');
+      return deLocalStorage ? JSON.parse(deLocalStorage) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Explicació per a no-programadors: Llista dinàmica de notificacions oficials obtingudes en temps real des de la base de dades de Firestore. S'actualitza automàticament cada cop que l'administrador publica una alerta o plantilla d'avís des del Centre de Notificacions d'OposiCAT.
+  const [notificacions, setNotificacions] = useState<any[]>([]);
+
+  // Explicació per a no-programadors: Aquest efecte es connecta en temps real a la col·lecció "notificacions" de Firestore quan l'usuari s'ha identificat correctament, d'aquesta manera qualsevol dispositiu de l'estudiant rep en calent les darreres alertes de l'equip de repàs d'OposiCAT sense fallades de permisos.
+  useEffect(() => {
+    if (!authCarregada || !usuariActiu) {
+      // Si la comprovació inicial encara corre, no llançarem consultes en fals que puguin donar error "Missing or insufficient permissions"
+      return;
+    }
+
+    const colRef = collection(db, 'notificacions');
+    const q = query(colRef, orderBy('creadaEl', 'desc'), limit(50));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const elements: any[] = [];
+      snapshot.forEach((docSnap) => {
+        const dades = docSnap.data();
+        
+        // Només mostrem les notificacions que hagin estat finalment "enviades" o les que no estiguin explicitament suspeses pel panell d'administració
+        if (dades.accio === 'ENVIAR' && !dades.suspesa) {
+          // Calculem la data o el temps relatiu transcorregut amb un llenguatge planer i fàcil d'enviament de l'escola de repàs
+          let textTemps = "Ara mateix";
+          if (dades.creadaEl && typeof dades.creadaEl.toDate === 'function') {
+            const dataCreacio = dades.creadaEl.toDate();
+            const diferenciaMs = Date.now() - dataCreacio.getTime();
+            const diferenciaMinuts = Math.floor(diferenciaMs / 60000);
+            const diferenciaHores = Math.floor(diferenciaMinuts / 60);
+            
+            if (diferenciaMinuts < 1) {
+              textTemps = "Ara mateix";
+            } else if (diferenciaMinuts < 60) {
+              textTemps = `Fa ${diferenciaMinuts} min`;
+            } else if (diferenciaHores < 24) {
+              textTemps = `Fa ${diferenciaHores} h`;
+            } else {
+              const dia = dataCreacio.getDate();
+              const mesos = ["gen.", "febr.", "març", "abr.", "maig", "juny", "jul.", "ag.", "set.", "oct.", "nov.", "des."];
+              textTemps = `${dia} de ${mesos[dataCreacio.getMonth()]}`;
+            }
+          } else {
+            textTemps = "Recentment";
+          }
+
+          // Inferim la importància de forma intel·ligent segons el canal d'enviament o paraules clau reals del títol del missatge corporatiu de l'escola de repàs d'OposiCAT
+          let imp = "poc";
+          const titolLower = (dades.titol || "").toLowerCase();
+          
+          if (titolLower.includes("important") || titolLower.includes("urgent") || titolLower.includes("canvi") || dades.canal === "PUSH_MOBIL") {
+            imp = "molt";
+          } else if (titolLower.includes("simulacre") || titolLower.includes("nou") || titolLower.includes("actualitzat") || dades.canal === "WEB_APP") {
+            imp = "important";
+          }
+          
+          elements.push({
+            id: docSnap.id,
+            titol: dades.titol || "Avís oficial OposiCAT",
+            text: dades.cos || "",
+            llegida: notificacionsLlegidesIds.includes(docSnap.id),
+            data: textTemps,
+            importancia: imp
+          });
+        }
+      });
+      setNotificacions(elements);
+    }, (error) => {
+      // Explicació per a no-programadors: En cas d'un d'error per permisos en desconnectar-se d'un ordinador, ignorem l'alarma temporalment per evitar alertes falses al navegador de l'alumne durant el tancament de sessió.
+      const isPermissionError = error instanceof Error && error.message.toLowerCase().includes('permission');
+      if (isPermissionError && !auth.currentUser) {
+        return;
+      }
+      const dadesSessioError = {
+        error: error instanceof Error ? error.message : String(error),
+        operationType: 'list',
+        path: 'notificacions',
+        authInfo: {
+          userId: auth.currentUser?.uid,
+          email: auth.currentUser?.email,
+          emailVerified: auth.currentUser?.emailVerified
+        }
+      };
+      console.warn("Firestore info log d'alarma d'estudiant:", JSON.stringify(dadesSessioError));
+    });
+
+    return () => unsubscribe();
+  }, [notificacionsLlegidesIds, authCarregada, usuariActiu]);
+
   const [desplegableNotificacionsObert, setDesplegableNotificacionsObert] = useState<boolean>(false);
   const numNotificacions = notificacions.filter(n => !n.llegida).length;
 
-  // Explicació per a no-programadors: Funcions interactives per a gestionar l'estat de les notificacions d'estudi. Podem marcar-les de forma síncrona totes llegides alhora o anar alternant-ne la lectura d'una en una.
+  // Explicació per a no-programadors: Marcar totes les notificacions alhora com a llegides guardant-ne els indicadors ID a la memòria permanent de l'ordinador (localStorage).
   const marcarTotesComALlegides = () => {
-    setNotificacions(prev => prev.map(n => ({ ...n, llegida: true })));
+    const totsElsIds = notificacions.map(n => n.id);
+    const nousIdsLlegits = Array.from(new Set([...notificacionsLlegidesIds, ...totsElsIds]));
+    setNotificacionsLlegidesIds(nousIdsLlegits);
+    try {
+      localStorage.setItem('oposicat_notificacions_llegides', JSON.stringify(nousIdsLlegits));
+    } catch (e) {
+      console.warn("No s'ha pogut escriure a localStorage:", e);
+    }
   };
 
-  const alternarNotificacioLlegida = (id: number) => {
-    setNotificacions(prev => prev.map(n => n.id === id ? { ...n, llegida: !n.llegida } : n));
+  // Explicació per a no-programadors: Canviar l'estat d'una sola notificació en fer-hi clic (si està llogida es torna no llegida, o al revés).
+  const alternarNotificacioLlegida = (id: string | number) => {
+    const idStr = String(id);
+    let nousIds: string[];
+    if (notificacionsLlegidesIds.includes(idStr)) {
+      nousIds = notificacionsLlegidesIds.filter(x => x !== idStr);
+    } else {
+      nousIds = [...notificacionsLlegidesIds, idStr];
+    }
+    setNotificacionsLlegidesIds(nousIds);
+    try {
+      localStorage.setItem('oposicat_notificacions_llegides', JSON.stringify(nousIds));
+    } catch (e) {
+      console.warn("No s'ha pogut escriure a localStorage:", e);
+    }
   };
   
   // Controls de desplegables d'acordió interns tant del menú esquerre com de la zona dreta
@@ -359,9 +466,12 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
 
     // Escoltador d'autenticació en viu per canvis ràpids o càrregues asíncrones
     const subscripcioAuth = auth.onAuthStateChanged((usuariActiu) => {
+      setAuthCarregada(true);
       if (usuariActiu) {
+        setUsuariActiu(usuariActiu);
         carregarPerfilReal();
       } else {
+        setUsuariActiu(null);
         setNomEstudiantReal('👤 Estudiant');
       }
     });

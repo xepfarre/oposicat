@@ -15,10 +15,13 @@ import {
   collectionGroup
 } from "firebase/firestore";
 import AdminLogin from "./AdminLogin";
+import GestioRols from "./GestioRols";
+import CentreNotificacions from "./CentreNotificacions";
 import { DATA_CATALUNYA } from "../../data/municipis";
 import { 
   Plus, 
   Trash2, 
+  Bell,
   LayoutDashboard, 
   BookOpen, 
   Newspaper, 
@@ -137,6 +140,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
   const navigate = useNavigate();
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isAdminVerified, setIsAdminVerified] = useState(false);
+  const [userRol, setUserRol] = useState<string>("usuari_free_trial");
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -148,7 +152,8 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     proves: false,
     pagaments: false,
     usuaris: false,
-    analisis: false
+    analisis: false,
+    notificacions: false
   });
   const [animationState, setAnimationState] = useState<'base' | 'color1' | 'color2'>('base');
   const [darkMode, setDarkMode] = useState(() => {
@@ -308,15 +313,44 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
       setCheckingAuth(true);
       if (currentUser) {
         // Llista blindada d'emails administradors oficials de l'ecosistema OposiCAT
-        const adminEmails = ["xepfarre@gmail.com", "sergivinu@gmail.com"];
-        const pertanyALlista = adminEmails.includes(currentUser.email || "");
+        const adminEmails = ["xepfarre@gmail.com", "xepfarre7@gmail.com", "sergivinu@gmail.com"];
+        const emailLower = (currentUser.email || "").toLowerCase();
+        const pertanyALlista = adminEmails.includes(emailLower);
         
         let teRolAdmin = false;
         try {
           // Consultem de forma segura la fitxa d'usuari a Firestore per verificar el camp "rol"
           const userDoc = await getDoc(doc(db, "usuaris", currentUser.uid));
-          if (userDoc.exists() && userDoc.data().rol === "admin") {
-            teRolAdmin = true;
+          if (userDoc.exists()) {
+            const dades = userDoc.data();
+            let rolActual = dades.rol || "usuari_free_trial";
+            
+            // Comentari planer per a no-programadors:
+            // Si el correu de la persona que entra pertany a la llista oficial d'administradors (xepfarre, sergi, etc.)
+            // però té dades antigues o un rol d'"opositor" a Firestore, el sistema el promou automàticament a
+            // "admin_master" o "admin" a la base de dades perquè no quedi mai bloquejat dels menús de gestió.
+            if (pertanyALlista) {
+              const rolCorrecte = (emailLower === "xepfarre@gmail.com") ? "admin_master" : "admin";
+              if (rolActual !== rolCorrecte) {
+                console.log(`[FORCED-ADMIN-UPGRADE] Actualitzant rol de ${emailLower} de "${rolActual}" a "${rolCorrecte}" per aliniar-lo amb la llista de seguretat.`);
+                try {
+                  await updateDoc(doc(db, "usuaris", currentUser.uid), { rol: rolCorrecte });
+                  rolActual = rolCorrecte;
+                } catch (updateErr) {
+                  console.error("Error actualitzant rol d'administrador forçat a Firestore:", updateErr);
+                }
+              }
+            }
+            
+            setUserRol(rolActual);
+            const rolsPermesosBackoffice = ["admin_master", "admin", "treballador_nivell_1", "treballador_nivell_2", "treballador_nivell_3"];
+            if (rolsPermesosBackoffice.includes(rolActual)) {
+              teRolAdmin = true;
+            }
+          } else {
+            // Si és nou o encara no té doc Firestore creat, calculem el provisional temporal
+            const provisional = (emailLower === "xepfarre@gmail.com") ? "admin_master" : "admin";
+            setUserRol(provisional);
           }
         } catch (e) {
           console.error("Error durant la consulta del rol d'administrador a la base de dades:", e);
@@ -365,6 +399,37 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     };
 
     try {
+      // Autoseed silenciosos de Rols si estan buits a la base de dades
+      try {
+        const rolsSnap = await getDocs(collection(db, "rols"));
+        if (rolsSnap.empty) {
+          console.log("[AUTO-SEED] Sementant els 10 rols predefinits d'OposiCAT...");
+          const ROLS_PRE_DEFINITS = [
+            { id: "admin_master", nom: "Admin Master", descripcio: "Rol superior absolut. Accés total a totes les configuracions, eliminacions de bases de dades i capacitat per llançar notificacions globals.", actiu: true, permisos: { enviarNotificacions: true } },
+            { id: "admin", nom: "Administrador / Soci", descripcio: "Accés reservat als 2 socis fundadors. Permet visualitzar estadístiques, comprovar finances, gestionar opositors i llançar notificacions oficials.", actiu: true, permisos: { enviarNotificacions: true } },
+            { id: "tester", nom: "Tester / Provador", descripcio: "Perfil de proves destinat a validar exàmens asíncrons i auditar mòduls de notificacions abans del llançament oficial.", actiu: false, permisos: { enviarNotificacions: false } },
+            { id: "treballador_nivell_1", nom: "Treballador Nivell 1", descripcio: "Gestor de continguts teòrics i d'actualitat de nivell bàsic. Edita temes però no pot enviar notificacions ni eliminar exàmens.", actiu: true, permisos: { enviarNotificacions: false } },
+            { id: "treballador_nivell_2", nom: "Treballador Nivell 2", descripcio: "Gestor de nivell mitjà. Habilitat per gestionar incidències, assignar consultes amb psicòlegs i crear calendaris físics.", actiu: true, permisos: { enviarNotificacions: false } },
+            { id: "treballador_nivell_3", nom: "Treballador Nivell 3", descripcio: "Coordinador operatiu de continguts. Té permís per redactar notificacions push de l'APP d'estudi però no per enviar-les directament de forma immediata.", actiu: true, permisos: { enviarNotificacions: false } },
+            { id: "usuari", nom: "Usuari Opositor", descripcio: "Perfil estàndard dels estudiants de pagament complet. Accés i dret a visualitzar temari i fer entrenaments.", actiu: true, permisos: { enviarNotificacions: false } },
+            { id: "usuari_free_trial", nom: "Usuari Prova (Free Trial)", descripcio: "Compte de prova gratuïta de 3 dies per a nous alumnes/usuaris registrats. No tenen accés d'edició ni dret d'enviament de cap mena.", actiu: true, permisos: { enviarNotificacions: false } },
+            { id: "usuari_bannejat", nom: "Usuari Bannejat", descripcio: "Accés totalment bloquejat per violació de termes d'ús de comptes compartits o impagament.", actiu: true, permisos: { enviarNotificacions: false } },
+            { id: "usuari_sospitos", nom: "Usuari Sospitós", descripcio: "Estat en observació automatitzada. Permet l'estudi de contingut general, però bloqueja canvis o reserves de cita.", actiu: true, permisos: { enviarNotificacions: false } }
+          ];
+          for (const r of ROLS_PRE_DEFINITS) {
+            await setDoc(doc(db, "rols", r.id), {
+              nom: r.nom,
+              descripcio: r.descripcio,
+              actiu: r.actiu,
+              permisos: r.permisos || {},
+              actualitzatEl: serverTimestamp()
+            }, { merge: true });
+          }
+        }
+      } catch (err) {
+        console.warn("No s'ha pogut auto-verificar o crear la col·lecció de rols:", err);
+      }
+
       // Executem totes les consultes EN PARAL·LEL i de forma aïllada i resistent a errades
       const [
         snapNew, snapOld, snapAct, snapGim, snapRes, snapSub, snapPsiTip, snapPsiPreg, snapExFis, snapPlaFis,
@@ -764,6 +829,12 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
 
   const handleAddActualitat = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (userRol !== "admin_master" && userRol !== "admin") {
+      setFetchError("Accés denegat: Només els rols d'Admin Master i Administradors tenen permís de notificació / inserció.");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => setFetchError(null), 5000);
+      return;
+    }
     setLoading(true);
     try {
       await addDoc(collection(db, "actualitat"), {
@@ -783,6 +854,12 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
 
   const handleAddActualitatPregunta = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (userRol !== "admin_master" && userRol !== "admin") {
+      setFetchError("Accés denegat: Només els rols d'Admin Master i Administradors tenen permís de notificació / inserció.");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => setFetchError(null), 5000);
+      return;
+    }
     setLoading(true);
     try {
       await addDoc(collection(db, "actualitat_preguntes"), {
@@ -1139,6 +1216,12 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                           onClick={() => {
                             setAppType(type);
                             setIsSelectorOpen(false);
+                            // Comentari planer per a no-programadors:
+                            // Quan seleccionem un cos de seguretat des del desplegable superior (com Mossos d'Esquadra),
+                            // redirigim a l'usuari directament al camí d'inici arrel de l'administració ("/admin").
+                            // Això garanteix que vegi primer la benvinguda original del servei d'OposiCAT
+                            // en lloc de quedar-se clavat a la pàgina de notificacions o qualsevol altra pantalla antiga.
+                            navigate('/admin');
                           }}
                           className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all ${appType === type ? 'bg-yellow-400 text-[#001a33]' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}
                         >
@@ -1220,6 +1303,34 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                     active={activeTab === 'usuaris'} 
                     icon={<Users size={18} />} 
                     label="Llista d'Usuaris" 
+                  />
+                  <SidebarItem 
+                    to="/admin/rols" 
+                    active={activeTab === 'rols'} 
+                    icon={<Shield size={18} />} 
+                    label="Gestió de Rols" 
+                    badge="Nova"
+                  />
+                </CollapsibleSection>
+              </div>
+
+              {/* LÍNIA DIVISÒRIA */}
+              <div className="h-px bg-white/10 mx-2" />
+
+              {/* SECCIÓ 4: COMUNICACIÓ (CENTRE DE NOTIFICACIONS ACCESSIBLE) */}
+              <div className="space-y-1">
+                <CollapsibleSection 
+                  title="Centre de Notificacions" 
+                  isOpen={openSections.notificacions} 
+                  onToggle={() => toggleSection('notificacions')}
+                  icon={<Bell size={14} />}
+                >
+                  <SidebarItem 
+                    to="/admin/notificacions" 
+                    active={activeTab === 'notificacions'} 
+                    icon={<Bell size={18} />} 
+                    label="Notificacions" 
+                    badge="Avisos"
                   />
                 </CollapsibleSection>
               </div>
@@ -1452,6 +1563,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                 success={success}
                 darkMode={darkMode}
                 onLoadMock={loadMockNews}
+                userRol={userRol}
               />
             } />
             <Route path="actualitat-preguntes" element={
@@ -1469,6 +1581,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                 loading={loading}
                 success={success}
                 darkMode={darkMode}
+                userRol={userRol}
               />
             } />
             <Route path="psicotecnica-tipus" element={
@@ -1620,6 +1733,35 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                 onUpdateUser={async (uid: string, data: any) => {
                   setLoading(true);
                   try {
+                    // Comentari planer per a no-programadors:
+                    // Si s'està modificant el rol d'un opositor/estudiant des d'aquesta taula,
+                    // enregistrem un canvi manual dins del registre cloud d'auditoria de socis.
+                    if (data && data.rol !== undefined) {
+                      const userDoc = await getDoc(doc(db, "usuaris", uid));
+                      if (userDoc.exists()) {
+                        const dadesAbans = userDoc.data();
+                        const anticRol = dadesAbans.rol || "opositor";
+                        
+                        // Només realitzem la gravació del log si el rol s'ha modificat realment
+                        if (anticRol !== data.rol) {
+                          const autorEmail = auth.currentUser?.email || "desconegut";
+                          const autorNom = auth.currentUser?.displayName || "Administrador OposiCAT";
+                          
+                          await addDoc(collection(db, "logs_rols"), {
+                            quiRealitzaNom: autorNom,
+                            quiRealitzaEmail: autorEmail,
+                            usuariAfectatId: uid,
+                            usuariAfectatNom: dadesAbans.displayName || "Novell Opositor",
+                            usuariAfectatEmail: dadesAbans.email || "sense@email.com",
+                            rolAnterior: anticRol,
+                            rolNou: data.rol,
+                            fecha: serverTimestamp(),
+                            tipusModificacio: "manual" // Identificador essencial que indica que el canvi és manual
+                          });
+                        }
+                      }
+                    }
+
                     await updateDoc(doc(db, "usuaris", uid), data);
                     fetchData();
                   } catch (err) {
@@ -1648,6 +1790,8 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                 darkMode={darkMode}
               />
             } />
+            <Route path="rols" element={<GestioRols darkMode={darkMode} />} />
+            <Route path="notificacions" element={<CentreNotificacions darkMode={darkMode} />} />
             <Route path="manteniment" element={
               <MantenimentView 
                 onPurgeCollection={handlePurgeCollection}
@@ -3057,7 +3201,7 @@ function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onD
 /**
  * VIEW: Actualitat
  */
-function ActualitatView({ actualitats, novaActualitat, setNovaActualitat, onSubmit, onDelete, loading, success, darkMode, onLoadMock }: any) {
+function ActualitatView({ actualitats, novaActualitat, setNovaActualitat, onSubmit, onDelete, loading, success, darkMode, onLoadMock, userRol }: any) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [filterTitle, setFilterTitle] = useState("");
   const [filterCategoria, setFilterCategoria] = useState("");
@@ -3155,6 +3299,11 @@ function ActualitatView({ actualitats, novaActualitat, setNovaActualitat, onSubm
                   className="overflow-hidden"
                 >
                   <div className={`p-8 rounded-[2.5rem] border-2 mt-4 shadow-2xl ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-50 text-slate-800'}`}>
+                    {userRol !== "admin_master" && userRol !== "admin" && (
+                      <div className="p-4 mb-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs font-bold leading-relaxed">
+                        Atenció! Tens el rol "{userRol}". No disposes de permís actiu per crear, publicar o llançar dades d'actualitat als opositors en aquest moment.
+                      </div>
+                    )}
                     <form onSubmit={(e) => {
                        onSubmit(e);
                        if (success) setIsFormOpen(false);
@@ -3386,7 +3535,7 @@ function ActualitatView({ actualitats, novaActualitat, setNovaActualitat, onSubm
  * preparar una pregunta d'examen (tipus test) basada en aquesta notícia.
  * És la peça clau per a l'examen d'actualitat de les oposicions.
  */
-function ActualitatPreguntesView({ actualitats, novaActualitat, setNovaActualitat, onSubmit, onDelete, loading, success, darkMode }: any) {
+function ActualitatPreguntesView({ actualitats, novaActualitat, setNovaActualitat, onSubmit, onDelete, loading, success, darkMode, userRol }: any) {
   // Estat per controlar si el formulari de creació està obert o tancat
   const [isFormOpen, setIsFormOpen] = useState(false);
   
@@ -3462,6 +3611,11 @@ function ActualitatPreguntesView({ actualitats, novaActualitat, setNovaActualita
                      exit={{ height: 0, opacity: 0 }}
                      className="overflow-hidden"
                    >
+                     {userRol !== "admin_master" && userRol !== "admin" && (
+                       <div className="p-4 mb-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs font-bold leading-relaxed">
+                         Atenció! Tens el rol "{userRol}". No disposes de permís actiu per crear, publicar o llançar preguntes d'actualitat als opositors en aquest moment.
+                       </div>
+                     )}
                      <form onSubmit={(e) => { onSubmit(e); setIsFormOpen(false); }} className="p-10 space-y-10">
                         {/* SECCIÓ 1: LA NOTÍCIA */}
                         <div className="space-y-6">
@@ -5386,6 +5540,50 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
   const [filterPagament, setFilterPagament] = useState("all");
 
   // Comentari planer per a no-programadors:
+  // Llista legible dels noms en català per als 10 rols que gestionem a l'aplicació.
+  const ROLS_NOMS_CAT: any = {
+    admin_master: "Admin Master",
+    admin: "Administrador / Soci",
+    tester: "Tester / Provador",
+    treballador_nivell_1: "Treballador Nivell 1",
+    treballador_nivell_2: "Treballador Nivell 2",
+    treballador_nivell_3: "Treballador Nivell 3",
+    usuari: "Usuari Opositor",
+    usuari_free_trial: "Usuari Prova (Free trial)",
+    usuari_bannejat: "Usuari Bannejat",
+    usuari_sospitos: "Usuari Sospitós",
+    opositor: "Usuari Opositor"
+  };
+
+  // Comentari planer per a no-programadors:
+  // Tria els colors visuals que s'assignaran al pin o etiqueta de cada usuari segons el seu nivell de permisos.
+  function getRolBadgeStyle(rol: string) {
+    switch (rol) {
+      case 'admin_master':
+        return 'bg-red-500/20 text-red-400 border border-red-500/30';
+      case 'admin':
+        return 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
+      case 'tester':
+        return 'bg-purple-500/20 text-purple-400 border border-purple-500/30';
+      case 'treballador_nivell_1':
+      case 'treballador_nivell_2':
+      case 'treballador_nivell_3':
+        return 'bg-blue-500/20 text-blue-400 border border-blue-500/30';
+      case 'usuari':
+      case 'opositor':
+        return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+      case 'usuari_free_trial':
+        return 'bg-teal-500/10 text-teal-400 border border-teal-500/20';
+      case 'usuari_bannejat':
+        return 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
+      case 'usuari_sospitos':
+        return 'bg-orange-500/20 text-orange-400 border border-orange-500/30';
+      default:
+        return 'bg-slate-500/10 text-slate-400 border border-slate-700/20';
+    }
+  }
+
+  // Comentari planer per a no-programadors:
   // Aquest formatador descodifica de forma segura el format en què Firestore guarda les dates
   // (ja sigui com a text normal, segons de Firebase o un objecte data, evitant que la web peti).
   function renderFormatDate(dateVal: any, incloureHora: boolean = false) {
@@ -5574,7 +5772,10 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
             />
           </div>
 
-          {/* Filtre Rol */}
+          {/* Filtre Rol - Comentari planer per a no-programadors:
+              Ara hem afegit tots els 10 rols de l'organigrama als filtres. 
+              D'aquesta manera es pot buscar o filtrar de cop quins usuaris són testers,
+              quants tenen l'accés banejat o quins són treballadors de nivell 1, 2 o 3. */}
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Filtrar per Rol</label>
             <select
@@ -5585,8 +5786,17 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
               }`}
             >
               <option value="all">Tots els Rols</option>
-              <option value="opositor">Opositors</option>
-              <option value="admin">Administradors</option>
+              <option value="admin_master">Admin Master</option>
+              <option value="admin">Administrador / Soci</option>
+              <option value="tester">Tester / Provador</option>
+              <option value="treballador_nivell_1">Treballador Nivell 1</option>
+              <option value="treballador_nivell_2">Treballador Nivell 2</option>
+              <option value="treballador_nivell_3">Treballador Nivell 3</option>
+              <option value="usuari">Usuari Opositor (usuari)</option>
+              <option value="opositor">Usuari Opositor (opositor)</option>
+              <option value="usuari_free_trial">Usuari Prova (Free Trial)</option>
+              <option value="usuari_bannejat">Usuari Bannejat</option>
+              <option value="usuari_sospitos">Usuari Sospitós</option>
             </select>
           </div>
 
@@ -5679,12 +5889,8 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
                       {u.displayName || "Novell Opositor"}
                     </h3>
                     
-                    <span className={`px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-wider ${
-                      u.rol === 'admin' 
-                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' 
-                        : 'bg-slate-500/10 text-slate-400 border border-slate-700/20'
-                    }`}>
-                      {u.rol || "opositor"}
+                    <span className={`px-2 py-0.5 rounded-full text-[7.5px] font-black uppercase tracking-wider ${getRolBadgeStyle(u.rol)}`}>
+                      {ROLS_NOMS_CAT[u.rol] || u.rol || "Usuari Opositor"}
                     </span>
                   </div>
 
@@ -5754,18 +5960,52 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
                 </button>
 
                 {/* Botó per commutar el càrrec/rol (Opositor clàssic o Administrador de control) */}
-                <button
-                  onClick={() => onUpdateUser(u.id || u.uid, { 
-                    rol: u.rol === 'admin' ? 'opositor' : 'admin'
-                  })}
-                  className={`flex-1 py-2 px-3 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all truncate text-center cursor-pointer ${
-                    u.rol === 'admin'
-                      ? 'bg-slate-200 text-slate-700 dark:bg-slate-900/50 dark:text-slate-400 hover:bg-yellow-500 hover:text-slate-900 border border-transparent'
-                      : 'border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 hover:border-amber-500 hover:text-amber-500 hover:bg-amber-500/5'
-                  }`}
-                >
-                  {u.rol === 'admin' ? 'Fer Opositor' : 'Fer Admin'}
-                </button>
+                {/* Selector Dropdown de Rol - Comentari planer per a no-programadors:
+                    En lloc d'un botó simple de si/no admin, ara l'Admin Master pot triar manualment
+                    qualsevol dels 10 rols predefinits a la base de dades. Només cal obrir el desplegable
+                    i fer-hi un clic; Firestore es sincronitza i es desa automàticament sense haver d'escriure res. */}
+                <div className="flex-1 flex flex-col gap-1 min-w-0">
+                  <select
+                    value={u.rol || "opositor"}
+                    onChange={(e) => onUpdateUser(u.id || u.uid, { rol: e.target.value })}
+                    className={`w-full py-2.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border outline-none focus:ring-2 focus:ring-yellow-500 cursor-pointer ${
+                      darkMode 
+                        ? 'bg-slate-900 border-slate-700 text-slate-300' 
+                        : 'bg-slate-50 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {(() => {
+                      // Comentari planer per a no-programadors:
+                      // Mitjançant l'email de l'usuari en línia de Firebase Auth (auth.currentUser),
+                      // mirem si és el Master d'OposiCAT ("xepfarre@gmail.com").
+                      // Només ell pot promoure usuaris a Administrador / Soci o Admin Master.
+                      const emailLower = (auth.currentUser?.email || "").toLowerCase().trim();
+                      const ésMaster = emailLower === "xepfarre@gmail.com";
+                      
+                      const options = [
+                        { val: "admin_master", text: "★ Admin Master" },
+                        { val: "admin", text: "♛ Administrador / Soci" },
+                        { val: "tester", text: "✈ Tester / Provador" },
+                        { val: "treballador_nivell_1", text: "✎ Treballador Nivell 1" },
+                        { val: "treballador_nivell_2", text: "✎ Treballador Nivell 2" },
+                        { val: "treballador_nivell_3", text: "✎ Treballador Nivell 3" },
+                        { val: "usuari", text: "✔ Usuari Opositor (usuari)" },
+                        { val: "opositor", text: "✔ Usuari Opositor (opositor)" },
+                        { val: "usuari_free_trial", text: "⏳ Usuari Prova (Free trial)" },
+                        { val: "usuari_bannejat", text: "✖ Usuari Bannejat" },
+                        { val: "usuari_sospitos", text: "⚠ Usuari Sospitós" }
+                      ];
+
+                      return options
+                        .filter(opt => ésMaster || (opt.val !== "admin_master" && opt.val !== "admin"))
+                        .map(opt => (
+                          <option key={opt.val} value={opt.val}>
+                            {opt.text}
+                          </option>
+                        ));
+                    })()}
+                  </select>
+                </div>
               </div>
 
             </div>

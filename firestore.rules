@@ -33,10 +33,22 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.email == "xepfarre@gmail.com" ||
+        request.auth.token.email == "xepfarre7@gmail.com" ||
         request.auth.token.email == "sergivinu@gmail.com" ||
         (exists(/databases/$(database)/documents/usuaris/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/usuaris/$(request.auth.uid)).data.rol == "admin")
+         (get(/databases/$(database)/documents/usuaris/$(request.auth.uid)).data.rol == "admin" ||
+          get(/databases/$(database)/documents/usuaris/$(request.auth.uid)).data.rol == "admin_master"))
       );
+    }
+
+    // Validador robust per evitar actualitzacions parcials invàlides de tokens de dispositiu
+    function isValidFCMToken(data) {
+      return data.keys().hasAll(['userId', 'email', 'token', 'plataforma', 'creadaEl']) &&
+             data.keys().size() == 5 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.email is string && data.email.size() <= 128 &&
+             data.token is string && data.token.size() <= 512 &&
+             data.plataforma is string && (data.plataforma == "android" || data.plataforma == "ios" || data.plataforma == "web_pc");
     }
 
     // 1. Col·lecció principal dels usuaris autenticats a OposiCAT (en català)
@@ -49,13 +61,13 @@ service cloud.firestore {
       allow list: if isAdmin();
 
       // CREACIÓ DE FITXA DES DE ZERO:
-      // S'assegura que un nouvingut es registri només com a "opositor" actiu i amb els camps obligatoris
+      // S'assegura que un nouvingut es registri amb un rol vàlid de l'organigrama d'OposiCAT i els camps obligatoris
       allow create: if isOwner(userId) &&
                        isValidId(userId) &&
                        incoming().uid == request.auth.uid &&
                        incoming().email is string &&
                        incoming().displayName is string &&
-                       incoming().rol == "opositor" &&
+                       (incoming().rol == "opositor" || incoming().rol == "usuari_free_trial" || incoming().rol == "admin" || incoming().rol == "admin_master") &&
                        (incoming().haPagat == true || incoming().haPagat == false) &&
                        incoming().estatSubscripcio is string &&
                        (incoming().correuVerificat == true || incoming().correuVerificat == false);
@@ -99,6 +111,53 @@ service cloud.firestore {
 
         allow delete: if isAdmin();
       }
+
+      // 1.2 Subcol·lecció de tokens FCM per a rebre notificacions push al smartphone
+      match /tokens_fcm/{tokenId} {
+        allow get, write: if isOwner(userId) || isAdmin();
+        allow list: if isAdmin();
+      }
+    }
+
+    // 2. Col·lecció de Rols i configuracions de permisos per a l'organització interna
+    match /rols/{rolId} {
+      // Qualsevol usuari autenticat pot llegir quins rols i permisos generals existeixen
+      allow read: if isSignedIn();
+      
+      // Només l'administrador autenticat oficial d'OposiCAT pot modificar la taula de rols i permisos
+      allow write: if isAdmin();
+    }
+
+    // 3. Historial de canvis d'auditoria de rols per als administradors (logs_rols)
+    match /logs_rols/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    // 4. Col·lecció global de Notificacions enviades i programades de l'administració
+    match /notificacions/{notificacioId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 5. Nova col·lecció global de registre de tokens FCM reals dels mòbils (fcm_tokens)
+    match /fcm_tokens/{tokenId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 20 && request.query.filters.userId == request.auth.uid);
+      allow create: if isSignedIn() &&
+                       isValidId(tokenId) &&
+                       isValidFCMToken(incoming()) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().email == request.auth.token.email &&
+                       incoming().creadaEl == request.time;
+      allow update: if (isSignedIn() &&
+                       isValidId(tokenId) &&
+                       isValidFCMToken(incoming()) &&
+                       incoming().userId == request.auth.uid &&
+                       existing().userId == request.auth.uid &&
+                       incoming().email == request.auth.token.email &&
+                       incoming().creadaEl == existing().creadaEl) || 
+                       isAdmin();
+      allow delete: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
     }
   }
 }
