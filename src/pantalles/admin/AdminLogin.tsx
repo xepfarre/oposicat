@@ -109,28 +109,28 @@ export default function AdminLogin({ onLoginSuccess, initialError }: { onLoginSu
           <div className="flex flex-col gap-2">
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              {/* Comentari planer per a no-programadors: Camp on s'introdueix l'adreça de correu. S'afegeix 'text-slate-800' per forçar que la lletra escrita sigui fosca sobre el fons blanc. */}
+              {/* Comentari planer per a no-programadors: Camp on s'introdueix l'adreça de correu. S'afegeix '!text-black' (forçat a color negre) per garantir que quan l'usuari escriu es vegi de color fosc sobre el fons clar de la targeta. */}
               <input 
                 type="email"
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="correu@empresa.com"
-                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border border-slate-100 text-slate-800 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 font-medium"
+                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border border-slate-100 !text-black focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 font-semibold"
               />
             </div>
           </div>
           <div className="flex flex-col gap-2">
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              {/* Comentari planer per a no-programadors: Camp de text on s'introdueix la de contrasenya. També s'hi afegeix 'text-slate-800' perquè el text no sigui blanc i sigui fosc sobre el fons clar de la targeta. */}
+              {/* Comentari planer per a no-programadors: Camp de text on s'introdueix la de contrasenya. També s'hi afegeix '!text-black' (negre forçat) perquè el text no sigui blanc i sigui fosc sobre el fons clar de la targeta. */}
               <input 
                 type="password"
                 required
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="Contrasenya"
-                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border border-slate-100 text-slate-800 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 font-medium"
+                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border border-slate-100 !text-black focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 font-semibold"
               />
             </div>
             <div className="flex justify-end pr-1">
