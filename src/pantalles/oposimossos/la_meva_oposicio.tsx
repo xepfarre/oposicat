@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, BookOpen, Target, Calendar, Brain, RefreshCw } from 'lucide-react';
 import { db, auth } from '../../lib/firebase';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 
 /**
  * PANTALLA: LaMevaOposicio
@@ -62,58 +62,99 @@ export default function LaMevaOposicio({
         const comptadorSnap = await getDoc(comptadorRef);
         const totalsTemes = comptadorSnap.exists() ? comptadorSnap.data() : {};
 
-        // 2. Llegim les respostes de l'usuari actual
-        const respostesRef = collection(db, `usuaris/${user.uid}/respostes_preguntes`);
-        const respostesSnap = await getDocs(respostesRef);
+        // 2. Comentari planer per a no-programadors:
+        // Intentem carregar primer la foto resum pre-agregada de l'estudiant de forma instantània.
+        // Si no existeix (Inicialització Gradual!), el document és nul o no s'ha creat mai. En aquest cas, demanem la col·lecció completa antiga com a fallback automàtic, 
+        // o si tampoc té respostes, s'inicialitza tot a zero (0) sense problemes ni errors visuals per garantir que mai falli.
+        const statsRef = doc(db, `usuaris/${user.uid}/estadistiques`, "totals");
+        const statsSnap = await getDoc(statsRef);
 
         let encertsNum = 0;
         let erradesNum = 0;
 
-        // Mapeig on acumularem quantes preguntes té l'usuari correctament encertades per tema
+        // Mapejos on acumularem quantes preguntes té l'usuari correctament encertades per tema i intents totals
         const encertatsPerTema: { [key: string]: number } = {};
+        const intentsPerTema: { [key: string]: number } = {};
 
-        respostesSnap.docs.forEach(docSnap => {
-          const d = docSnap.data();
-          const esEncertada = !!d.encertada;
+        if (statsSnap.exists()) {
+          const statsData = statsSnap.data() || {};
+          encertsNum = statsData.totalEncerts || 0;
+          erradesNum = statsData.totalErrades || 0;
+          
+          Object.keys(statsData).forEach(key => {
+            if (key.startsWith('intents_tema_')) {
+              const temaKey = key.replace('intents_', '');
+              intentsPerTema[temaKey] = statsData[key] || 0;
+            }
+            if (key.startsWith('correctes_tema_')) {
+              const temaKey = key.replace('correctes_', '');
+              encertatsPerTema[temaKey] = statsData[key] || 0;
+            }
+          });
+        } else {
+          // Fallback: com que no té el document d'estadístiques totals (Inicialització Gradual),
+          // llegim les respostes individuals de l'estudiant per si té històric antic i reconstruïm els totals.
+          const respostesRef = collection(db, `usuaris/${user.uid}/respostes_preguntes`);
+          const respostesSnap = await getDocs(respostesRef);
 
-          // Si l'última resposta de l'usuari és correcta, es comptabilitza com un encert actiu.
-          // Si és incorrecta, canvia a errada.
-          if (esEncertada) {
-            encertsNum++;
-          } else {
-            // El requeriment és: "Si falla una pregunta, sortira com una unica errada. Si la fa 3 cops i 3 cops malament, es 1 errada."
-            // Com que cada document té com a ID el 'preguntaId' de Firestore, per molt que l'usuari torni a fer-la, 
-            // el document s'actualitza o es sobreescriu, sumant així exactament 1 errada global, perfecte!
-            erradesNum++;
-          }
-
-          // Agrupació per temes de cara al ràtio de percentatge
-          if (d.ambit !== undefined && d.tema !== undefined) {
-            const ambitMap: { [key: string]: number } = { A: 1, B: 2, C: 3 };
-            const ambitId = ambitMap[d.ambit] || 1;
-            const temaVisual = parseInt(d.tema.toString(), 10) + 1;
-            const temaKey = `tema_${ambitId}.${temaVisual}`;
+          respostesSnap.docs.forEach(docSnap => {
+            const d = docSnap.data();
+            const esEncertada = !!d.encertada;
 
             if (esEncertada) {
-              encertatsPerTema[temaKey] = (encertatsPerTema[temaKey] || 0) + 1;
+              encertsNum++;
+            } else {
+              erradesNum++;
             }
+
+            // Agrupació per temes de cara al ràtio de percentatge
+            if (d.ambit !== undefined && d.tema !== undefined) {
+              const ambitMap: { [key: string]: number } = { A: 1, B: 2, C: 3 };
+              const ambitId = ambitMap[d.ambit] || 1;
+              const temaVisual = parseInt(d.tema.toString(), 10) + 1;
+              const temaKey = `tema_${ambitId}.${temaVisual}`;
+
+              intentsPerTema[temaKey] = (intentsPerTema[temaKey] || 0) + 1;
+              if (esEncertada) {
+                encertatsPerTema[temaKey] = (encertatsPerTema[temaKey] || 0) + 1;
+              }
+            }
+          });
+
+          // Si té dades històriques, l'auto-sincronitzem asíncronament de cara al futur
+          if (respostesSnap.size > 0) {
+            const upObj: any = {
+              totalRespostes: encertsNum + erradesNum,
+              totalEncerts: encertsNum,
+              totalErrades: erradesNum
+            };
+            Object.keys(intentsPerTema).forEach(k => {
+              upObj[`intents_${k}`] = intentsPerTema[k];
+            });
+            Object.keys(encertatsPerTema).forEach(k => {
+              upObj[`correctes_${k}`] = encertatsPerTema[k];
+            });
+            setDoc(statsRef, upObj, { merge: true }).catch(err => {
+              console.warn("No s'han pogut pré-agregar les estadístiques antigues d'OposiCAT:", err);
+            });
           }
-        });
+        }
 
         setTotalEncerts(encertsNum);
         setTotalErrades(erradesNum);
 
         // 3. Càlcul del % d'encert de cadascun dels temes actius per resoldre quin és el millor i pitjor tema.
-        // Criteri de l'estudiant: El coeficient és directament l'èxit sobre el total de preguntes del tema.
-        // Exemple: tema de 2 preguntes amb 1 correcta (50%) és considerat millor que un tema de 1000 preguntes amb 100 d'encertats (10%).
+        // Comentari planer per a no-programadors:
+        // Ara calculem els millors i pitjors temes basant-nos en les respostes que REALMENT ha intentat cada estudiant,
+        // garantint que si té intents, aquests temes es mostrin. Evitem que quedi 'Per determinar' si només s'hi han registrat errors.
         let millor: typeof millorTema = null;
         let pitjor: typeof pitjorTema = null;
 
-        Object.keys(totalsTemes).forEach(temaKey => {
-          const totalPreguntesTema = totalsTemes[temaKey] || 0;
-          if (totalPreguntesTema > 0) {
+        Object.keys(intentsPerTema).forEach(temaKey => {
+          const totalIntentsTema = intentsPerTema[temaKey] || 0;
+          if (totalIntentsTema > 0) {
             const encertatsUsuari = encertatsPerTema[temaKey] || 0;
-            const percent = Number(((encertatsUsuari / totalPreguntesTema) * 100).toFixed(1));
+            const percent = Number(((encertatsUsuari / totalIntentsTema) * 100).toFixed(1));
 
             // Resolem el millor tema (per favor de ràtio)
             if (!millor || percent > millor.percent) {
@@ -122,17 +163,17 @@ export default function LaMevaOposicio({
                 name: formatTemaNom(temaKey),
                 percent: percent,
                 encertades: encertatsUsuari,
-                totals: totalPreguntesTema
+                totals: totalIntentsTema
               };
             } else if (millor && percent === millor.percent) {
               // En cas d'empat de percentatges, mostrem el tema que contingui major densitat de volum
-              if (totalPreguntesTema > millor.totals) {
+              if (totalIntentsTema > millor.totals) {
                 millor = {
                   id: temaKey,
                   name: formatTemaNom(temaKey),
                   percent: percent,
                   encertades: encertatsUsuari,
-                  totals: totalPreguntesTema
+                  totals: totalIntentsTema
                 };
               }
             }
@@ -144,17 +185,17 @@ export default function LaMevaOposicio({
                 name: formatTemaNom(temaKey),
                 percent: percent,
                 encertades: encertatsUsuari,
-                totals: totalPreguntesTema
+                totals: totalIntentsTema
               };
             } else if (pitjor && percent === pitjor.percent) {
               // En cas d'empat de pitjor percentatge, usem el tema que contingui més volum per ressaltar la necessitat d'estudi
-              if (totalPreguntesTema > pitjor.totals) {
+              if (totalIntentsTema > pitjor.totals) {
                 pitjor = {
                   id: temaKey,
                   name: formatTemaNom(temaKey),
                   percent: percent,
                   encertades: encertatsUsuari,
-                  totals: totalPreguntesTema
+                  totals: totalIntentsTema
                 };
               }
             }

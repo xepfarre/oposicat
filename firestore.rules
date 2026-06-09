@@ -117,6 +117,13 @@ service cloud.firestore {
         allow get, write: if isOwner(userId) || isAdmin();
         allow list: if isAdmin();
       }
+
+      // 1.3 Subcol·lecció de resum d'estadístiques o agrupació prèvia d'estudis de l'usuari (estadistiques)
+      // Comentari planer per a no-programadors: Aquesta col·lecció permet desar la foto resum d'estadístiques i encerts (com el total de respostes i encerts), garantint que la velocitat de càrrega sigui ultra-ràpida directament de forma atòmica sense haver de llegir milers de files. L'estudiant té accés per llegir i modificar el seu propi resum.
+      match /estadistiques/{docId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId) || isAdmin();
+      }
     }
 
     // 2. Col·lecció de Rols i configuracions de permisos per a l'organització interna
@@ -265,10 +272,9 @@ service cloud.firestore {
     }
 
     // 19. Col·lecció de seguiment de respostes d'opositors per poder analitzar el progrés fidedignament
-    // Comentari planer per a no-programadors: Aquest és el calaix personal de respostes que cada alumne respon. Per privacitat i RGPD, un alumne només pot llegir i desar les seves pròpies respostes realitzades.
+    // Comentari planer per a no-programadors: Aquest és el calaix personal de respostes que cada alumne respon. Per privacitat i RGPD, un alumne només pot llegir (tant llistar-les totes com agafar-ne una de sola) i desar les seves pròpies respostes realitzades.
     match /usuaris/{userId}/respostes_preguntes/{preguntaId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isOwner(userId) || isAdmin();
+      allow read: if isOwner(userId) || isAdmin();
       allow create, update: if isOwner(userId) &&
                                isValidId(preguntaId) &&
                                incoming().preguntaId == preguntaId &&
@@ -288,9 +294,9 @@ service cloud.firestore {
     }
 
     // 21. Comptadors globals de preguntes i temes (comptadors)
-    // Comentari planer per a no-programadors: Permet que qualsevol alumne registrat a l'aplicació llegeixi els totals de preguntes dels diferents temes per així determinar correctament i de forma automàtica els seus percentatges de superació o estadístiques. Els canvis d'escriptura queden reservats només per als administradors d'OposiCAT.
+    // Comentari planer per a no-programadors: Permet que qualsevol alumne llegeixi lliurement els totals de preguntes dels diferents temes per així determinar correctament i de forma automàtica els seus percentatges de superació o estadístiques des del primer minut sense bloquejos d'antiga d'autenticació. Els canvis d'escriptura queden reservats només per als administradors d'OposiCAT.
     match /comptadors/{comptadorId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isAdmin();
     }
   }

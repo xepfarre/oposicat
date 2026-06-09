@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, Bell, X, Check, BellRing, Settings, ShieldAlert, KeyRound, Smartphone, Tablet } from "lucide-react";
+import { ChevronLeft, Bell, X, Check, BellRing, Settings, ShieldAlert, KeyRound, Smartphone, Tablet, Trophy, Clock, ClipboardList, Dumbbell, Apple, Users, Flame, ChevronRight, Award, Medal, Star, Sparkles } from "lucide-react";
 import { auth, db, obtenirMissatgeria } from "../../lib/firebase";
 import { collection, query, orderBy, limit, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { getToken } from "firebase/messaging";
@@ -28,6 +28,10 @@ export default function OposiMossosInici({
   // Explicació per a no-programadors: Estats de control per saber si canvia l'usuari identificat o si encara s'està verificant la sessió a Firebase, evitant així llançar consultes sense permís.
   const [authCarregada, setAuthCarregada] = useState<boolean>(false);
   const [usuariActiu, setUsuariActiu] = useState<any>(null);
+
+  // Explicació per a no-programadors: Estats per gestionar si s'ha d'obrir la pantalla integrada de Rankings d'OposiCAT i quina taula o categoria de classificació estem consultant.
+  const [mostrarRankings, setMostrarRankings] = useState<boolean>(false);
+  const [rankingSeleccionatId, setRankingSeleccionatId] = useState<string | null>(null);
 
   // Explicació per a no-programadors: Controlador per saber si l'alumne ja ha permès rebre notificacions emergents del mòbil (granted, denied o default)
   const [permisNotificacio, setPermisNotificacio] = useState<string>(() => {
@@ -608,6 +612,355 @@ export default function OposiMossosInici({
     } catch { }
   };
 
+  // Explicació per a no-programadors: Funció per dibuixar el detall d'un rànquing seleccionat en format de podi olímpic (1r, 2n i 3r) i llista per als llocs 4, 5 i següents.
+  const renderDetallRanking = (id: string | null) => {
+    if (!id) return null;
+    
+    // Dades dels rankings completament segures amb voluntat didàctica
+    const dadesRankings: { [key: string]: { titol: string, unitat: string, participants: { pos: number, nom: string, valor: string | number, esUsuari?: boolean }[] } } = {
+      testos: {
+        titol: "Més tests fets",
+        unitat: "tests completats",
+        participants: [
+          { pos: 1, nom: "Laura Vilanova", valor: 142 },
+          { pos: 2, nom: "Marc Soler", valor: 138 },
+          { pos: 3, nom: "Jordi Muñoz", valor: 120 },
+          { pos: 4, nom: "Anna Prat", valor: 115 },
+          { pos: 5, nom: "Albert Roca", valor: 98 },
+        ]
+      },
+      notes: {
+        titol: "Millors notes de test",
+        unitat: "mitjana / 10",
+        participants: [
+          { pos: 1, nom: "Jordi Muñoz", valor: "9.65" },
+          { pos: 2, nom: "Sílvia Garcia", valor: "9.42" },
+          { pos: 3, nom: "Marc Soler", valor: "9.15" },
+          { pos: 4, nom: "Anna Prat", valor: "8.90" },
+          { pos: 5, nom: "Laura Vilanova", valor: "8.85" },
+        ]
+      },
+      temps: {
+        titol: "Més temps connectat",
+        unitat: "hores d'estudi actiu",
+        participants: [
+          { pos: 1, nom: "Sílvia Garcia", valor: "156h" },
+          { pos: 2, nom: "Laura Vilanova", valor: "148h" },
+          { pos: 3, nom: "Marc Soler", valor: "132h" },
+          { pos: 4, nom: "Joan Busquets", valor: "118h" },
+          { pos: 5, nom: "Jordi Muñoz", valor: "95h" },
+        ]
+      },
+      exercici: {
+        titol: "Més exercici físic fet",
+        unitat: "sessions d'esport",
+        participants: [
+          { pos: 1, nom: "Marc Soler", valor: 48 },
+          { pos: 2, nom: "Anna Prat", valor: 42 },
+          { pos: 3, nom: "Albert Roca", valor: 38 },
+          { pos: 4, nom: "Laura Vilanova", valor: 35 },
+          { pos: 5, nom: "Jordi Muñoz", valor: 30 },
+        ]
+      },
+      dieta: {
+        titol: "Seguiment de la dieta",
+        unitat: "compliment (30 dies)",
+        participants: [
+          { pos: 1, nom: "Laura Vilanova", valor: "100%" },
+          { pos: 2, nom: "Sílvia Garcia", valor: "98%" },
+          { pos: 3, nom: "Anna Prat", valor: "95%" },
+          { pos: 4, nom: "Marc Soler", valor: "92%" },
+          { pos: 5, nom: "Jordi Muñoz", valor: "90%" },
+        ]
+      },
+      entrevistes: {
+        titol: "Més entrevistes fetes",
+        unitat: "simulacres completats",
+        participants: [
+          { pos: 1, nom: "Jordi Muñoz", valor: 18 },
+          { pos: 2, nom: "Laura Vilanova", valor: 15 },
+          { pos: 3, nom: "Albert Roca", valor: 14 },
+          { pos: 4, nom: "Sílvia Garcia", valor: 12 },
+          { pos: 5, nom: "Marc Soler", valor: 10 },
+        ]
+      },
+      entrenaments: {
+        titol: "Entrenaments completats",
+        unitat: "sessions de força/cardio",
+        participants: [
+          { pos: 1, nom: "Marc Soler", valor: 32 },
+          { pos: 2, nom: "Anna Prat", valor: 28 },
+          { pos: 3, nom: "Albert Roca", valor: 27 },
+          { pos: 4, nom: "Sílvia Garcia", valor: 24 },
+          { pos: 5, nom: "Jordi Muñoz", valor: 22 },
+        ]
+      }
+    };
+
+    const dadesActuals = dadesRankings[id] || dadesRankings.testos;
+    const p1 = dadesActuals.participants.find(p => p.pos === 1);
+    const p2 = dadesActuals.participants.find(p => p.pos === 2);
+    const p3 = dadesActuals.participants.find(p => p.pos === 3);
+    const restants = dadesActuals.participants.filter(p => p.pos > 3);
+
+    // Afegim l'usuari actiu com a posició simulada per generar immersió i feedback didàctic continu
+    const nomUsuari = usuariActiu?.displayName || "Tu (Estudiant)";
+    const usuariSimulat = { pos: 14, nom: nomUsuari, valor: "--", esUsuari: true };
+
+    return (
+      <div className="flex flex-col gap-4 w-full">
+        {/* Títol de la Categoria */}
+        <div className="text-center mb-1">
+          <span className="text-[10px] text-indigo-400 font-extrabold uppercase tracking-widest bg-indigo-500/15 px-3 py-1 rounded-full">
+            Detall del Rànquing
+          </span>
+          <h2 className="text-2xl font-black italic tracking-tighter uppercase mt-2">
+            {dadesActuals.titol}
+          </h2>
+          <p className="text-[11px] text-white/50 tracking-wide mt-1">
+            Mesura de qualificació: <span className="text-white/80 font-mono font-bold lowercase">{dadesActuals.unitat}</span>
+          </p>
+        </div>
+
+        {/* PODI D'HONOR OLÍMPIC (2n, 1r, 3r) */}
+        <div className="grid grid-cols-3 items-end gap-2 mt-4 bg-black/25 backdrop-blur-sm p-4 rounded-[2rem] border border-white/5 shadow-inner">
+          
+          {/* Segon lloc (Argent) */}
+          {p2 && (
+            <div className="flex flex-col items-center flex-1">
+              <div className="relative">
+                <div className="w-12 h-12 rounded-full bg-slate-700/80 border-2 border-slate-300 flex items-center justify-center text-white font-extrabold text-sm shadow-md">
+                  <Medal className="w-6 h-6 text-slate-300" />
+                </div>
+                <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-slate-300 text-slate-900 border border-slate-700 text-[10px] font-black flex items-center justify-center">
+                  2
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-slate-200 mt-2 text-center truncate w-full px-1">
+                {p2.nom}
+              </span>
+              <span className="text-[11px] font-mono font-black text-slate-300 bg-white/5 px-2 py-0.5 rounded-md mt-1">
+                {p2.valor}
+              </span>
+              <div className="w-full bg-slate-500/20 h-16 rounded-t-xl mt-3 flex items-center justify-center border-t border-slate-300/20">
+                <span className="text-slate-300/40 text-[10px] font-black italic">II</span>
+              </div>
+            </div>
+          )}
+
+          {/* Primer lloc (Or) */}
+          {p1 && (
+            <div className="flex flex-col items-center flex-1 -mt-4">
+              <div className="relative">
+                <div className="absolute -top-5 left-1/2 -translate-x-1/2">
+                  <Trophy className="w-5 h-5 text-amber-400 animate-bounce" />
+                </div>
+                <div className="w-14 h-14 rounded-full bg-amber-600/80 border-2 border-amber-400 flex items-center justify-center text-white font-extrabold text-sm shadow-lg shadow-amber-500/20">
+                  <Star className="w-7 h-7 text-amber-300 fill-amber-300" />
+                </div>
+                <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-amber-400 text-slate-900 border border-amber-600 text-xs font-black flex items-center justify-center">
+                  1
+                </span>
+              </div>
+              <span className="text-[11px] font-black text-amber-300 mt-2 text-center truncate w-full px-1">
+                {p1.nom}
+              </span>
+              <span className="text-[12px] font-mono font-black text-[#FFDF00] bg-white/10 px-2.5 py-0.5 rounded-md mt-1 animate-pulse shadow-md shadow-amber-500/10">
+                {p1.valor}
+              </span>
+              <div className="w-full bg-amber-500/35 h-24 rounded-t-xl mt-3 flex items-center justify-center border-t border-amber-400/40">
+                <span className="text-amber-300/50 text-xs font-black italic">I</span>
+              </div>
+            </div>
+          )}
+
+          {/* Tercer lloc (Bronze) */}
+          {p3 && (
+            <div className="flex flex-col items-center flex-1">
+              <div className="relative">
+                <div className="w-12 h-12 rounded-full bg-amber-900/80 border-2 border-amber-700 flex items-center justify-center text-white font-extrabold text-sm shadow-md">
+                  <Medal className="w-6 h-6 text-amber-600" />
+                </div>
+                <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-700 text-amber-100 border border-amber-900 text-[10px] font-black flex items-center justify-center">
+                  3
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-amber-200/90 mt-2 text-center truncate w-full px-1">
+                {p3.nom}
+              </span>
+              <span className="text-[11px] font-mono font-black text-amber-600 bg-white/5 px-2 py-0.5 rounded-md mt-1">
+                {p3.valor}
+              </span>
+              <div className="w-full bg-amber-700/20 h-12 rounded-t-xl mt-3 flex items-center justify-center border-t border-amber-700/20">
+                <span className="text-amber-600/40 text-[10px] font-black italic">III</span>
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* RESTA DE LA CLASSIFICACIÓ (TOP 4, 5) */}
+        <div className="flex flex-col gap-2 mt-2">
+          {restants.map((p) => (
+            <div 
+              key={p.pos}
+              className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-6 text-center text-xs font-black text-white/40">
+                  #{p.pos}
+                </span>
+                <span className="text-xs font-bold text-white/80">
+                  {p.nom}
+                </span>
+              </div>
+              <span className="text-xs font-mono font-bold text-indigo-300 bg-indigo-500/10 px-2 py-1 rounded-md">
+                {p.valor}
+              </span>
+            </div>
+          ))}
+
+          {/* Posició de l'usuari actual llogat per establir feedback didàctic rígid */}
+          <div className="w-full bg-indigo-500/10 border border-indigo-500/20 rounded-xl px-4 py-3 flex items-center justify-between mt-1">
+            <div className="flex items-center gap-3">
+              <span className="w-6 text-center text-xs font-black text-indigo-400">
+                #{usuariSimulat.pos}
+              </span>
+              <span className="text-xs font-black italic uppercase tracking-wider text-indigo-200">
+                {usuariSimulat.nom}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-[11px] font-bold text-indigo-400">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+              <span>Sense ràtio</span>
+            </div>
+          </div>
+        </div>
+
+        {/* BLOC INDICATIU DE PROPERES INSTÀNCIES DE RÀQUIS */}
+        <div className="p-4 bg-indigo-950/40 border border-indigo-500/20 rounded-2xl mt-4 shadow-md backdrop-blur-sm">
+          <h4 className="text-xs font-black italic uppercase tracking-wider text-indigo-300 mb-1 flex items-center gap-1.5 justify-center">
+            <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+            Com participo?
+          </h4>
+          <p className="text-[11px] text-white/80 leading-relaxed font-semibold text-center mt-1">
+            {id === "testos" 
+              ? "Un cop hagis completat com a mínim un test de 30 preguntes de cadascun dels temes de l'APP, apareixeràs al rànquing i podràs començar a competir amb la resta d'usuaris."
+              : "Molt aviat s'explicarà el funcionament i repte corresponents per participar en aquesta modalitat de rànquing i començar a competir amb la resta d'usuaris de cara als millors premis!"
+            }
+          </p>
+        </div>
+
+        {/* ACCIÓ DE TORNADA AL MENÚ DE RANKINGS */}
+        <button
+          onClick={() => setRankingSeleccionatId(null)}
+          className="mt-4 w-full bg-white/10 hover:bg-white/15 border border-white/10 py-3 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
+        >
+          <ChevronLeft className="w-4 h-4 text-white" />
+          <span className="font-extrabold italic text-xs uppercase tracking-widest text-white">
+            Tornar als Rankings
+          </span>
+        </button>
+      </div>
+    );
+  };
+
+  if (mostrarRankings) {
+    return (
+      <div 
+        className="fixed inset-0 w-full bg-[#001f3d] overflow-y-auto flex flex-col items-center px-6 pb-20 text-white"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
+        {/* Capçalera dels Rankings */}
+        <header className="pt-14 w-full flex flex-col items-center gap-4 shrink-0 mb-6 font-sans">
+          <div className="bg-black/35 backdrop-blur-md px-6 py-3 rounded-3xl shadow-xl border border-white/10 flex items-center gap-4 w-full max-w-md">
+            <button 
+              onClick={() => {
+                if (rankingSeleccionatId) {
+                  setRankingSeleccionatId(null);
+                } else {
+                  setMostrarRankings(false);
+                }
+              }}
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white cursor-pointer"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div className="flex-1 text-center pr-6">
+              <h1 className="text-xl font-black italic tracking-tighter uppercase select-none">
+                <span className="text-white">Rankings </span>
+                <span className="text-indigo-400">Classificació</span>
+              </h1>
+            </div>
+          </div>
+        </header>
+
+        {rankingSeleccionatId === null ? (
+          /* PANTALLA PRINCIPAL DE RANKINGS: LLISTAT DE BOTONS DE CATEGORIES */
+          <main className="w-full max-w-md flex flex-col gap-4 font-sans">
+            <div className="text-center mb-6 px-2 bg-white/5 border border-white/10 rounded-2xl p-4 shadow-lg backdrop-blur-sm">
+              <p className="text-white/80 text-xs font-semibold leading-relaxed">
+                Participa als nostres rànquings! Entra a cadascun d'ells, descobreix què has de fer per <span className="text-red-500 font-black uppercase">participar</span> i aconsegueix <span className="text-yellow-400 font-black">regals, vals de descompte dels nostres patrocinadors, mesos gratuïts de la nostra APP</span> i <span className="text-yellow-400 font-black">molts altres premis</span>. No t'ho perdis, diverteix-te mentre aprens i prepara't per convertir-te en el pròxim Mosso o la pròxima Mossa d'Esquadra!
+              </p>
+            </div>
+
+            {/* LLISTA DE BOTONS PRINCIPALS DE RANKING */}
+            <div className="grid grid-cols-1 gap-3">
+              {[
+                { id: "testos", títol: "Més tests fets", icon: ClipboardList, desc: "Total d'exàmens i tests completats", color: "from-blue-500/20 to-indigo-500/10 border-blue-500/30 text-blue-200" },
+                { id: "notes", títol: "Millor notes", icon: Award, desc: "Mitjana de les darreres qualificacions de test", color: "from-amber-500/20 to-yellow-500/10 border-amber-500/30 text-amber-200" },
+                { id: "temps", títol: "Més temps connectat", icon: Clock, desc: "Hores d'estudi active registrades", color: "from-emerald-500/20 to-teal-500/10 border-emerald-500/30 text-emerald-200" },
+                { id: "exercici", títol: "Més exercici fet", icon: Dumbbell, desc: "Sessions d'exercici físic d'oposició realitzades", color: "from-purple-500/20 to-pink-500/10 border-purple-500/30 text-purple-200" },
+                { id: "dieta", títol: "El que més segueix la dieta", icon: Apple, desc: "Millors ràtios de compliment del menú nutricional", color: "from-rose-500/20 to-red-500/10 border-rose-500/30 text-rose-200" },
+                { id: "entrevistes", títol: "Més entrevistes fetes", icon: Users, desc: "Simulacres de prova personal completats", color: "from-cyan-500/20 to-sky-500/10 border-cyan-500/30 text-cyan-200" },
+                { id: "entrenaments", títol: "Més sessions d'entrenaments completades", icon: Flame, desc: "Més sessions d'entrenament físic completes", color: "from-orange-500/20 to-amber-500/10 border-orange-500/30 text-orange-200" }
+              ].map((b) => {
+                const Icon = b.icon;
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => setRankingSeleccionatId(b.id)}
+                    className={`w-full bg-gradient-to-r ${b.color} border rounded-2xl p-4 flex items-center justify-between shadow-lg hover:brightness-110 active:scale-[0.98] transition-all group cursor-pointer`}
+                  >
+                    <div className="flex items-center gap-4 text-left">
+                      <div className="p-3 bg-black/20 rounded-xl">
+                        <Icon className="w-5 h-5 shrink-0" />
+                      </div>
+                      <div>
+                        <h3 className="font-extrabold italic text-sm uppercase tracking-wide">
+                          {b.títol}
+                        </h3>
+                        <p className="text-[10px] text-white/50 lowercase mt-0.5 font-medium leading-none">
+                          {b.desc}
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/70 group-hover:translate-x-1 transition-all" />
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* BOTÓ DE TANCAR / TORNAR */}
+            <button 
+              onClick={() => setMostrarRankings(false)}
+              className="mt-6 w-full py-3 flex items-center justify-center gap-2 border border-white/10 rounded-xl bg-white/5 hover:bg-white/10 transition-all active:scale-95 text-white cursor-pointer"
+            >
+              <span className="font-black italic text-[11px] uppercase tracking-widest text-white/80">
+                Tornar al Menú Principal
+              </span>
+            </button>
+          </main>
+        ) : (
+          /* DETALL DE RANKING SELECCIONAT: VISUALITZACIÓ EXCEL·LENT DEL PODI I TOP 5 */
+          <main className="w-full max-w-md flex flex-col gap-4 font-sans">
+            {renderDetallRanking(rankingSeleccionatId)}
+          </main>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div 
       className="fixed inset-0 w-full bg-[#00274d] overflow-y-auto flex flex-col items-center px-6 pb-20"
@@ -643,11 +996,11 @@ export default function OposiMossosInici({
           </button>
           
           <button 
-            onClick={() => window.open("https://mossos.gencat.cat/", "_blank")}
-            className="basis-[35%] bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-2xl py-5 flex items-center justify-center shadow-lg shadow-amber-900/10 transition-all active:scale-95 group"
+            onClick={() => setMostrarRankings(true)}
+            className="basis-[35%] bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-2xl py-5 flex items-center justify-center shadow-lg shadow-indigo-900/10 transition-all active:scale-95 group"
           >
-            <span className="text-amber-100 font-black italic text-sm md:text-xl uppercase tracking-widest group-hover:scale-105 transition-transform">
-              Web
+            <span className="text-indigo-100 font-black italic text-sm md:text-xl uppercase tracking-widest group-hover:scale-105 transition-transform">
+              Rankings
             </span>
           </button>
         </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { ChevronLeft, Check, X, RefreshCw, Trophy, Brain, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { db, auth } from "../../../../lib/firebase";
-import { collection, getDocs, query, collectionGroup, doc, getDoc, setDoc } from "firebase/firestore";
+import { collection, getDocs, query, collectionGroup, doc, getDoc, setDoc, increment } from "firebase/firestore";
 
 /**
  * PANTALLA: ExamenSimuladorMossos
@@ -214,6 +214,28 @@ export default function ExamenSimuladorMossos({
         }, { merge: true });
 
         console.log(`Resposta registrada: Pregunta ${preguntaId} -> ${esCorrecta ? 'CORRECTE' : 'ERROR'}`);
+
+        // Comentari planer per a no-programadors:
+        // Guardem de forma paral·lela, mitjançant increments atòmics, un document resum de l'historial d'estudi
+        // de l'estudiant. D'aquesta manera evitem haver de carregar milers d'historials individuals per saber
+        // el total de respostes i encerts generals o particulars de cadascun dels temes d'OposiCAT.
+        const d_ambit = pregunta.ambit || 'A';
+        const d_tema = pregunta.tema !== undefined ? parseInt(pregunta.tema.toString(), 10) : 0;
+        const ambitMap: { [key: string]: number } = { A: 1, B: 2, C: 3 };
+        const ambitId = ambitMap[d_ambit] || 1;
+        const temaVisual = d_tema + 1;
+        const temaKey = `tema_${ambitId}.${temaVisual}`;
+
+        const totalsRef = doc(db, `usuaris/${user.uid}/estadistiques`, "totals");
+        await setDoc(totalsRef, {
+          totalRespostes: increment(1),
+          totalEncerts: esCorrecta ? increment(1) : increment(0),
+          totalErrades: esCorrecta ? increment(0) : increment(1),
+          [`intents_${temaKey}`]: increment(1),
+          [`correctes_${temaKey}`]: esCorrecta ? increment(1) : increment(0)
+        }, { merge: true });
+
+        console.log(`Foto resum d'estadístiques atòmiques actualitzada a usuaris/${user.uid}/estadistiques/totals`);
       } catch (err) {
         console.error("Error guardant resposta de l'usuari:", err);
       }
