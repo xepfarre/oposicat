@@ -848,86 +848,6 @@ export default function OposiMossosInici({
           </div>
         </div>
 
-        {/* BOTÓ DE XAT DEL RÀNQUING (MOLT POC AMPLE PER RESPECTAR EL DISSENY SMARTPHONE) */}
-        <div className="flex justify-center w-full mt-4">
-          <button
-            onClick={() => setMostrarChat(!mostrarChat)}
-            className="w-auto px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-full flex items-center justify-center gap-2 transition-all text-indigo-300 font-bold text-[11px] uppercase tracking-wider select-none cursor-pointer active:scale-95 shadow-md shadow-indigo-950/40"
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>Chat del ranking</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          </button>
-        </div>
-
-        {/* INTERFÍCIE DEL XAT INTERACTIU AMB COMENTARIS DIVERTITS I INPUT ACTIU */}
-        {mostrarChat && (
-          <div className="w-full bg-black/45 border border-white/10 rounded-[1.8rem] p-4 flex flex-col gap-3 mt-2 font-sans shadow-2xl backdrop-blur-md animate-fade-in">
-            <div className="flex items-center justify-between border-b border-white/5 pb-2">
-              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-yellow-400 animate-pulse" />
-                Debat de l'oposició en directe
-              </span>
-              <button 
-                onClick={() => setMostrarChat(false)}
-                className="text-xs font-black text-white/40 hover:text-white/80 transition-all uppercase tracking-widest text-[9px] bg-white/5 px-2.5 py-1 rounded-full cursor-pointer"
-              >
-                Amagar xat
-              </button>
-            </div>
-
-            {/* Llista de missatges de la conversa sota scroll actiu */}
-            <div className="flex flex-col gap-3 overflow-y-auto max-h-[220px] pr-1 py-1" style={{ WebkitOverflowScrolling: "touch" }}>
-              {missatgesChat.map((m) => (
-                <div key={m.id} className="flex flex-col gap-1 text-left">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-lg border ${m.color}`}>
-                      {m.nom}
-                    </span>
-                    <span className="text-[9px] text-white/30 font-mono">{m.hora}</span>
-                  </div>
-                  <p className="text-xs text-white/95 bg-white/5 border border-white/5 px-3 py-2 rounded-2xl ml-1 leading-relaxed shadow-sm">
-                    {m.text}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            {/* Formulari d'enviament directe on qualsevol opositor pot parlar amb el seu nom d'usuari de veritat */}
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!nouMissatgeText.trim()) return;
-                const nomDeVeritat = usuariActiu?.displayName || "Tu (Estudiant)";
-                const nouM = {
-                  id: Date.now(),
-                  nom: nomDeVeritat,
-                  text: nouMissatgeText,
-                  hora: new Date().toLocaleTimeString("ca-ES", { hour: "2-digit", minute: "2-digit" }),
-                  color: "text-indigo-200 bg-indigo-500/25 border-indigo-500/45 font-black uppercase"
-                };
-                setMissatgesChat([...missatgesChat, nouM]);
-                setNouMissatgeText("");
-              }}
-              className="flex items-center gap-2 mt-1 pt-2 border-t border-white/5"
-            >
-              <input
-                type="text"
-                value={nouMissatgeText}
-                onChange={(e) => setNouMissatgeText(e.target.value)}
-                placeholder="Escriu un comentari o broma opositora..."
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-indigo-500/50"
-              />
-              <button
-                type="submit"
-                className="p-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all cursor-pointer text-white active:scale-95 shadow-md shadow-indigo-600/20"
-              >
-                <Send className="w-3.5 h-3.5" />
-              </button>
-            </form>
-          </div>
-        )}
-
         {/* BLOC INDICATIU DE PROPERES INSTÀNCIES DE RÀQUIS */}
         <div className="p-4 bg-indigo-950/40 border border-indigo-500/20 rounded-2xl mt-4 shadow-md backdrop-blur-sm">
           <h4 className="text-xs font-black italic uppercase tracking-wider text-indigo-300 mb-1 flex items-center gap-1.5 justify-center">
@@ -936,7 +856,7 @@ export default function OposiMossosInici({
           </h4>
           <p className="text-[11px] text-white/80 leading-relaxed font-semibold text-center mt-1">
             {id === "testos" 
-              ? "Un cop hagis completat com a mínim un test de 30 preguntes de cadascun dels temes de l'APP, apareixeràs al rànquing i podràs començar a competir amb la resta d'usuaris."
+              ? "Un cop hagis completat com a minim un test de 30 preguntes de cadascun dels temes de l'APP, apareixeràs al rànquing i podràs començar a competir amb la resta d'usuaris."
               : "Molt aviat s'explicarà el funcionament i repte corresponents per participar en aquesta modalitat de rànquing i començar a competir amb la resta d'usuaris de cara als millors premis!"
             }
           </p>
@@ -990,11 +910,91 @@ export default function OposiMossosInici({
           /* PANTALLA PRINCIPAL DE RANKINGS: LLISTAT DE BOTONS DE CATEGORIES */
           <main className="w-full max-w-md flex flex-col gap-4 font-sans">
             {/* Explicació per a no-programadors: Text d'introducció destacant en diferents colors (groc, rosa, verd i taronja) els premis que poden guanyar per motivar l'estudiant */}
-            <div className="text-center mb-6 px-2 bg-white/5 border border-white/10 rounded-2xl p-4 shadow-lg backdrop-blur-sm">
+            <div className="text-center mb-2 px-2 bg-white/5 border border-white/10 rounded-2xl p-4 shadow-lg backdrop-blur-sm">
               <p className="text-white/80 text-xs font-semibold leading-relaxed">
                 Participa als nostres rànquings! Entra a cadascun d'ells, descobreix què has de fer per <span className="text-red-500 font-black uppercase">participar</span> i aconsegueix <span className="text-yellow-400 font-black">regals</span>, <span className="text-pink-400 font-black">vals de descompte dels nostres patrocinadors</span>, <span className="text-emerald-400 font-black">mesos gratuïts de la nostra APP</span> i <span className="text-orange-500 font-black">molts altres premis</span>. No t'ho perdis, diverteix-te mentre aprens i prepara't per convertir-te en el pròxim Mosso o la pròxima Mossa d'Esquadra!
               </p>
             </div>
+
+            {/* Explicació per a no-programadors: Botó de Xat opositor general mogut perquè surti dalt del tot del llistat de rànquings genèrics (sota el text explicatiu i abans del primer botó) */}
+            <div className="flex justify-center w-full my-2">
+              <button
+                onClick={() => setMostrarChat(!mostrarChat)}
+                className="w-auto px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-full flex items-center justify-center gap-2 transition-all text-indigo-300 font-bold text-[11px] uppercase tracking-wider select-none cursor-pointer active:scale-95 shadow-md shadow-indigo-950/40"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Chat del ranking</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              </button>
+            </div>
+
+            {/* INTERFÍCIE DEL XAT INTERACTIU AMB COMENTARIS DIVERTITS I INPUT ACTIU MOGUT AL TOP */}
+            {mostrarChat && (
+              <div className="w-full bg-black/45 border border-white/10 rounded-[1.8rem] p-4 flex flex-col gap-3 mb-4 font-sans shadow-2xl backdrop-blur-md animate-fade-in text-left">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-yellow-400 animate-pulse" />
+                    Debat de l'oposició en directe
+                  </span>
+                  <button 
+                    onClick={() => setMostrarChat(false)}
+                    className="text-xs font-black text-white/40 hover:text-white/80 transition-all uppercase tracking-widest text-[9px] bg-white/5 px-2.5 py-1 rounded-full cursor-pointer"
+                  >
+                    Amagar xat
+                  </button>
+                </div>
+
+                {/* Llista de missatges de la conversa sota scroll actiu */}
+                <div className="flex flex-col gap-3 overflow-y-auto max-h-[220px] pr-1 py-1" style={{ WebkitOverflowScrolling: "touch" }}>
+                  {missatgesChat.map((m) => (
+                    <div key={m.id} className="flex flex-col gap-1 text-left font-sans">
+                      <div className="flex items-center gap-1.5 justify-start">
+                        <span className={`text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-lg border ${m.color}`}>
+                          {m.nom}
+                        </span>
+                        <span className="text-[9px] text-white/30 font-mono">{m.hora}</span>
+                      </div>
+                      <p className="text-xs text-white/95 bg-white/5 border border-white/5 px-3 py-2 rounded-2xl ml-1 leading-relaxed shadow-sm">
+                        {m.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Formulari d'enviament directe on qualsevol opositor pot parlar amb el seu nom d'usuari de veritat */}
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!nouMissatgeText.trim()) return;
+                    const nomDeVeritat = usuariActiu?.displayName || "Tu (Estudiant)";
+                    const nouM = {
+                      id: Date.now(),
+                      nom: nomDeVeritat,
+                      text: nouMissatgeText,
+                      hora: new Date().toLocaleTimeString("ca-ES", { hour: "2-digit", minute: "2-digit" }),
+                      color: "text-indigo-200 bg-indigo-500/25 border-indigo-500/45 font-black uppercase"
+                    };
+                    setMissatgesChat([...missatgesChat, nouM]);
+                    setNouMissatgeText("");
+                  }}
+                  className="flex items-center gap-2 mt-1 pt-2 border-t border-white/5"
+                >
+                  <input
+                    type="text"
+                    value={nouMissatgeText}
+                    onChange={(e) => setNouMissatgeText(e.target.value)}
+                    placeholder="Escriu un comentari o broma opositora..."
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-indigo-500/50"
+                  />
+                  <button
+                    type="submit"
+                    className="p-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all cursor-pointer text-white active:scale-95 shadow-md shadow-indigo-600/20"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </form>
+              </div>
+            )}
 
             {/* LLISTA DE BOTONS PRINCIPALS DE RANKING */}
             <div className="grid grid-cols-1 gap-3">
