@@ -12,7 +12,8 @@ import {
   doc,
   updateDoc,
   setDoc,
-  collectionGroup
+  collectionGroup,
+  increment
 } from "firebase/firestore";
 import AdminLogin from "./AdminLogin";
 import GestioRols from "./GestioRols";
@@ -141,10 +142,17 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isAdminVerified, setIsAdminVerified] = useState(false);
   const [userRol, setUserRol] = useState<string>("usuari_free_trial");
+  const [userPermisos, setUserPermisos] = useState<Record<string, boolean>>({});
   const [authError, setAuthError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<'processing' | 'completed' | 'failed' | null>(null);
+  const [uploadErrorMsg, setUploadErrorMsg] = useState<string | null>(null);
+  // Comentari planer per a no-programadors: 
+  // Aquest nou estat serveix per desar els missatges de confirmació en temps real que es reben directament de la BBDD, 
+  // com ara la comprovació de si una pregunta s'ha eliminat físicament, s'ha editat o s'ha canviat d'estat a Firestore.
+  const [dbNotification, setDbNotification] = useState<{ message: string, type: 'success' | 'checking' | 'error' | null }>({ message: "", type: null });
   const [searchTerm, setSearchTerm] = useState("");
   const [appType, setAppType] = useState<'Mossos' | 'Bombers' | 'Rurals' | 'Protecció Civil' | null>(null);
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
@@ -309,54 +317,44 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     // Aquest vigilant de seguretat es posa en marxa un cop l'administrador obre la pàgina.
     // Analitza la sessió en temps real per garantir que només els usuaris amb privilegis de
     // gestor o administradors autoritzats puguin visualitzar el contingut privat del Backoffice.
+    // No fem servir cap llista de correus electrònics escrita al codi font per motius de seguretat.
     const unsub = auth.onAuthStateChanged(async (currentUser) => {
       setCheckingAuth(true);
       if (currentUser) {
-        // Llista blindada d'emails administradors oficials de l'ecosistema OposiCAT
-        const adminEmails = ["xepfarre@gmail.com", "xepfarre7@gmail.com", "sergivinu@gmail.com"];
-        const emailLower = (currentUser.email || "").toLowerCase();
-        const pertanyALlista = adminEmails.includes(emailLower);
-        
         let teRolAdmin = false;
+        let rolActual = "usuari_free_trial";
+        let actualPermisos: Record<string, boolean> = {};
+
         try {
           // Consultem de forma segura la fitxa d'usuari a Firestore per verificar el camp "rol"
           const userDoc = await getDoc(doc(db, "usuaris", currentUser.uid));
           if (userDoc.exists()) {
             const dades = userDoc.data();
-            let rolActual = dades.rol || "usuari_free_trial";
-            
-            // Comentari planer per a no-programadors:
-            // Si el correu de la persona que entra pertany a la llista oficial d'administradors (xepfarre, sergi, etc.)
-            // però té dades antigues o un rol d'"opositor" a Firestore, el sistema el promou automàticament a
-            // "admin_master" o "admin" a la base de dades perquè no quedi mai bloquejat dels menús de gestió.
-            if (pertanyALlista) {
-              const rolCorrecte = (emailLower === "xepfarre@gmail.com") ? "admin_master" : "admin";
-              if (rolActual !== rolCorrecte) {
-                console.log(`[FORCED-ADMIN-UPGRADE] Actualitzant rol de ${emailLower} de "${rolActual}" a "${rolCorrecte}" per aliniar-lo amb la llista de seguretat.`);
-                try {
-                  await updateDoc(doc(db, "usuaris", currentUser.uid), { rol: rolCorrecte });
-                  rolActual = rolCorrecte;
-                } catch (updateErr) {
-                  console.error("Error actualitzant rol d'administrador forçat a Firestore:", updateErr);
-                }
-              }
+            rolActual = dades.rol || "usuari_free_trial";
+          }
+          
+          setUserRol(rolActual);
+
+          // Carreguem dinàmicament els permisos lincats a aquest rol des de la col·lecció "rols" de Firestore
+          try {
+            const rolDoc = await getDoc(doc(db, "rols", rolActual));
+            if (rolDoc.exists()) {
+              actualPermisos = rolDoc.data().permisos || {};
             }
-            
-            setUserRol(rolActual);
-            const rolsPermesosBackoffice = ["admin_master", "admin", "treballador_nivell_1", "treballador_nivell_2", "treballador_nivell_3"];
-            if (rolsPermesosBackoffice.includes(rolActual)) {
-              teRolAdmin = true;
-            }
-          } else {
-            // Si és nou o encara no té doc Firestore creat, calculem el provisional temporal
-            const provisional = (emailLower === "xepfarre@gmail.com") ? "admin_master" : "admin";
-            setUserRol(provisional);
+          } catch (rolErr) {
+            console.error("No s'han pogut demanar els permisos del rol a Firestore:", rolErr);
+          }
+          setUserPermisos(actualPermisos);
+
+          const rolsPermesosBackoffice = ["admin_master", "admin", "treballador_nivell_1", "treballador_nivell_2", "treballador_nivell_3"];
+          if (rolsPermesosBackoffice.includes(rolActual)) {
+            teRolAdmin = true;
           }
         } catch (e) {
           console.error("Error durant la consulta del rol d'administrador a la base de dades:", e);
         }
 
-        if (pertanyALlista || teRolAdmin) {
+        if (teRolAdmin) {
           setIsAdminVerified(true);
           setAuthError(null);
           fetchData();
@@ -737,77 +735,315 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     return `temari/mossos/blocs/${ambit}/temes/${tema}/capitols/${capitol}/preguntes_codificades`;
   };
 
+  // Comentaris planers per a no-programadors:
+  // Decodifica la secció d'estudi segons els patrons establerts (Àmbit A=1, B=2, C=3) i la unifica
+  // amb el número de tema que s'indexa visualment des d'1 per guardar la clau compacta.
+  const getTemaKey = (ambit: string, tema: any) => {
+    const ambitMap: { [key: string]: number } = { A: 1, B: 2, C: 3 };
+    const ambitId = ambitMap[ambit] || 1;
+    const temaVisual = parseInt(tema.toString(), 10) + 1;
+    return `tema_${ambitId}.${temaVisual}`;
+  };
+
+  // Comentaris planers per a no-programadors:
+  // Funció administrativa que recorre en memòria totes les preguntes de la plataforma (excepte les suspeses)
+  // per reconstruir un mapa complet dels totals de cadascun dels temes i carregar-los de cop a 'comptadors/temari'.
+  const handleRecalcularComptadors = async () => {
+    setLoading(true);
+    setDbNotification({
+      message: "S'estan demanant i recalculant els totals de preguntes de cada tema...",
+      type: 'checking'
+    });
+    try {
+      const counts: { [key: string]: number } = {};
+      const actives = preguntes.filter(q => q.status !== 'suspesa');
+      
+      actives.forEach(q => {
+        if (q.ambit !== undefined && q.tema !== undefined) {
+          const key = getTemaKey(q.ambit, q.tema);
+          counts[key] = (counts[key] || 0) + 1;
+        }
+      });
+
+      // Guardem directament la foto sencera de comptadors calculats a'comptadors/temari' de Firestore
+      await setDoc(doc(db, 'comptadors', 'temari'), counts);
+      
+      setDbNotification({
+        message: "Comptadors generals de temes completament sincronitzats a Firestore ('comptadors/temari')!",
+        type: 'success'
+      });
+      setTimeout(() => setDbNotification({ message: "", type: null }), 6000);
+    } catch (err: any) {
+      console.error("Error sincronitzant comptadors:", err);
+      setDbNotification({
+        message: "Error de publicació: No s'ha pogut actualitzar el document de comptadors de temes (" + err.message + ")",
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAddQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setUploadStatus('processing');
+    setUploadErrorMsg(null);
     
-    const localId = editingId || `local-${Date.now()}`;
-    const newLocalPreg = {
-      ...novaPregunta,
-      id: localId,
-      fullPath: editingId ? (preguntes.find(p => p.id === editingId)?.fullPath || "") : "",
-      createdAt: editingId ? undefined : new Date(),
-      isLegacy: false
-    };
-
+    // Comprovació estricta basada única i exclusivament en els permisos rebuts des de la base de dades (BBDD)
+    // d'acord amb els criteris del projecte.
+    const tePermisPreguntes = userPermisos?.gestioPreguntesTeoria || userRol === "admin_master";
+    if (!tePermisPreguntes) {
+      setUploadStatus('failed');
+      setDbNotification({
+        message: "Accés denegat: El teu rol de base de dades no té activat el permís per pujar o modificar preguntes.",
+        type: 'error'
+      });
+      setUploadErrorMsg("El teu rol actual no disposa de permisos ('gestioPreguntesTeoria') per efectuar aquesta acció en calent.");
+      setLoading(false);
+      return;
+    }
+    
+    // Comentari planer per a no-programadors:
+    // Informem a l'usuari/administrador que el procés de guardat s'ha iniciat correctament.
+    setDbNotification({
+      message: editingId ? "S'estan desant les modificacions de la pregunta a la BBDD..." : "S'està registrant la nova pregunta a la BBDD de Firestore...",
+      type: 'checking'
+    });
+    
     try {
-      const path = getPreguntaPath(novaPregunta.ambit, novaPregunta.tema, novaPregunta.capitol);
-      const baseRef = doc(db, "temari", "mossos");
-      await setDoc(baseRef, { nom: "Temari Mossos", actiu: true }, { merge: true });
-      const ambitRef = doc(db, `temari/mossos/blocs/${novaPregunta.ambit}`);
-      await setDoc(ambitRef, { ambit: novaPregunta.ambit }, { merge: true });
+      // Comentari planer per a no-programadors:
+      // Creem un temporitzador límit de 15 segons. Si la connexió a internet amb Firestore triga més de 15s,
+      // es llançarà automàticament un error per avisar que la xarxa no ha pogut completar la pujada.
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("TIMEOUT_15S")), 15000);
+      });
 
-      if (editingId) {
-        const preguntaAEditar = preguntes.find(p => p.id === editingId);
-        if (preguntaAEditar?.fullPath) {
-          await updateDoc(doc(db, preguntaAEditar.fullPath), {
-            ...novaPregunta,
-            updatedAt: serverTimestamp()
+      let createdDocRef: any = null;
+      let targetPathToVerify = "";
+
+      // Executem en procés de competició (race) la pujada a Firebase i el comptador de temps
+      await Promise.race([
+        (async () => {
+          const path = getPreguntaPath(novaPregunta.ambit, novaPregunta.tema, novaPregunta.capitol);
+          const baseRef = doc(db, "temari", "mossos");
+          await setDoc(baseRef, { nom: "Temari Mossos", actiu: true }, { merge: true });
+          const ambitRef = doc(db, `temari/mossos/blocs/${novaPregunta.ambit}`);
+          await setDoc(ambitRef, { ambit: novaPregunta.ambit }, { merge: true });
+
+          if (editingId) {
+            const preguntaAEditar = preguntes.find(p => p.id === editingId);
+            if (preguntaAEditar?.fullPath) {
+              targetPathToVerify = preguntaAEditar.fullPath;
+              // Comentari planer per a no-programadors:
+              // Si hem mogut la pregunta a un tema diferent durant l'edició, restem -1 del tema antic
+              // i sumem +1 al nou de forma completament atòmica.
+              const anticAmbit = preguntaAEditar.ambit;
+              const anticTema = preguntaAEditar.tema;
+              if (anticAmbit !== novaPregunta.ambit || anticTema !== novaPregunta.tema) {
+                try {
+                  const oldKey = getTemaKey(anticAmbit, anticTema);
+                  const newKey = getTemaKey(novaPregunta.ambit, novaPregunta.tema);
+                  await setDoc(doc(db, 'comptadors', 'temari'), {
+                    [oldKey]: increment(-1),
+                    [newKey]: increment(1)
+                  }, { merge: true });
+                } catch (cErr) {
+                  console.warn("No s'han pogut actualitzar els comptadors en editar el tema:", cErr);
+                }
+              }
+              await updateDoc(doc(db, preguntaAEditar.fullPath), {
+                ...novaPregunta,
+                updatedAt: serverTimestamp()
+              });
+            }
+          } else {
+            createdDocRef = await addDoc(collection(db, path), {
+              ...novaPregunta,
+              createdAt: serverTimestamp()
+            });
+            targetPathToVerify = createdDocRef.path;
+
+            // Comentari planer per a no-programadors:
+            // Com que estem creant una nova pregunta activa, incrementem el comptador del tema corresponent a Firestore.
+            try {
+              const newKey = getTemaKey(novaPregunta.ambit, novaPregunta.tema);
+              await setDoc(doc(db, 'comptadors', 'temari'), {
+                [newKey]: increment(1)
+              }, { merge: true });
+            } catch (cErr) {
+              console.warn("No s'ha pogut unificar el comptador de temes en afegir pregunta:", cErr);
+            }
+          }
+        })(),
+        timeoutPromise
+      ]);
+
+      // Comentari planer per a no-programadors:
+      // Ara iniciem la comprovació física en temps real requerida: realitzem una lectura directa del registre desat des de Firestore.
+      setDbNotification({
+        message: "Canvis enviats correctament. S'està verificant la integritat del nou registre a la BBDD...",
+        type: 'checking'
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 850));
+
+      if (targetPathToVerify) {
+        try {
+          const docSnap = await getDoc(doc(db, targetPathToVerify));
+          if (docSnap.exists()) {
+            const serverData = docSnap.data();
+            if (editingId) {
+              if (serverData.pregunta === novaPregunta.pregunta) {
+                setDbNotification({
+                  message: "Confirmat de la BBDD: Les dades s'han modificat i sincronitzat amb èxit.",
+                  type: 'success'
+                });
+              } else {
+                setDbNotification({
+                  message: "Avís: El registre existeix a la BBDD però els valors interns poden diferir dels enviats.",
+                  type: 'error'
+                });
+              }
+            } else {
+              setDbNotification({
+                message: "Confirmat de la BBDD: S'ha comprovat l'existència física del nou document a Firestore.",
+                type: 'success'
+              });
+            }
+          } else {
+            setDbNotification({
+              message: "Alerta: No s'ha pogut confirmar l'existència física ràpida del nou registre a Firestore.",
+              type: 'error'
+            });
+          }
+        } catch (verifyErr) {
+          setDbNotification({
+            message: "S'ha completat l'escriptura correctament. No s'ha pogut auto-verificar per polítiques de lectura local.",
+            type: 'success'
           });
         }
-        setEditingId(null);
       } else {
-        await addDoc(collection(db, path), {
-          ...novaPregunta,
-          createdAt: serverTimestamp()
+        setDbNotification({
+          message: "Guardat correctament. Sincronització de les variables locals realitzada.",
+          type: 'success'
         });
       }
+
+      setUploadStatus('completed');
       setSuccess(true);
+      if (editingId) {
+         setEditingId(null);
+      }
       setNovaPregunta({ pregunta: "", opcions: ["", "", "", ""], correcta: 0, ambit: "A", tema: 0, capitol: 0, explicacio: "", status: "activa" });
       fetchData();
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (error) {
-      console.warn("BBDD desactivada o amb errors. Guardant en local per a TEST:", error);
-      if (editingId) {
-        setPreguntes(prev => prev.map(p => p.id === editingId ? newLocalPreg : p));
-        setEditingId(null);
+      
+      // Comentari planer per a no-programadors: Netegem l'estat d'èxit després d'uns 5 segons per permetre llegir la confirmació
+      setTimeout(() => {
+        setSuccess(false);
+        setUploadStatus(null);
+        setDbNotification(prev => prev.type === 'success' ? { message: "", type: null } : prev);
+      }, 5000);
+    } catch (error: any) {
+      console.warn("Error o timeout en l'enviament de la pregunta a BBDD:", error);
+      setUploadStatus('failed');
+      setDbNotification({
+        message: "Error de connexió: S'ha produït un error en intentar guardar a la BBDD.",
+        type: 'error'
+      });
+      
+      if (error && error.message === "TIMEOUT_15S") {
+        setUploadErrorMsg("Error en l'enviament de la pregunta a BBDD (S'ha superat el temps d'espera de 15 segons)");
       } else {
-        setPreguntes(prev => [newLocalPreg, ...prev]);
+        setUploadErrorMsg(error?.message || error?.toString() || "Error en l'enviament de la pregunta a BBDD");
       }
-      setSuccess(true);
-      setNovaPregunta({ pregunta: "", opcions: ["", "", "", ""], correcta: 0, ambit: "A", tema: 0, capitol: 0, explicacio: "", status: "activa" });
-      setTimeout(() => setSuccess(false), 3000);
+      
+      // Comentari planer per a no-programadors: No forcem codi d'escriptura simulada local en cas de caiguda 
+      // per evitar que l'usuari cregui erròniament que la pregunta s'ha guardat a Firebase quan ha fallat el servidor.
+      // Així es garanteix una total transparència en la manipulació de dades estructurals.
+      setTimeout(() => {
+        setUploadStatus(null);
+        setDbNotification({ message: "", type: null });
+      }, 10000);
     } finally {
       setLoading(false);
     }
   };
 
   const handleToggleStatus = async (id: string, currentStatus: string) => {
+    // Comprovació estricta basada única i exclusivament en els permisos rebuts des de la base de dades (BBDD)
+    const tePermisPreguntes = userPermisos?.gestioPreguntesTeoria || userRol === "admin_master";
+    if (!tePermisPreguntes) {
+      setDbNotification({
+        message: "Accés denegat: El teu rol de base de dades no té activat el permís per canviar l'estat d'aquesta pregunta.",
+        type: 'error'
+      });
+      return;
+    }
+
     const newStatus = currentStatus === 'activa' ? 'suspesa' : 'activa';
+    // Comentari planer per a no-programadors: Notifiquem que s'està processant el canvi d'estat (activa/suspesa pels exàmens) a la BBDD.
+    setDbNotification({
+      message: `Iniciant canvi d'estat o suspensió a '${newStatus}' per a la pregunta seleccionada...`,
+      type: 'checking'
+    });
     try {
       const pregunta = preguntes.find(p => p.id === id);
       if (pregunta?.fullPath) {
         await updateDoc(doc(db, pregunta.fullPath), {
           status: newStatus
         });
+        
+        // Comentari planer per a no-programadors:
+        // Verifiquem directament a Firestore que l'estat ha canviat efectivament en el registre de seguretat del servidor.
+        setDbNotification({
+          message: "Canvi enviat. Llegint les dades actualitzades directament de la BBDD per corroborar el canvi...",
+          type: 'checking'
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        try {
+          const docSnap = await getDoc(doc(db, pregunta.fullPath));
+          const statusEnBBDD = docSnap.data()?.status;
+
+          if (statusEnBBDD === newStatus) {
+            setDbNotification({
+              message: `Confirmat de la BBDD: La pregunta s'ha definit com a '${newStatus}' i ja s'aplica als futurs exàmens.`,
+              type: 'success'
+            });
+            setTimeout(() => setDbNotification({ message: "", type: null }), 5000);
+          } else {
+            setDbNotification({
+              message: "Alerta: No s'ha pogut validar el nou valor de l'estat dins del registre de la BBDD actual.",
+              type: 'error'
+            });
+          }
+        } catch (verifyErr) {
+          setDbNotification({
+            message: `S'ha canviat l'estat a '${newStatus}' amb èxit (no s'ha pogut auto-verificar per polítiques de lectura, actiu).`,
+            type: 'success'
+          });
+          setTimeout(() => setDbNotification({ message: "", type: null }), 5000);
+        }
+
         fetchData();
       } else {
         // Si no té path, és local
         setPreguntes(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p));
+        setDbNotification({
+          message: "Canvi d'estat guardat correctament en la memòria local activa.",
+          type: 'success'
+        });
+        setTimeout(() => setDbNotification({ message: "", type: null }), 3000);
       }
     } catch (err) {
       console.warn("Error en BBDD, aplicant canvi en local:", err);
       setPreguntes(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p));
+      setDbNotification({
+        message: "Error de connexió de BBDD. S'ha realitzat un canvi local temporal d'estat.",
+        type: 'error'
+      });
     }
   };
 
@@ -1078,6 +1314,21 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
   };
 
   const handleDelete = async (fullPath: string, id?: string) => {
+    // Comprovació estricta basada única i exclusivament en els permisos rebuts des de la base de dades (BBDD)
+    const tePermisPreguntes = userPermisos?.gestioPreguntesTeoria || userRol === "admin_master";
+    if (fullPath && fullPath.includes('/preguntes') && !tePermisPreguntes) {
+      setDbNotification({
+        message: "Accés denegat: El teu rol no disposa de permisos ('gestioPreguntesTeoria') per retirar o esborrar preguntes de la teoria.",
+        type: 'error'
+      });
+      return;
+    }
+
+    // Comentari planer per a no-programadors: Iniciem l'operació d'eliminació consciente cap a Firestore
+    setDbNotification({
+      message: "Iniciant procés d'eliminació del registre de la pregunta a Firestore...",
+      type: 'checking'
+    });
     try {
       if (id?.toString().startsWith('local-') || id?.toString().startsWith('mock-')) {
           setExercicisFisics(prev => prev.filter(ex => ex.id !== id));
@@ -1087,14 +1338,71 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
           setPreguntesBiodataLaborals(prev => prev.filter(q => q.id !== id));
           setPreguntesBiodataPGME(prev => prev.filter(q => q.id !== id));
           setPreguntesEntrevista(prev => prev.filter(q => q.id !== id));
+          setDbNotification({
+            message: "L'element de prova o local s'ha esborrat correctament de la memòria.",
+            type: 'success'
+          });
+          setTimeout(() => setDbNotification({ message: "", type: null }), 3000);
           return;
       }
       if (fullPath) {
+        // Comentari planer per a no-programadors:
+        // Busquem en el llistat actiu quina pregunta anàvem a esborrar per poder demanar-ne el tema i l'àmbit
+        // i realitzar un decrement de la seva comptabilitat de manera instantània i atòmica.
+        const preguntaAEsborrar = preguntes.find(p => p.fullPath === fullPath || p.id === id);
+        if (preguntaAEsborrar && preguntaAEsborrar.ambit !== undefined && preguntaAEsborrar.tema !== undefined) {
+          try {
+            const temaKey = getTemaKey(preguntaAEsborrar.ambit, preguntaAEsborrar.tema);
+            await setDoc(doc(db, 'comptadors', 'temari'), {
+              [temaKey]: increment(-1)
+            }, { merge: true });
+            console.log(`Decremenat comptador del tema: ${temaKey}`);
+          } catch (cErr) {
+            console.warn("No s'ha pogut decrementar el comptador visual en esborrar:", cErr);
+          }
+        }
+
         await deleteDoc(doc(db, fullPath));
+        
+        // Comentari planer per a no-programadors:
+        // Ara es realitza la comprovació física que ja no es troba en la BBDD (descarregant l'element per veure si dóna inexistent).
+        setDbNotification({
+          message: "S'ha enviat l'ordre d'esborrat. Verificant estat físic de persistència a la BBDD...",
+          type: 'checking'
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        try {
+          const docSnap = await getDoc(doc(db, fullPath));
+          if (!docSnap.exists()) {
+            setDbNotification({
+              message: "Confirmat de la BBDD: S'ha comprovat que la pregunta ha estat completament eliminada.",
+              type: 'success'
+            });
+            setTimeout(() => setDbNotification({ message: "", type: null }), 5000);
+          } else {
+            setDbNotification({
+              message: "Alerta: No s'ha provat la retirada física del document de la base de dades Firestore.",
+              type: 'error'
+            });
+          }
+        } catch (verifyErr) {
+          setDbNotification({
+            message: "Pregunta esborrada de la BBDD correctament. No s'ha pogut fer la consulta de seguretat final, actiu.",
+            type: 'success'
+          });
+          setTimeout(() => setDbNotification({ message: "", type: null }), 5000);
+        }
+
         fetchData();
       }
     } catch (err) {
       console.error("Error eliminant:", err);
+      setDbNotification({
+        message: "Error de connexió de la BBDD en esborrar: " + (err instanceof Error ? err.message : String(err)),
+        type: 'error'
+      });
     }
   };
 
@@ -1528,7 +1836,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                 setNovaPregunta={setNovaPregunta} 
                 onSubmit={handleAddQuestion}
                 onDelete={(path: string, id: string) => {
-                  if (path) handleDelete(path);
+                  if (path) handleDelete(path, id);
                   else handleLocalDelete(id);
                 }}
                 onToggleStatus={handleToggleStatus}
@@ -1545,6 +1853,13 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                 darkMode={darkMode}
                 onRetry={fetchData}
                 onLoadMock={loadMockQuestions}
+                uploadStatus={uploadStatus}
+                uploadErrorMsg={uploadErrorMsg}
+                dbNotification={dbNotification}
+                setDbNotification={setDbNotification}
+                userRol={userRol}
+                userPermisos={userPermisos}
+                onRecalcularComptadors={handleRecalcularComptadors}
               />
             } />
             <Route path="actualitat" element={
@@ -1560,6 +1875,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                   }
                 }}
                 loading={loading}
+                error={fetchError}
                 success={success}
                 darkMode={darkMode}
                 onLoadMock={loadMockNews}
@@ -1806,6 +2122,22 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
           </Routes>
         )}
       </div>
+      
+      {/* 
+        Comentari planer per a no-programadors:
+        Aquest component és la modal o finestra emergent de confirmació per a accions de risc.
+        S'executa quan l'administrador vol eliminar un element delicat com una pregunta, 
+        un gimnàs o un pla. D'aquesta manera s'assegura que no s'esborri dades directes de 
+        Firestore d'un sol clic per error i que calgui autoritzar de forma conscient el procés.
+      */}
+      <ConfirmModal 
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        darkMode={darkMode}
+      />
     </main>
   </div>
   );
@@ -2713,7 +3045,7 @@ function ConfirmModal({ isOpen, onClose, onConfirm, title, message, darkMode }: 
 /**
  * VIEW: Preguntes
  */
-function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onDelete, onToggleStatus, onEdit, editingId, cancelEdit, loading, error, success, darkMode, setConfirmModal, onRetry, onLoadMock }: any) {
+function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onDelete, onToggleStatus, onEdit, editingId, cancelEdit, loading, error, success, darkMode, setConfirmModal, onRetry, onLoadMock, uploadStatus, uploadErrorMsg, dbNotification, setDbNotification, userRol, userPermisos, onRecalcularComptadors }: any) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [filterAmbit, setFilterAmbit] = useState("");
   const [filterTema, setFilterTema] = useState("");
@@ -2723,6 +3055,18 @@ function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onD
   useEffect(() => {
     if (editingId) setIsFormOpen(true);
   }, [editingId]);
+
+  // Comentari planer per a no-programadors:
+  // Si la pregunta s'ha guardat correctament a la BBDD, esperem 3 segons perquè l'usuari pugui llegir
+  // el missatge d'èxit de color verd conscientment i després tanquem el panell desplegable automàticament.
+  useEffect(() => {
+    if (uploadStatus === 'completed' && !editingId) {
+      const t = setTimeout(() => {
+        setIsFormOpen(false);
+      }, 3000);
+      return () => clearTimeout(t);
+    }
+  }, [uploadStatus, editingId]);
 
   // Obtenir dades del temari per al formulari de creació
   const formTemesAmbit = TEMARI_DETALL[novaPregunta.ambit as 'A' | 'B' | 'C'] || [];
@@ -2754,34 +3098,162 @@ function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onD
               </h1>
            </div>
            
+           {/* Explicació per a no-programadors: Aquest indicador de l'estat dels servidors canvia dinàmicament en funció d'si estem connectats amb èxit amb Firestore (verd) o si encara està carregant (groc) o ha sorgit un error (vermell). */}
            <div className={`px-4 py-2 rounded-xl flex items-center gap-3 border ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200 shadow-sm'}`}>
               <div className="flex flex-col">
                  <span className="text-[8px] font-black uppercase text-slate-400 tracking-widest">Estat servidors</span>
                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
-                    <span className={`text-[10px] font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Connexió a la BBDD en breus</span>
+                    {loading ? (
+                      <>
+                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
+                        <span className={`text-[10px] font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Connectant...</span>
+                      </>
+                    ) : error ? (
+                      <>
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                        <span className="text-[10px] font-bold text-red-500">Sense BBDD</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <span className="text-[10px] font-bold text-emerald-500">ONLINE</span>
+                      </>
+                    )}
                  </div>
               </div>
-              <button 
-                onClick={onLoadMock}
-                className="ml-2 px-3 py-1.5 bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-blue-500 transition-all active:scale-95 shadow-lg shadow-blue-600/20"
-              >
-                Test ( NO BBDD )
-              </button>
+
+              {/* Comentari planer per a no-programadors:
+                  Aquest nou bloc substitueix completament l'antic botó de proves, mostrant l'estat d'enviament de qualsevol formulari nou de dades:
+                  - Blau animat quan està en procés directament cap a Firebase
+                  - Verd (OK) si s'ha sincronitzat i inserit perfectament
+                  - Vermell (KO) si hi ha hagut algun element de denegació o fallida. */}
+              <div className="ml-2 pl-3 border-l border-slate-700/30 flex flex-col justify-center min-w-[85px]">
+                 <span className="text-[8px] font-black uppercase text-slate-400 tracking-widest leading-none mb-1">Última pujada</span>
+                 <div className="flex items-center gap-1.5">
+                    {uploadStatus === 'processing' ? (
+                       <>
+                          <span className="relative flex h-2 w-2">
+                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                             <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                          </span>
+                          <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest animate-pulse">En procés</span>
+                       </>
+                    ) : uploadStatus === 'completed' ? (
+                       <>
+                          <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                          <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">OK</span>
+                       </>
+                    ) : uploadStatus === 'failed' ? (
+                       <>
+                          <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                          <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">KO</span>
+                       </>
+                    ) : (
+                       <>
+                          <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">LLEST</span>
+                       </>
+                    )}
+                 </div>
+              </div>
            </div>
         </div>
-        <div className={`px-6 py-3 rounded-2xl border flex items-center gap-3 ${darkMode ? 'bg-blue-950/20 border-blue-900' : 'bg-blue-50 border-blue-100'}`}>
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] font-black uppercase text-blue-600 leading-none mb-1">Mostrant</span>
-            <span className={`text-xl font-black leading-none ${darkMode ? 'text-blue-400' : 'text-blue-700'}`}>{preguntesFiltrades.length}</span>
-          </div>
-          <div className="w-px h-8 bg-blue-500/20 mx-1"></div>
-          <div className="flex flex-col items-start">
-            <span className="text-[10px] font-black uppercase text-slate-400 leading-none mb-1">Total BBDD</span>
-            <span className={`text-sm font-bold leading-none ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>{preguntes.length}</span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onRecalcularComptadors}
+            disabled={loading}
+            className={`px-4 py-2.5 border rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all active:scale-95 ${
+              darkMode 
+                ? 'bg-blue-950/40 hover:bg-blue-900/50 border-blue-900 text-blue-400' 
+                : 'bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 animate-pulse'
+            }`}
+            title="Recalcula el total de preguntes de cada tema i ho envia a comptadors/temari de Firestore de forma atòmica"
+          >
+            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+            Sincronitzar Comptadors
+          </button>
+
+          <div className={`px-6 py-3 rounded-2xl border flex items-center gap-3 ${darkMode ? 'bg-blue-950/20 border-blue-900' : 'bg-blue-50 border-blue-100'}`}>
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-black uppercase text-blue-600 leading-none mb-1">Mostrant</span>
+              <span className={`text-xl font-black leading-none ${darkMode ? 'text-blue-400' : 'text-blue-700'}`}>{preguntesFiltrades.length}</span>
+            </div>
+            <div className="w-px h-8 bg-blue-500/20 mx-1"></div>
+            <div className="flex flex-col items-start">
+              <span className="text-[10px] font-black uppercase text-slate-400 leading-none mb-1">Total BBDD</span>
+              <span className={`text-sm font-bold leading-none ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>{preguntes.length}</span>
+            </div>
           </div>
         </div>
       </header>
+
+      {/* Comentari planer per a no-programadors:
+          Si l'usuari no té el permís actiu, se li informa mitjançant un banner que només pot consultar,
+          però que la pujada, edició i eliminació estan blocades per decisió de rols de la base de dades. */}
+      {!(userPermisos?.gestioPreguntesTeoria || userRol === "admin_master") && (
+        <div className={`p-6 rounded-[2rem] border flex items-center gap-4 ${darkMode ? 'bg-amber-950/20 border-amber-900 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/15 flex items-center justify-center shrink-0">
+            <Info size={22} className="text-amber-500" />
+          </div>
+          <div>
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] block opacity-65">Atenció: Mode Consulta / Accés Limitat</span>
+            <p className="text-xs font-black mt-0.5 leading-snug">
+               El teu rol actual de base de dades és de "{userRol || 'sense_rol'}". No disposes de permís actiu per poder pujar, modificar o esborrar preguntes de la part teòrica. Aquests permisos s'han de governar des de la "Gestió de rols".
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 
+         Comentari planer per a no-programadors:
+         Aquest bloc és un Toast o un panell de notificacions d'alta fidelitat i sincronització flotant en directe.
+         En lloc d'estar encaixat dins de la pàgina, es fixa permanentment a la cantonada inferior dreta (fixed bottom-8 right-8).
+         Amb això, quan un administrador dóna d'alta, edita, canvia l'estat o esborra una pregunta, el sistema fa un procés de
+         comprovació física asíncrona amb Firestore de forma independent, i mostra el bonic avís fluidament sense importar si 
+         l'operador està mirant el formulari, la llista o té un desplaçament a baix.
+      */}
+      <AnimatePresence>
+        {dbNotification && dbNotification.type && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className={`fixed bottom-8 right-8 z-[500] max-w-sm w-[calc(100vw-4rem)] p-6 rounded-[2rem] border flex items-center justify-between gap-4 transition-all shadow-2xl backdrop-blur-xl ${
+              dbNotification.type === 'checking'
+                ? (darkMode ? 'bg-amber-950/90 border-amber-500/30 text-amber-500 shadow-amber-500/10' : 'bg-amber-50/95 border-amber-200 text-amber-700 shadow-amber-200/50')
+                : dbNotification.type === 'success'
+                ? (darkMode ? 'bg-emerald-950/90 border-emerald-500/30 text-emerald-500 shadow-emerald-500/10' : 'bg-emerald-50/95 border-emerald-200 text-emerald-700 shadow-emerald-200/50')
+                : (darkMode ? 'bg-red-950/90 border-red-500/30 text-red-500 shadow-red-500/10' : 'bg-red-50/95 border-red-200 text-red-700 shadow-red-200/50')
+            }`}
+          >
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+                dbNotification.type === 'checking' ? 'bg-amber-500/15' : dbNotification.type === 'success' ? 'bg-emerald-500/15' : 'bg-red-500/15'
+              }`}>
+                {dbNotification.type === 'checking' ? (
+                  <RefreshCw size={22} className="animate-spin text-amber-500" />
+                ) : dbNotification.type === 'success' ? (
+                  <CheckCircle2 size={22} className="text-emerald-500 animate-pulse" />
+                ) : (
+                  <Info size={22} className="text-red-500" />
+                )}
+              </div>
+              <div className="text-left">
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-65 block">VERIFICACIÓ EN LÍNIA FIRESTORE</span>
+                <p className="text-xs font-black mt-0.5 leading-snug">{dbNotification.message}</p>
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => setDbNotification({ message: "", type: null })}
+              className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors shrink-0"
+            >
+              <X size={14} className="opacity-60 hover:opacity-100" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
          
@@ -2821,7 +3293,7 @@ function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onD
 
                {/* COS DEL FORMULARI */}
                <div className={`p-8 space-y-6 ${isFormOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                  <form onSubmit={e => { onSubmit(e); if (!editingId) setIsFormOpen(false); }} className="space-y-6">
+                  <form onSubmit={onSubmit} className="space-y-6">
                     <div className="space-y-1.5">
                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-1">Enunciat de la pregunta</label>
                        <textarea 
@@ -2944,6 +3416,40 @@ function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onD
                        />
                     </div>
 
+                     {/* Missatges de feedback de l'estat d'enviament a la BBDD acompanyats didàcticament */}
+                     {uploadStatus === 'processing' && (
+                       <div id="upload-status-processing" className="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/20 text-blue-500 rounded-2xl animate-pulse">
+                         <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin shrink-0"></div>
+                         <span className="text-xs font-black uppercase tracking-wider">en procés... Sincronitzant amb la Base de Dades</span>
+                       </div>
+                     )}
+
+                     {uploadStatus === 'completed' && (
+                       <div id="upload-status-completed" className="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-2xl">
+                         <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-black shrink-0">✓</div>
+                         <span className="text-xs font-black uppercase tracking-wider font-semibold">Pregunta pujada correctament a la Base de Dades</span>
+                       </div>
+                     )}
+
+                     {uploadStatus === 'failed' && (
+                        <div id="upload-status-failed" className="flex flex-col gap-3 p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl">
+                          <div className="flex items-center gap-3">
+                            <div className="w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-black shrink-0">✗</div>
+                            <span className="text-xs font-black uppercase tracking-wider">Error en l'enviament de la pregunta a BBDD</span>
+                          </div>
+                          {uploadErrorMsg && (
+                            <div className="mt-2 text-[10.5px] leading-relaxed font-semibold border-t border-red-500/10 pt-2 text-red-500/90">
+                              <p className="uppercase tracking-widest font-black text-[9px] mb-1 text-red-400">Detall de l'error del servidor:</p>
+                              <code className="font-mono text-[9px] break-all block bg-red-950/20 p-2 rounded-lg text-red-350 mb-2">{uploadErrorMsg}</code>
+                              <p className="text-[10px] text-slate-400 font-medium leading-normal italic">
+                                💡 <strong>Et recomanem, modificaria i/o recorda que pot passar... a futur:</strong> Comprova que el teu usuari de debò disposa de privilegis de rol d'Administrador actius d'acord amb les regles de Firestore. Hem eliminat la simulació per garantir transaccions reals a Firebase, i el contingut de la pregunta segueix escrit al teu formulari per no perdre la feina!
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+
                     <div className="flex gap-3">
                        {editingId && (
                          <button 
@@ -2959,11 +3465,11 @@ function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onD
                        <button 
                          disabled={loading}
                          type="submit"
-                         className={`flex-[2] py-4 text-white rounded-2xl font-black uppercase italic tracking-widest text-xs hover:translate-y-[-2px] hover:shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 ${
+                         className={!(userPermisos?.gestioPreguntesTeoria || userRol === "admin_master") ? "flex-[2] py-4 text-slate-300 dark:text-slate-500 rounded-2xl font-black uppercase italic tracking-widest text-xs transition-all flex items-center justify-center gap-3 bg-slate-200 dark:bg-slate-800 cursor-not-allowed opacity-40" : `flex-[2] py-4 text-white rounded-2xl font-black uppercase italic tracking-widest text-xs hover:translate-y-[-2px] hover:shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 ${
                            editingId ? 'bg-amber-500 shadow-amber-500/30' : 'bg-blue-600 shadow-blue-600/30'
                          }`}
                        >
-                         {loading ? "Guardant..." : <>{editingId ? <Save size={18} /> : <FilePlus2 size={18} />} {editingId ? 'Guardar Canvis' : 'Afegir a BBDD'}</>}
+                         {loading ? "Guardant..." : <>{editingId ? <Save size={18} /> : <FilePlus2 size={18} />} {!(userPermisos?.gestioPreguntesTeoria || userRol === "admin_master") ? 'SENSE PERMÍS' : (editingId ? 'Guardar Canvis' : 'Afegir a BBDD')}</>}
                        </button>
                     </div>
                   </form>
@@ -3201,7 +3707,7 @@ function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onD
 /**
  * VIEW: Actualitat
  */
-function ActualitatView({ actualitats, novaActualitat, setNovaActualitat, onSubmit, onDelete, loading, success, darkMode, onLoadMock, userRol }: any) {
+function ActualitatView({ actualitats, novaActualitat, setNovaActualitat, onSubmit, onDelete, loading, error, success, darkMode, onLoadMock, userRol }: any) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [filterTitle, setFilterTitle] = useState("");
   const [filterCategoria, setFilterCategoria] = useState("");
@@ -3245,12 +3751,27 @@ function ActualitatView({ actualitats, novaActualitat, setNovaActualitat, onSubm
                  </h1>
               </div>
 
+              {/* Explicació per a no-programadors: Indicador viu d'estat de serveis de dades d'actualitat, avisant de la connexió a la BBDD integrada. */}
               <div className={`px-4 py-2 rounded-xl flex items-center gap-3 border ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-200 shadow-sm'}`}>
                  <div className="flex flex-col">
                     <span className="text-[8px] font-black uppercase text-slate-400 tracking-widest">Estat servidors</span>
                     <div className="flex items-center gap-2">
-                       <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
-                       <span className={`text-[10px] font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Connexió a la BBDD en breus</span>
+                       {loading ? (
+                         <>
+                           <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
+                           <span className={`text-[10px] font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>Connectant...</span>
+                         </>
+                       ) : error ? (
+                         <>
+                           <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                           <span className="text-[10px] font-bold text-red-500">Sense BBDD</span>
+                         </>
+                       ) : (
+                         <>
+                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                           <span className="text-[10px] font-bold text-emerald-500">ONLINE</span>
+                         </>
+                       )}
                     </div>
                  </div>
                  <button 

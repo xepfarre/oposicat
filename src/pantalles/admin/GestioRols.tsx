@@ -48,70 +48,70 @@ const ROLS_PREDEFINITS: ConfiguracioRol[] = [
     nom: "Admin Master",
     descripcio: "Rol superior absolut. Accés total a totes les configuracions, eliminacions de bases de dades i capacitat per enviar notificacions globals.",
     actiu: true,
-    permisos: { enviarNotificacions: true, visualitzarFinances: true, actualitzarTeoria: true, gestioIncidencies: true, gestioFisica: true, veureTemariSencer: true, accesLimitatFreeTrial: false }
+    permisos: { enviarNotificacions: true, visualitzarFinances: true, actualitzarTeoria: true, gestioIncidencies: true, gestioFisica: true, veureTemariSencer: true, accesLimitatFreeTrial: false, gestioPreguntesTeoria: true }
   },
   {
     id: "admin",
     nom: "Administrador / Soci",
     descripcio: "Accés reservat als 2 socis fundadors. Permet visualitzar estadístiques, comprovar finances, gestionar opositors i llançar notificacions oficials.",
     actiu: true,
-    permisos: { enviarNotificacions: true, visualitzarFinances: true, actualitzarTeoria: true, gestioIncidencies: true, gestioFisica: true, veureTemariSencer: true, accesLimitatFreeTrial: false }
+    permisos: { enviarNotificacions: true, visualitzarFinances: true, actualitzarTeoria: true, gestioIncidencies: true, gestioFisica: true, veureTemariSencer: true, accesLimitatFreeTrial: false, gestioPreguntesTeoria: true }
   },
   {
     id: "tester",
     nom: "Tester / Provador",
     descripcio: "Perfil de proves destinat a validar exàmens asíncrons i auditar mòduls de notificacions abans del llançament oficial.",
     actiu: true,
-    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: false, gestioIncidencies: false, gestioFisica: false, veureTemariSencer: true, accesLimitatFreeTrial: false }
+    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: false, gestioIncidencies: false, gestioFisica: false, veureTemariSencer: true, accesLimitatFreeTrial: false, gestioPreguntesTeoria: false }
   },
   {
     id: "treballador_nivell_1",
     nom: "Treballador Nivell 1",
     descripcio: "Gestor de continguts teòrics i d'actualitat de nivell bàsic. Edita temes però no pot enviar notificacions ni eliminar exàmens.",
     actiu: true,
-    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: true, gestioIncidencies: false, gestioFisica: false, veureTemariSencer: true, accesLimitatFreeTrial: false }
+    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: true, gestioIncidencies: false, gestioFisica: false, veureTemariSencer: true, accesLimitatFreeTrial: false, gestioPreguntesTeoria: false }
   },
   {
     id: "treballador_nivell_2",
     nom: "Treballador Nivell 2",
     descripcio: "Gestor de nivell mitjà. Habilitat per gestionar incidències, assignar consultes amb psicòlegs i crear calendaris físics.",
     actiu: true,
-    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: true, gestioIncidencies: true, gestioFisica: true, veureTemariSencer: true, accesLimitatFreeTrial: false }
+    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: true, gestioIncidencies: true, gestioFisica: true, veureTemariSencer: true, accesLimitatFreeTrial: false, gestioPreguntesTeoria: false }
   },
   {
     id: "treballador_nivell_3",
     nom: "Treballador Nivell 3",
     descripcio: "Coordinador operatiu de continguts. Té permís per redactar notificacions push de l'APP d'estudi però no per enviar-les directament de forma immediata.",
     actiu: true,
-    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: true, gestioIncidencies: true, gestioFisica: true, veureTemariSencer: true, accesLimitatFreeTrial: false }
+    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: true, gestioIncidencies: true, gestioFisica: true, veureTemariSencer: true, accesLimitatFreeTrial: false, gestioPreguntesTeoria: false }
   },
   {
     id: "usuari",
     nom: "Usuari Opositor",
     descripcio: "Perfil estàndard dels estudiants de pagament complet. Accés i dret a visualitzar temari i fer entrenaments bàsics.",
     actiu: true,
-    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: false, gestioIncidencies: false, gestioFisica: false, veureTemariSencer: true, accesLimitatFreeTrial: false }
+    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: false, gestioIncidencies: false, gestioFisica: false, veureTemariSencer: true, accesLimitatFreeTrial: false, gestioPreguntesTeoria: false }
   },
   {
     id: "usuari_free_trial",
     nom: "Usuari Prova (Free Trial)",
     descripcio: "Compte de prova gratuïta de 3 dies per a nous alumnes/usuaris registrats. No tenen accés d'edició ni dret d'enviament de cap mena.",
     actiu: true,
-    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: false, gestioIncidencies: false, gestioFisica: false, veureTemariSencer: false, accesLimitatFreeTrial: true }
+    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: false, gestioIncidencies: false, gestioFisica: false, veureTemariSencer: false, accesLimitatFreeTrial: true, gestioPreguntesTeoria: false }
   },
   {
     id: "usuari_bannejat",
     nom: "Usuari Bannejat",
     descripcio: "Accés totalment bloquejat per violació de termes d'ús de comptes compartits o impagament recurrent.",
     actiu: true,
-    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: false, gestioIncidencies: false, gestioFisica: false, veureTemariSencer: false, accesLimitatFreeTrial: false }
+    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: false, gestioIncidencies: false, gestioFisica: false, veureTemariSencer: false, accesLimitatFreeTrial: false, gestioPreguntesTeoria: false }
   },
   {
     id: "usuari_sospitos",
     nom: "Usuari Sospitós",
     descripcio: "Estat en observació automatitzada. Permet l'estudi de contingut general, però bloqueja canvis o reserves de cita de cita o psicòleg.",
     actiu: true,
-    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: false, gestioIncidencies: false, gestioFisica: false, veureTemariSencer: true, accesLimitatFreeTrial: false }
+    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: false, gestioIncidencies: false, gestioFisica: false, veureTemariSencer: true, accesLimitatFreeTrial: false, gestioPreguntesTeoria: false }
   }
 ];
 
@@ -162,20 +162,14 @@ export default function GestioRols({ darkMode }: { darkMode: boolean }) {
   // Aquest efecte s'activa quan entrem a la pantalla. Es comunica amb Firebase Auth
   // per esbrinar el correu de la persona connectada, i després consulta quin és el seu rol
   // a la base de dades per decidir si té permisos d'Administrador d'empresa.
+  // No fem servir cap llista de correus electrònics escrita al codi font per motius de seguretat.
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         setCurrentUserEmail(user.email || "");
         setCurrentUserName(user.displayName || "Administrador");
         
-        // Rol d'administrador provisional per email conegut dels socis per si encara no estan memoritzats
-        const emailLower = (user.email || "").toLowerCase();
         let provisionalRol = "opositor";
-        if (emailLower === "xepfarre@gmail.com" || emailLower === "xepfarre7@gmail.com") {
-          provisionalRol = "admin_master";
-        } else if (emailLower === "sergivinu@gmail.com") {
-          provisionalRol = "admin";
-        }
 
         try {
           const userDoc = await getDoc(doc(db, "usuaris", user.uid));
@@ -186,7 +180,7 @@ export default function GestioRols({ darkMode }: { darkMode: boolean }) {
             setCurrentUserRol(provisionalRol);
           }
         } catch (err) {
-          console.warn("No hem pogut llegir el document de l'usuari a Firebase, usem el seu email:", err);
+          console.warn("No hem pogut llegir el document de l'usuari a Firebase:", err);
           setCurrentUserRol(provisionalRol);
         }
       }
@@ -891,6 +885,21 @@ export default function GestioRols({ darkMode }: { darkMode: boolean }) {
                               type="checkbox"
                               checked={rol.permisos?.accesLimitatFreeTrial ?? false}
                               onChange={(e) => desarPermisDeRol(rol.id, "accesLimitatFreeTrial", e.target.checked)}
+                              disabled={savingPermission === rol.id}
+                              className="rounded text-indigo-500 h-4 w-4 focus:ring-indigo-500 cursor-pointer"
+                            />
+                          </div>
+
+                          {/* Permís 8: Gestió de preguntes teòriques en BBDD */}
+                          <div className={`p-2.5 rounded-xl border flex items-center justify-between ${darkMode ? "bg-slate-950/20 border-slate-900" : "bg-slate-50/80 border-slate-100"}`}>
+                            <div className="space-y-0.5 max-w-[80%]">
+                              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200">Gestió de preguntes teòriques en BBDD</span>
+                              <p className="text-[9.5px] text-slate-400 leading-tight">Dret a pujar, modificar i eliminar preguntes de la part teòrica de la base de dades.</p>
+                            </div>
+                            <input 
+                              type="checkbox"
+                              checked={rol.permisos?.gestioPreguntesTeoria ?? false}
+                              onChange={(e) => desarPermisDeRol(rol.id, "gestioPreguntesTeoria", e.target.checked)}
                               disabled={savingPermission === rol.id}
                               className="rounded text-indigo-500 h-4 w-4 focus:ring-indigo-500 cursor-pointer"
                             />

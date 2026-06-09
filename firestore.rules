@@ -159,5 +159,132 @@ service cloud.firestore {
                        isAdmin();
       allow delete: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
     }
+
+    // 6. Col·lecció de banc de preguntes globals (permetem llegir de forma lliure per evitar errors de càrrega)
+    // Comentari planer per a no-programadors: Deixem llegir les preguntes de l'examen a qualsevol persona que entri, ja que són dades d'estudi públiques, però només deixem que els administradors oficials puguin modificar o crear preguntes noves.
+    match /preguntes_codificades/{preguntaId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Suport per a consultes CollectionGroup sobre preguntes_codificades
+    // Comentari planer per a no-programadors: Això ajuda al cercador intern de l'aplicació a trobar qualsevol pregunta independentment de la carpeta o subtema on s'hagi guardat originalment.
+    match /{path=**}/preguntes_codificades/{preguntaId} {
+      allow read: if true;
+    }
+
+    // 7. Col·lecció de preguntes ordenades per exàmens oficials i simulacres
+    // Comentari planer per a no-programadors: Les preguntes i respostes dels exàmens reals i simulacres s'han d'ensenyar tant als alumnes registrats com als usuaris de prova ràpida. Bloquegem l'escriptura per seguretat.
+    match /examens/{examenId}/preguntes/{preguntaId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 8. Col·lecció d'Actualitat i Notícies de la Setmana
+    // Comentari planer per a no-programadors: La llista de notícies, canvis de bases de convocatòria i novetats s'ha de poder llegir lliurement. Només es pot escriure per l'administració autoritzada de la web.
+    match /actualitat/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 9. Banc de preguntes d'actualitat relacionades a les notícies
+    // Comentari planer per a no-programadors: Permet als opositors assajar preguntes basades en les darreres notícies i canvis legislatius d'OposiCAT.
+    match /actualitat_preguntes/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 10. Directori d'acadèmies i gimnasos de preparació física
+    // Comentari planer per a no-programadors: Informació de suport amb els gimnasos col·laboradors per preparar les proves físiques. De lectura lliure, tancat d'escriptura als alumnes.
+    match /gimnasos/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 11. Reserves d'assessoria amb l'equip de psicologia clínica d'OposiCAT
+    // Comentari planer per a no-programadors: Per demanar cita de simulacres d'entrevista amb psicòlegs, els alumnes registrats poden reservar de forma asíncrona un espai segur. Els administradors tenen accés total per coordinar-ho.
+    match /reserves_psicologia/{documentId} {
+      allow read: if true;
+      allow write: if isSignedIn() || isAdmin();
+    }
+
+    // 12. Gestor de taules de subscripcions i llicències
+    // Comentari planer per a no-programadors: Informació reservada d'ús purament intern que només pot consultar i gestionar l'equip d'administració de la plataforma.
+    match /subscripcions/{documentId} {
+      allow read, write: if isAdmin();
+    }
+
+    // 13. Banc d'actualització de tipus de psicotècnics d'OposiMossos (figures, sèries, orientació)
+    // Comentari planer per a no-programadors: Definicions generals de les competències intel·lectuals necessàries dels tests psicotècnics.
+    match /psicotecnics_tipus/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 14. Banc de preguntes psicotècniques d'oposició real
+    // Comentari planer per a no-programadors: Les preguntes i exercicis psicotècnics s'exposen gratuïtament o sota subscripció.
+    match /psicotecnics_preguntes/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 15. Banc de proves d'exercici físic (pressió sobre banc, llançament, cursa de llançadora)
+    // Comentari planer per a no-programadors: Models i barems del que exigeix el cos de Mossos d'Esquadra en cada disciplina física d'accés.
+    match /exercicis_fisics/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 16. Plans d'entrenament programats setmana a setmana
+    // Comentari planer per a no-programadors: Taules guiades d'entrenaments esportius setmanals adaptables per als alumnes de l'acadèmia.
+    match /plans_entrenament/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 17. Preguntes de biodata de tipus personal, laboral i corporatiu de policia
+    // Comentari planer per a no-programadors: Preguntes del qüestionari biogràfic obligatori del procés selectiu (biodata). Llegit pel simulador de l'alumne i administrat pel backoffice.
+    match /preguntes_biodata_personals/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /preguntes_biodata_laborals/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /preguntes_biodata_pgme/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 18. Historial d'assajos de preguntes cara a cara en l'entrevista d'accés
+    // Comentari planer per a no-programadors: Base de preguntes preparatòries per a l'entrevista oral exhaustiva.
+    match /preguntes_entrevista/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 19. Col·lecció de seguiment de respostes d'opositors per poder analitzar el progrés fidedignament
+    // Comentari planer per a no-programadors: Aquest és el calaix personal de respostes que cada alumne respon. Per privacitat i RGPD, un alumne només pot llegir i desar les seves pròpies respostes realitzades.
+    match /usuaris/{userId}/respostes_preguntes/{preguntaId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
+      allow create, update: if isOwner(userId) &&
+                               isValidId(preguntaId) &&
+                               incoming().preguntaId == preguntaId &&
+                               (incoming().encertada == true || incoming().encertada == false) &&
+                               incoming().respostaSeleccionada is int &&
+                               incoming().intents is int &&
+                               incoming().correctes is int &&
+                               incoming().errors is int;
+      allow delete: if isAdmin();
+    }
+
+    // 20. Estructura de Temari d'Estudi d'OposiCAT
+    // Comentari planer per a no-programadors: Permet a qualsevol persona llegir els temaris de Mossos d'Esquadra i les preguntes codificades associades, però restringeix qualsevol petició d'escriptura (creació, actualització i esborrat) exclusivament al personal d'administració autoritzat.
+    match /temari/{anyDoc=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

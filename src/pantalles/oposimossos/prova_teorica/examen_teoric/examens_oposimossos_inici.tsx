@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft, BarChart3, Target, AlertTriangle, RefreshCw, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { TEMARI_DETALL } from "../../../../constants/temari";
+import { db, auth } from "../../../../lib/firebase";
+import { collection, getDocs, doc, getDoc, writeBatch } from "firebase/firestore";
 
 /**
  * PANTALLA: ExamensOposimossosInici
@@ -15,6 +17,185 @@ export default function ExamensOposimossosInici({
   onTornar: () => void;
   onComencar: (num: number, temps: string, seleccions: { [key: string]: number[] }) => void;
 }) {
+  // Comprovació i estats per a la càrrega de dades d'analítica realment persistida
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [totalEncerts, setTotalEncerts] = useState(0);
+  const [totalErrades, setTotalErrades] = useState(0);
+  const [resetConfirm, setResetConfirm] = useState(false);
+  
+  // Guardem l'objecte complet de dades per al millor i pitjor tema de l'opositor
+  const [millorTema, setMillorTema] = useState<{ id: string, name: string, percent: number, encertades: number, totals: number } | null>(null);
+  const [pitjorTema, setPitjorTema] = useState<{ id: string, name: string, percent: number, encertades: number, totals: number } | null>(null);
+
+  // Comentari planer per a no-programadors:
+  // Converteix una clau de tema de la base de dades (com 'tema_1.2') en el seu títol de la llista TEMARI_DETALL.
+  const formatTemaNom = (temaKey: string) => {
+    const parts = temaKey.replace('tema_', '').split('.');
+    if (parts.length === 2) {
+      const ambitCodi = parts[0] === '1' ? 'A' : parts[0] === '2' ? 'B' : 'C';
+      const indexNum = parseInt(parts[1], 10) - 1;
+      const temesDelBloc = TEMARI_DETALL[ambitCodi as 'A' | 'B' | 'C'];
+      if (temesDelBloc && temesDelBloc[indexNum]) {
+        return temesDelBloc[indexNum].titol;
+      }
+      return `Àmbit ${ambitCodi} • Tema ${parts[1]}`;
+    }
+    return temaKey;
+  };
+
+  // Comentari planer per a no-programadors:
+  // Carrega les dades en directe només obrir la pantalla del progrés.
+  // Es demanen (1) les respostes totals que té registrades l'estudiant i (2) l'inventari virtual 'comptadors/temari' on s'emmagatzema el denominador (totals per tema).
+  useEffect(() => {
+    const carregarEstadistiquesReals = async () => {
+      const user = auth.currentUser;
+      if (!user) {
+        setLoadingStats(false);
+        return;
+      }
+
+      try {
+        // 1. Llegim el document d'inventari 'comptadors/temari' on estan desats els números de preguntes de cada tema
+        const comptadorRef = doc(db, 'comptadors', 'temari');
+        const comptadorSnap = await getDoc(comptadorRef);
+        const totalsTemes = comptadorSnap.exists() ? comptadorSnap.data() : {};
+
+        // 2. Llegim les respostes de l'usuari actual
+        const respostesRef = collection(db, `usuaris/${user.uid}/respostes_preguntes`);
+        const respostesSnap = await getDocs(respostesRef);
+
+        let encertsNum = 0;
+        let erradesNum = 0;
+
+        // Mapeig on acumularem quantes preguntes té l'usuari correctament encertades per tema
+        const encertatsPerTema: { [key: string]: number } = {};
+
+        respostesSnap.docs.forEach(docSnap => {
+          const d = docSnap.data();
+          const esEncertada = !!d.encertada;
+
+          // Si l'última resposta de l'usuari és correcta, es comptabilitza com un encert actiu.
+          if (esEncertada) {
+            encertsNum++;
+          } else {
+            erradesNum++;
+          }
+
+          // Agrupació per temes de cara al ràtio de percentatge
+          if (d.ambit !== undefined && d.tema !== undefined) {
+            const ambitMap: { [key: string]: number } = { A: 1, B: 2, C: 3 };
+            const ambitId = ambitMap[d.ambit] || 1;
+            const temaVisual = parseInt(d.tema.toString(), 10) + 1;
+            const temaKey = `tema_${ambitId}.${temaVisual}`;
+
+            if (esEncertada) {
+              const prevValue = encertatsPerTema[temaKey] || 0;
+              encertatsPerTema[temaKey] = prevValue + 1;
+            }
+          }
+        });
+
+        setTotalEncerts(encertsNum);
+        setTotalErrades(erradesNum);
+
+        // 3. Càlcul del % d'encert de cadascun dels temes actius per resoldre quin és el millor i pitjor tema.
+        let millor: typeof millorTema = null;
+        let pitjor: typeof pitjorTema = null;
+
+        Object.keys(totalsTemes).forEach(temaKey => {
+          const totalPreguntesTema = totalsTemes[temaKey] || 0;
+          if (totalPreguntesTema > 0) {
+            const encertatsUsuari = encertatsPerTema[temaKey] || 0;
+            const percent = Number(((encertatsUsuari / totalPreguntesTema) * 100).toFixed(1));
+
+            // Resolem el millor tema (per favor de ràtio)
+            if (!millor || percent > millor.percent) {
+              millor = {
+                id: temaKey,
+                name: formatTemaNom(temaKey),
+                percent: percent,
+                encertades: encertatsUsuari,
+                totals: totalPreguntesTema
+              };
+            } else if (millor && percent === millor.percent) {
+              // En cas d'empat de percentatges, mostrem el tema que contingui major densitat de volum
+              if (totalPreguntesTema > millor.totals) {
+                millor = {
+                  id: temaKey,
+                  name: formatTemaNom(temaKey),
+                  percent: percent,
+                  encertades: encertatsUsuari,
+                  totals: totalPreguntesTema
+                };
+              }
+            }
+
+            // Resolem el pitjor tema
+            if (!pitjor || percent < pitjor.percent) {
+              pitjor = {
+                id: temaKey,
+                name: formatTemaNom(temaKey),
+                percent: percent,
+                encertades: encertatsUsuari,
+                totals: totalPreguntesTema
+              };
+            } else if (pitjor && percent === pitjor.percent) {
+              // En cas d'empat d'equivalent percentatge, usem el tema que contingui més volum activa
+              if (totalPreguntesTema > pitjor.totals) {
+                pitjor = {
+                  id: temaKey,
+                  name: formatTemaNom(temaKey),
+                  percent: percent,
+                  encertades: encertatsUsuari,
+                  totals: totalPreguntesTema
+                };
+              }
+            }
+          }
+        });
+
+        setMillorTema(millor);
+        setPitjorTema(pitjor);
+
+      } catch (err) {
+        console.error("Error calculant l'anàlisi de rendiment teòric des d'exàmens:", err);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    carregarEstadistiquesReals();
+  }, []);
+
+  // Comentari planer per a no-programadors:
+  // Funció que escombra el progrés en directe quan l'opositor confirma que vol reiniciar les dades.
+  const handleResetEstadistiques = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    setLoadingStats(true);
+    try {
+      const respostesRef = collection(db, `usuaris/${user.uid}/respostes_preguntes`);
+      const respostesSnap = await getDocs(respostesRef);
+      
+      const batch = writeBatch(db);
+      respostesSnap.docs.forEach(docSnap => {
+        batch.delete(docSnap.ref);
+      });
+      await batch.commit();
+
+      setTotalEncerts(0);
+      setTotalErrades(0);
+      setMillorTema(null);
+      setPitjorTema(null);
+      setResetConfirm(false);
+    } catch (err) {
+      console.error("Error esborrant historial:", err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
   // Estats per a la selecció de l'usuari
   const [tab, setTab] = useState<'errades' | 'examen'>('examen');
   const [seleccions, setSeleccions] = useState<{ [key: string]: number[] }>({
@@ -126,34 +307,59 @@ export default function ExamensOposimossosInici({
 
           {/* CONTENIDOR 1: ENCERTS | ERRADES | RESET */}
           <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-[1.5rem] p-3 grid grid-cols-[1fr_1fr_64px] items-center gap-1 shadow-xl">
-            <div className="flex items-center justify-center gap-2 border-r border-white/10 h-full">
+            <div className="flex items-center justify-center gap-2 border-r border-white/10 h-full py-1">
               <span className="text-[9px] font-bold text-white/40 italic uppercase">Encerts:</span>
-              <span className="text-xl font-black italic text-emerald-400">100</span>
+              <span className="text-xl font-black italic text-emerald-400">
+                {loadingStats ? "..." : totalEncerts}
+              </span>
             </div>
 
-            <div className="flex items-center justify-center gap-2 border-r border-white/10 h-full">
+            <div className="flex items-center justify-center gap-2 border-r border-white/10 h-full py-1">
               <span className="text-[9px] font-bold text-white/40 italic uppercase">Errades:</span>
-              <span className="text-xl font-black italic text-red-500">78</span>
+              <span className="text-xl font-black italic text-red-500">
+                {loadingStats ? "..." : totalErrades}
+              </span>
             </div>
 
-            <button className="flex flex-col items-center group transition-all active:scale-90">
-              <RefreshCw size={14} className="text-white/20 group-hover:text-white/60 transition-colors" />
-              <span className="text-[7px] font-black italic uppercase text-white/25 text-center leading-tight">Reset</span>
-            </button>
+            {resetConfirm ? (
+              <button 
+                onClick={handleResetEstadistiques}
+                className="flex flex-col items-center justify-center h-full gap-0.5 text-red-400 hover:text-red-300 transition-all active:scale-95 cursor-pointer"
+              >
+                <Check size={14} className="animate-pulse" />
+                <span className="text-[6px] font-black italic uppercase text-center leading-tight">Segur?</span>
+              </button>
+            ) : (
+              <button 
+                onClick={() => {
+                  setResetConfirm(true);
+                  // Després de 4 segons torna a canviar el botó de Restablir per prevenir tocs accidentals.
+                  setTimeout(() => setResetConfirm(false), 4000);
+                }}
+                className="flex flex-col items-center justify-center h-full gap-0.5 group transition-all active:scale-90 cursor-pointer"
+              >
+                <RefreshCw size={14} className="text-white/20 group-hover:text-white/60 transition-colors" />
+                <span className="text-[7px] font-black italic uppercase text-white/25 text-center leading-tight">Reset</span>
+              </button>
+            )}
           </div>
 
           {/* CONTENIDOR 2: MILLOR | PITJOR TEMA */}
           <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-[1.5rem] p-3 px-4 flex flex-col gap-1.5 shadow-xl">
-            <div className="flex items-center justify-between">
-              <span className="text-[9px] font-bold text-white/40 italic uppercase">El meu millor tema :</span>
-              <span className="text-[11px] font-black italic text-emerald-400 tracking-tight truncate max-w-[160px]">Història de Catalunya</span>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[9px] font-bold text-white/40 italic uppercase shrink-0">El meu millor tema :</span>
+              <span className="text-[11px] font-black italic text-emerald-400 tracking-tight truncate max-w-[180px] text-right">
+                {loadingStats ? "Carregant..." : (millorTema ? millorTema.name : 'Per determinar')}
+              </span>
             </div>
             
             <div className="h-[1px] w-full bg-white/5" />
 
-            <div className="flex items-center justify-between">
-              <span className="text-[9px] font-bold text-white/40 italic uppercase">He de millorar en :</span>
-              <span className="text-[11px] font-black italic text-red-500 tracking-tight truncate max-w-[160px]">La Corona</span>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[9px] font-bold text-white/40 italic uppercase shrink-0">He de millorar en :</span>
+              <span className="text-[11px] font-black italic text-red-500 tracking-tight truncate max-w-[180px] text-right">
+                {loadingStats ? "Carregant..." : (pitjorTema ? pitjorTema.name : 'Per determinar')}
+              </span>
             </div>
           </div>
         </section>

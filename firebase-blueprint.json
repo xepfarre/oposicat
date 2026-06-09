@@ -247,6 +247,93 @@
         }
       },
       "required": ["userId", "email", "token", "plataforma", "creadaEl"]
+    },
+    "Pregunta": {
+      "title": "Pregunta de l'Examen Teòric",
+      "description": "Model detallat per emmagatzemar qualsevol pregunta d'oposicions, en concret Mossos d'Esquadra.",
+      "type": "object",
+      "properties": {
+        "pregunta": {
+          "type": "string",
+          "description": "Enunciat de la pregunta de test"
+        },
+        "opcions": {
+          "type": "array",
+          "description": "Llista amb les 4 opcions de resposta possibles per a l'examen"
+        },
+        "correcta": {
+          "type": "integer",
+          "description": "Índex corresponent a l'opció correcta (0=A, 1=B, 2=C, 3=D)"
+        },
+        "explicacio": {
+          "type": "string",
+          "description": "Explicació pedagògica d'utilitat formativa de cara a l'alumne"
+        },
+        "ambit": {
+          "type": "string",
+          "enum": ["A", "B", "C"],
+          "description": "Àmbit teòric (A=Àmbit General, B=Àmbit Policial, C=Àmbit de Seguretat)"
+        },
+        "tema": {
+          "type": "integer",
+          "description": "Tema numèric d'estudi dins d'aquest àmbit (0-indexat per codi, equival a Tema 1, 2, ...)"
+        },
+        "capitol": {
+          "type": "integer",
+          "description": "Punt o capítol concret (format X.X.X, mapejat numèricament)"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["activa", "suspesa"],
+          "description": "Estat de la pregunta per a filtre d'excloure en simulacres"
+        },
+        "any": {
+          "type": "string",
+          "description": "Any en què va caure aquesta pregunta en l'examen oficial"
+        },
+        "examenId": {
+          "type": "string",
+          "description": "Clau d'identificació de l'examen oficial"
+        }
+      },
+      "required": ["pregunta", "opcions", "correcta", "explicacio", "ambit", "tema", "status"]
+    },
+    "RespostaPreguntaUsuari": {
+      "title": "Registre d'Intents i Seguiment d'Estudis",
+      "description": "Registre individual de cada alumne segons el seu encert o errada en cada pregunta del Banc de preguntes.",
+      "type": "object",
+      "properties": {
+        "preguntaId": {
+          "type": "string",
+          "description": "Clau de la pregunta contrastada"
+        },
+        "encertada": {
+          "type": "boolean",
+          "description": "Conté si l'últim intent realitzat ha sigut correcte o incorrecte"
+        },
+        "respostaSeleccionada": {
+          "type": "integer",
+          "description": "Darrera opció triada en format numèric pel simulacre"
+        },
+        "intents": {
+          "type": "integer",
+          "description": "Número total d'intents sobre aquesta pregunta"
+        },
+        "correctes": {
+          "type": "integer",
+          "description": "Número acumulat de vegades encertant aquesta pregunta"
+        },
+        "errors": {
+          "type": "integer",
+          "description": "Número acumulat d'errades d'estudi"
+        },
+        "actualitzatEl": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Última vegada que l'opositor va respondre la pregunta"
+        }
+      },
+      "required": ["preguntaId", "encertada", "respostaSeleccionada", "intents", "correctes", "errors", "actualitzatEl"]
     }
   },
   "firestore": {
@@ -262,6 +349,10 @@
       "schema": "TokensDispositiu",
       "description": "Subcol·lecció on es guarden els claus asíncrons dels telèfons intel·ligents de l'opositor per a ús de Push de mòbil"
     },
+    "usuaris/{userId}/respostes_preguntes/{preguntaId}": {
+      "schema": "RespostaPreguntaUsuari",
+      "description": "Col·lecció de seguiment d'intents de cada pregunta per l'estudiant"
+    },
     "fcm_tokens/{tokenId}": {
       "schema": "TokensDispositiuGlobal",
       "description": "Col·lecció global de registre de claus físics FCM d'opositors per fer enviaments directes i multilaterals des de l'administració"
@@ -273,6 +364,14 @@
     "notificacions/{notificacioId}": {
       "schema": "Notificacio",
       "description": "Col·lecció de notificacions enviades, plantilles i avisos programats creats pels administradors"
+    },
+    "preguntes_codificades/{preguntaId}": {
+      "schema": "Pregunta",
+      "description": "Col·lecció global d'unificació per al nou Banc de preguntes d'OposiMossos"
+    },
+    "examens/{examenId}/preguntes/{preguntaId}": {
+      "schema": "Pregunta",
+      "description": "Subcol·lecció de preguntes d'exàmens oficials i simulacres generals"
     }
   }
 }

@@ -5,7 +5,6 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { initializeApp } from "firebase/app";
 import { getFirestore, collection, getDocs } from "firebase/firestore";
@@ -15,17 +14,26 @@ import { getFirestore, collection, getDocs } from "firebase/firestore";
  * Gestiona la seguretat i serveix l'aplicació.
  */
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+let firebaseApp: any = null;
+let db: any = null;
 
-// Explicació per a no-programadors: Carreguem directament del fitxer de la comunitat el codi d'accés segur del teu projecte Firebase.
-// Llegim el document directament de la memòria de disc per a evitar errades amb la sintaxi d'Import de TypeScript.
-const configRaw = fs.readFileSync(path.join(process.cwd(), "firebase-applet-config.json"), "utf8");
-const firebaseConfig = JSON.parse(configRaw);
-
-// Explicació per a no-programadors: Inicialitzem el motor de Firebase exclusivament pel servidor de segon pla connectat a Firestore.
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
+try {
+  // Explicació per a no-programadors: Carreguem de forma segura el fitxer de configuració de Firebase, protegint el servidor de qualsevol fallida en cas de no existència o descàrrega asíncrona.
+  const pathConfig = path.join(process.cwd(), "firebase-applet-config.json");
+  if (fs.existsSync(pathConfig)) {
+    const configRaw = fs.readFileSync(pathConfig, "utf8");
+    const firebaseConfig = JSON.parse(configRaw);
+    
+    // Explicació per a no-programadors: Inicialitzem el motor de Firebase exclusivament pel servidor de segon pla connectat a Firestore.
+    firebaseApp = initializeApp(firebaseConfig);
+    db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
+    console.log("[BACKEND] Firebase i Firestore inicialitzats correctament.");
+  } else {
+    console.warn("[BACKEND ATENCIÓ] El fitxer firebase-applet-config.json no s'ha trobat al disc, treballant en mode segur i offline.");
+  }
+} catch (error) {
+  console.error("[BACKEND ERROR] Error en carregar la configuració o inicialitzar Firebase:", error);
+}
 
 async function startServer() {
   const app = express();
@@ -33,6 +41,38 @@ async function startServer() {
 
   // Explicació per a no-programadors: Middleware indispensable que permet al servidor comprendre de forma immediata informació enviada des del formulari de la web en format JSON (com el títol o cos de notificació).
   app.use(express.json());
+
+  // Explicació per a no-programadors: Servim directament i de forma garantida els fitxers rellevants de la PWA (icones, manifest i service worker).
+  // D'aquesta manera, evitem que qualsevol eina externa com PWABuilder o Google Play rep la web d'índex HTML en comptes del fitxer de la imatge o configuració real.
+  const fitxersPWA = [
+    "/manifest.json",
+    "/icon-192.png",
+    "/icon-512.png",
+    "/icon.svg",
+    "/firebase-messaging-sw.js"
+  ];
+  
+  fitxersPWA.forEach((fitxer) => {
+    app.get(fitxer, (req, res) => {
+      const rutaDist = path.join(process.cwd(), "dist", fitxer);
+      const rutaPublic = path.join(process.cwd(), "public", fitxer);
+      
+      // Determineu el tipus MIME manualment de forma segura per evitar fallades de Content-Type
+      let contentType = "application/json";
+      if (fitxer.endsWith(".png")) contentType = "image/png";
+      if (fitxer.endsWith(".svg")) contentType = "image/svg+xml";
+      if (fitxer.endsWith(".js")) contentType = "application/javascript";
+
+      res.setHeader("Content-Type", contentType);
+
+      if (fs.existsSync(rutaDist)) {
+        return res.sendFile(rutaDist);
+      } else if (fs.existsSync(rutaPublic)) {
+        return res.sendFile(rutaPublic);
+      }
+      return res.status(404).send("Recurs PWA no trobat");
+    });
+  });
 
   // Ruta de seguretat bàsica
   app.get("/api/status", (req, res) => {
@@ -53,15 +93,17 @@ async function startServer() {
       console.log(`[BACKEND PUSH] Petició nova detectada: "${titol}" per als mòbils connectats.`);
 
       // Recuperem en calent de la base de dades global la col·lecció de tokens postals
-      const querySnapshot = await getDocs(collection(db, "fcm_tokens"));
+      const querySnapshot = db ? await getDocs(collection(db, "fcm_tokens")) : null;
       const tokensAEnviar: string[] = [];
 
-      querySnapshot.forEach((docSnap) => {
-        const dades = docSnap.data();
-        if (dades.token) {
-          tokensAEnviar.push(dades.token);
-        }
-      });
+      if (querySnapshot) {
+        querySnapshot.forEach((docSnap) => {
+          const dades = docSnap.data();
+          if (dades.token) {
+            tokensAEnviar.push(dades.token);
+          }
+        });
+      }
 
       console.log(`[BACKEND PUSH] S'han detectat ${tokensAEnviar.length} dispositius físics / emuladors actius a Firestore.`);
 

@@ -56,11 +56,43 @@ export default function OposiMossosInici({
   // Explicació per a no-programadors: Estat d'obertura del diàleg flotant (modal) que mostra el llistat complet de notificacions oficials amb importància detallada per a l'alumne.
   const [modalNotificacionsObert, setModalNotificacionsObert] = useState<boolean>(false);
 
-  // Explicació per a no-programadors: Estats del diàleg flotant per vincular o registrar claus FCM reals de l'Smartphone (iOS o Android) de l'estudiant de forma multipantalla.
-  const [modalFCMObert, setModalFCMObert] = useState<boolean>(false);
   const [tokenFCMInput, setTokenFCMInput] = useState<string>("");
   const [guardantToken, setGuardantToken] = useState<boolean>(false);
   
+  // Explicació per a no-programadors: Estats del nou sistema simplificat automàtic d'un sol clic per evitar que l'estudiant vegi formularis complexos.
+  const [activantAvisosUnic, setActivantAvisosUnic] = useState<boolean>(false);
+
+  // Escolta l'event natiu de descàrrega d'aplicacions PWA a Android/Chrome
+  const [pwaInstallPrompt, setPwaInstallPrompt] = useState<any>(null);
+  const [modalConsellsInstalacioObert, setModalConsellsInstalacioObert] = useState<boolean>(false);
+  const [pestanyaDispositiu, setPestanyaDispositiu] = useState<"chrome" | "firefox" | "ios" | "hermit" | "apk">("chrome");
+
+  // Auto-detectem de fons si la tauleta de l'opositor és Apple, Firefox o Android Chrome
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const userAgent = navigator.userAgent.toLowerCase();
+      if (/iphone|ipad|ipod/.test(userAgent)) {
+        setPestanyaDispositiu("ios");
+      } else if (/firefox|fennec/.test(userAgent)) {
+        setPestanyaDispositiu("firefox");
+      } else {
+        setPestanyaDispositiu("chrome");
+      }
+    }
+  }, []);
+
+  // Escolta l'event natiu de descàrrega d'aplicacions PWA a Android/Chrome
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setPwaInstallPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
+
   // Explicació per a no-programadors: Estats per emmagatzemar la llista de múltiples dispositius que l'opositor té vinculats per rebre avisos d'OposiCAT.
   const [meusDispositius, setMeusDispositius] = useState<any[]>([]);
   const [carregantDispositius, setCarregantDispositius] = useState<boolean>(false);
@@ -89,13 +121,6 @@ export default function OposiMossosInici({
       setCarregantDispositius(false);
     }
   };
-
-  // Carregar els dispositius registrats en obrir-se el configurador FCM de l'alumne
-  useEffect(() => {
-    if (modalFCMObert && usuariActiu) {
-      carregarMeusDispositiusFCM();
-    }
-  }, [modalFCMObert, usuariActiu]);
 
   // Explicació per a no-programadors: Funció que desa amb total seguretat el token de notificació generat pel mòbil de l'estudiant a la taula 'fcm_tokens' de Firestore.
   const desarFCMTokenABBDD = async (valorToken: string) => {
@@ -200,14 +225,175 @@ export default function OposiMossosInici({
       }
     } catch (err: any) {
       console.warn("Retorn de registre FCM natiu:", err);
-      alert(`S'ha completat la sol·licitud amb un avís d'entorn: ${err?.message || err}. Com que et trobes en un entorn virtualitzat, recorda que pots introduir o verificar el token també manualment.`);
+      alert(`S'ha completat la sol·licitud amb un avís d'entorn: ${err?.message || err}`);
     } finally {
       setObtinguentToken(false);
     }
   };
 
-  // Calculador ràpid de quantes notificacions estan pendents de llegir per pintar el cercle vermell d'avís
-  const numNotificacions = notificacions.filter(n => !n.llegida).length;
+  // Explicació per a no-programadors: Aquesta és la nova funció d'activació "Un sol clic".
+  // L'alumne només prem un botó, i el mòbil demana el permís, genera el canal segur amb Google
+  // i s'auto-vincula directament a la nostra base de dades Firestore de forma completament invisible.
+  const activarAvisosUnSolClic = async (silencios: boolean = false) => {
+    try {
+      setActivantAvisosUnic(true);
+      if (typeof window === "undefined" || !("Notification" in window)) {
+        if (!silencios) {
+          alert("El teu dispositiu o navegador no suporta les notificacions de sistema.");
+        }
+        return;
+      }
+
+      // 1. Demanem el permís natiu si encara no està acceptat
+      if (Notification.permission !== "granted") {
+        const nouPermis = await Notification.requestPermission();
+        setPermisNotificacio(nouPermis);
+        if (nouPermis !== "granted") {
+          if (!silencios) {
+            alert("Per rebre els avisos d'oposició d'OposiCAT és indispensable concedir els permisos en el qüestionari emergent del teu navegador.");
+          }
+          return;
+        }
+      }
+
+      // 2. Anem a buscar el vigilant asíncron (Service Worker i Firebase Cloud Messaging)
+      const msgeria = await obtenirMissatgeria();
+      if (!msgeria) {
+        if (!silencios) {
+          alert("El motor de notificacions de Google encara s'està carregant o requereix connexió segura HTTPS.");
+        }
+        return;
+      }
+
+      const clauVapidPublica = "BE854ef6enb_fwGu0euE60KNri-OapYlikkwsOxXm-AruH7ENqqRCq6CBB9ms6tNq6oTznrE-P6mq5Xk9wW_5Lk";
+      const tokenFCM = await getToken(msgeria, { vapidKey: clauVapidPublica });
+      
+      if (!tokenFCM) {
+        if (!silencios) {
+          alert("Google no ha pogut emetre un codi únic en aquest moment. Si és un terminal Apple, recorda afegir la web a la Pantalla de l'Inici per permetre les notificacions.");
+        }
+        return;
+      }
+
+      // 3. Posem-lo a l'input de text opcional dels tècnics
+      setTokenFCMInput(tokenFCM);
+
+      // 4. El desem automàticament a Firestore sense que l'usuari hagi de prémer res més!
+      if (!usuariActiu) {
+        if (!silencios) {
+          alert("Revisa que tinguis el teu compte d'estudiant iniciat correctament.");
+        }
+        return;
+      }
+
+      const fragmentTokenSegur = tokenFCM.replace(/[^a-zA-Z0-9_\-]/g, "").substring(0, 50);
+      const tokenId = `fcm_${usuariActiu.uid}_${fragmentTokenSegur}`;
+
+      let plataformaSufix: "android" | "ios" | "web_pc" = "android";
+      const userAgent = navigator.userAgent.toLowerCase();
+      if (/iphone|ipad|ipod/.test(userAgent)) {
+        plataformaSufix = "ios";
+      } else if (/windows|macintosh|linux/.test(userAgent)) {
+        plataformaSufix = "web_pc";
+      }
+
+      await setDoc(doc(db, "fcm_tokens", tokenId), {
+        userId: usuariActiu.uid,
+        email: usuariActiu.email || "correu-notificacio@oposicat.cat",
+        token: tokenFCM,
+        plataforma: plataformaSufix,
+        creadaEl: serverTimestamp()
+      });
+
+      // Actualitzem llista local
+      await carregarMeusDispositiusFCM();
+      
+      // Llançar avis de cortesia amb so i vibració
+      if ("serviceWorker" in navigator) {
+        const reg = await navigator.serviceWorker.ready;
+        reg.showNotification("OposiCAT Connectat! 📢", {
+          body: "Configuració completada amb èxit. Rebràs els simulacres de Mossos en temps real directament aquí.",
+          icon: "/icon-192.png",
+          badge: "/icon.svg"
+        });
+      }
+      
+      if (!silencios) {
+        alert("✅ Enllaç realitzat amb èxit! El teu dispositiu s'ha vinculat i ja rebràs correctament les alertes d'exàmens.");
+      }
+    } catch (err: any) {
+      console.warn("Error en el procés d'activació en un clic:", err);
+      if (!silencios) {
+        alert(`S'ha completat l'enllaç del dispositiu: ${err?.message || err}`);
+      }
+    } finally {
+      setActivantAvisosUnic(false);
+    }
+  };
+
+  // Explicació per a no-programadors: Aquesta és la funció que activa el diàleg d'instal·lació de debò.
+  // Si la tablet d'estudiant suporta el mètode de descàrrega d'un clic de Chrome, el llança.
+  // Si no és així, o estem a Safari, de seguida li obrim una finestra explicativa super didàctica que l'acompanya al pas a pas dels 3 puntets o l'opció "Compartir" de la tauleta.
+  const instal_larAppNativaPWA = async () => {
+    if (!pwaInstallPrompt) {
+      // El navegador encara no ha detectat o bloqueja l'esdeveniment: mostrem la guia intel·ligent a la tauleta
+      setModalConsellsInstalacioObert(true);
+      return;
+    }
+    try {
+      await pwaInstallPrompt.prompt();
+      const eleccio = await pwaInstallPrompt.userChoice;
+      console.log("[OposiCAT PWA] Resposta de l'usuari a la instal·lació neta:", eleccio.outcome);
+      if (eleccio.outcome === "accepted") {
+        setPwaInstallPrompt(null);
+      } else {
+        // Si canvia de pensament o té dubtes, obrim la guia per oferir el camí manual
+        setModalConsellsInstalacioObert(true);
+      }
+    } catch (err) {
+      console.warn("Error llançant l'instal·lador oficial PWA:", err);
+      setModalConsellsInstalacioObert(true);
+    }
+  };
+
+  // Explicació per a no-programadors: Efecte per enllaçar de fons de manera transparent cap token si l'usuari ja té prèviament concedit el permís. Així és automàtic des que obre l'App.
+  useEffect(() => {
+    if (usuariActiu && permisNotificacio === "granted") {
+      const sincronitzacioDeFonsSilenciosa = async () => {
+        try {
+          const msgeria = await obtenirMissatgeria();
+          if (msgeria) {
+            const clauVapidPublica = "BE854ef6enb_fwGu0euE60KNri-OapYlikkwsOxXm-AruH7ENqqRCq6CBB9ms6tNq6oTznrE-P6mq5Xk9wW_5Lk";
+            const tokenFCM = await getToken(msgeria, { vapidKey: clauVapidPublica });
+            if (tokenFCM) {
+              const fragmentTokenSegur = tokenFCM.replace(/[^a-zA-Z0-9_\-]/g, "").substring(0, 50);
+              const tokenId = `fcm_${usuariActiu.uid}_${fragmentTokenSegur}`;
+              
+              let plataformaSufix: "android" | "ios" | "web_pc" = "android";
+              const userAgent = navigator.userAgent.toLowerCase();
+              if (/iphone|ipad|ipod/.test(userAgent)) {
+                plataformaSufix = "ios";
+              } else if (/windows|macintosh|linux/.test(userAgent)) {
+                plataformaSufix = "web_pc";
+              }
+
+              await setDoc(doc(db, "fcm_tokens", tokenId), {
+                userId: usuariActiu.uid,
+                email: usuariActiu.email || "correu-notificacio@oposicat.cat",
+                token: tokenFCM,
+                plataforma: plataformaSufix,
+                creadaEl: serverTimestamp()
+              });
+              console.log("[OposiCAT PWA] Sincronització automàtica silenciosa verificada amb èxit.");
+            }
+          }
+        } catch (e) {
+          console.log("[OposiCAT PWA] Sincronització silenciosa completada/avís:", e);
+        }
+      };
+      sincronitzacioDeFonsSilenciosa();
+    }
+  }, [usuariActiu, permisNotificacio]);
 
   // Explicació per a no-programadors: Demanar a l'usuari activar les notificacions reals del mòbil
   const demanarPermisNotificacions = async () => {
@@ -242,6 +428,9 @@ export default function OposiMossosInici({
     }
   };
 
+  // Calculador ràpid de quantes notificacions estan pendents de llegir per pintar el cercle vermell d'avís
+  const numNotificacions = notificacions.filter(n => !n.llegida).length;
+
   // Explicació per a no-programadors: Efecte per rebre l'estat d'autenticació i posar en marxa o aturar de forma neta les subscripcions a la sessió de l'estudiant.
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged((usuari) => {
@@ -254,6 +443,23 @@ export default function OposiMossosInici({
     });
     return () => unsubscribeAuth();
   }, []);
+
+  // Explicació per a no-programadors: Benvinguda transparent al primer accés de l'opositor.
+  // Si l'alumne entra per primer cop de veritat a la seva sessió d'OposiCAT i el navegador encara té el permís
+  // de notificacions en default (sense decidir), demanem immediatament el permís del sistema de Chrome o Safari
+  // per llançar el pop-up natiu de demanar permisos. Sense mostrar diàlegs corporis falsos que puguin molestar.
+  useEffect(() => {
+    if (authCarregada && usuariActiu) {
+      if (typeof window !== "undefined" && "Notification" in window) {
+        if (Notification.permission === "default") {
+          const timer = setTimeout(() => {
+            activarAvisosUnSolClic(true);
+          }, 1500);
+          return () => clearTimeout(timer);
+        }
+      }
+    }
+  }, [authCarregada, usuariActiu]);
 
   // Explicació per a no-programadors: Aquest efecte es connecta en temps real a la base de dades de notificacions de Firestore un cop l'usuari s'ha identificat. Si l'administrador prem "Enviar", rebrem immediatament la notificació al mòbil sense haver de recarregar la pàgina.
   useEffect(() => {
@@ -489,42 +695,49 @@ export default function OposiMossosInici({
           <div className="flex-1 h-px bg-white/10" />
         </div>
 
-        {/* FILA INFERIOR: Botons auxiliars de la App */}
+        {/* FILA INFERIOR: Botons auxiliars de la App del Canal d'Opositor */}
         <div className="grid grid-cols-3 gap-2 mt-1 md:mt-4">
           
           {/* Botó Patrocinadors */}
-          <button className="bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl py-4 md:py-8 flex flex-col items-center justify-center shadow-lg transition-all active:scale-90 group">
-            <span className="text-white font-black italic text-[8px] md:text-xs uppercase tracking-tighter text-center px-2">
+          <button className="bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl py-4 flex flex-col items-center justify-center shadow-lg transition-all active:scale-90 group">
+            <span className="text-white font-black italic text-[8px] md:text-[10px] uppercase tracking-tighter text-center px-1">
               Patrocinadors
             </span>
+          </button>
+
+          {/* Explicació per a no-programadors: Botó d'instal·lació PWA directament disponible que obre la descàrrega neta o obre la guia interactiva si és un iPad o tablet Android que necessita camí manual dels 3 puntets. */}
+          <button 
+            id="boto-instalacio-pwa"
+            onClick={instal_larAppNativaPWA}
+            className="bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl py-4 flex flex-col items-center justify-center shadow-lg transition-all active:scale-90 group relative cursor-pointer"
+          >
+            <Smartphone className="w-4 h-4 mb-1 text-amber-400 group-hover:scale-110 transition-transform animate-pulse" />
+            <span className="text-white font-black italic text-[8px] md:text-[10px] uppercase tracking-tighter text-center px-1">
+              Instal·lar App 📱
+            </span>
+            {pwaInstallPrompt && (
+              <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+            )}
           </button>
 
           {/* Explicació per a no-programadors: Botó de notificacions completament operatiu amb comptador real de missatges rebuts per l'equip d'OposiCAT en forma de campana amb un 'badge' o globus vermell polsat amb animació. */}
           <button 
             id="boto-notificacions-mobil"
             onClick={() => setModalNotificacionsObert(true)}
-            className="bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl py-4 md:py-8 flex flex-col items-center justify-center shadow-lg transition-all active:scale-90 group relative"
+            className="bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl py-4 flex flex-col items-center justify-center shadow-lg transition-all active:scale-90 group relative"
           >
-            <Bell className={`w-4 h-4 mb-1.5 transition-colors ${numNotificacions > 0 ? "text-amber-400 animate-bounce" : "text-white/60 group-hover:text-white"}`} />
-            <span className="text-white font-black italic text-[8px] md:text-xs uppercase tracking-tighter text-center px-2">
+            <Bell className={`w-4 h-4 mb-1 transition-colors ${numNotificacions > 0 ? "text-amber-400 animate-bounce" : "text-white/60 group-hover:text-white"}`} />
+            <span className="text-white font-black italic text-[8px] md:text-[10px] uppercase tracking-tighter text-center px-1">
               Notificacions
             </span>
             {numNotificacions > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 border border-white/20 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-[0_0_8px_rgba(220,38,38,0.6)] animate-pulse">
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 border border-white/20 rounded-full text-[8px] font-black text-white flex items-center justify-center shadow-[0_0_8px_rgba(220,38,38,0.6)] animate-pulse">
                 {numNotificacions}
               </span>
             )}
-          </button>
-
-          {/* Botó Opcions de Dispositius i Avisos */}
-          <button 
-            onClick={() => setModalFCMObert(true)}
-            className="bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl py-4 md:py-8 flex flex-col items-center justify-center shadow-lg transition-all active:scale-90 group"
-          >
-            <Settings className="w-4 h-4 mb-1.5 text-amber-400 group-hover:rotate-45 transition-transform" />
-            <span className="text-white font-black italic text-[8px] md:text-xs uppercase tracking-tighter text-center px-2">
-              Configurador FCM
-            </span>
           </button>
         </div>
 
@@ -686,165 +899,367 @@ export default function OposiMossosInici({
         </div>
       )}
 
-      {/* DIÀLEG FLOTANT MODAL CONFIGURADOR DE TOKENS FCM PER SMARTPHONE */}
-      {modalFCMObert && (
+      {/* DIÀLEG MODAL EXPLICATIU PER INSTAL·LAR L'APP D'OPOSICAT A LA TABLET */}
+      {modalConsellsInstalacioObert && (
         <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 transition-all duration-300">
-          <div className="bg-[#00274d] border border-blue-900/50 w-full max-w-md rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
+          <div className="bg-[#00274d] border border-blue-900/50 w-full max-w-sm rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
             
-            {/* Capçalera del modal mòbil */}
+            {/* Capçalera del modal */}
             <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-black/20">
               <div className="flex items-center gap-2">
-                <Smartphone className="w-4 h-4 text-amber-400" />
-                <h3 className="text-white font-black italic text-sm uppercase tracking-wider">
-                  Configuració de Dispositiu (FCM)
+                <Smartphone className="w-4 h-4 text-amber-400 animate-pulse" />
+                <h3 className="text-white font-black italic text-xs uppercase tracking-wider">
+                  Instal·lació de l'App
                 </h3>
               </div>
               <button 
-                onClick={() => setModalFCMObert(false)}
-                className="text-white/60 hover:text-white p-1 hover:bg-white/10 rounded-full transition-all"
+                onClick={() => setModalConsellsInstalacioObert(false)}
+                className="text-white/60 hover:text-white p-1 hover:bg-white/10 rounded-full transition-all cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Contingut interior del formulari d'enllaç de token */}
-            <div className="p-5 flex-1 overflow-y-auto space-y-4">
-              
-              {/* Estudiant actiu actual identificat */}
-              <div className="bg-black/20 border border-white/5 p-3 rounded-2xl flex items-center gap-3">
-                <div className="bg-amber-400/10 p-2 rounded-xl">
-                  <KeyRound className="w-4 h-4 text-amber-400" />
-                </div>
-                <div className="text-left">
-                  <p className="text-[8px] font-black uppercase text-white/40 tracking-wider">Perfil Autenticat</p>
-                  <p className="text-[11px] text-white font-bold truncate max-w-[250px]">{usuariActiu?.email || "No identificat"}</p>
-                </div>
-              </div>
+            {/* Selector de sistema operador (Chrome vs Firefox vs iOS/Apple vs Hermit vs APK) */}
+            {/* Explicació per a no-programadors: Hem creat un grid amb botons que canvien el contingut de sota de forma interactiva segons el mètode d'instal·lació preferit. */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 bg-black/10 border-b border-white/5 p-1 gap-1">
+              <button
+                onClick={() => setPestanyaDispositiu("chrome")}
+                className={`py-2 text-[8px] md:text-[9px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
+                  pestanyaDispositiu === "chrome"
+                    ? "bg-[#b3f202] text-slate-950 shadow-md shadow-[#b3f202]/10"
+                    : "text-white/50 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                🤖 Chrome
+              </button>
+              <button
+                onClick={() => setPestanyaDispositiu("firefox")}
+                className={`py-2 text-[8px] md:text-[9px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
+                  pestanyaDispositiu === "firefox"
+                    ? "bg-orange-600 text-white shadow-md shadow-orange-600/10"
+                    : "text-white/50 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                🔥 Firefox
+              </button>
+              <button
+                onClick={() => setPestanyaDispositiu("ios")}
+                className={`py-2 text-[8px] md:text-[9px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
+                  pestanyaDispositiu === "ios"
+                    ? "bg-sky-600 text-white shadow-md shadow-sky-600/10"
+                    : "text-white/50 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                🍎 iPad / Safari
+              </button>
+              <button
+                onClick={() => setPestanyaDispositiu("hermit")}
+                className={`py-2 text-[8px] md:text-[9px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
+                  pestanyaDispositiu === "hermit"
+                    ? "bg-violet-600 text-white shadow-md shadow-violet-600/10"
+                    : "text-white/50 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                🐚 Hermit
+              </button>
+              <button
+                onClick={() => setPestanyaDispositiu("apk")}
+                className={`py-2 text-[8px] md:text-[9px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
+                  pestanyaDispositiu === "apk"
+                    ? "bg-fuchsia-600 text-white shadow-md shadow-fuchsia-600/10 animate-pulse"
+                    : "text-fuchsia-400 hover:text-fuchsia-300 hover:bg-white/5"
+                }`}
+              >
+                📦 APK Directe
+              </button>
+            </div>
 
-              {/* Secció 1: Permís global de notificació */}
-              <div className="text-left space-y-1.5">
-                <p className="text-[10px] font-black text-amber-300 uppercase tracking-wider">1. Permís del Navegador (PWA)</p>
-                <div className="bg-white/5 p-3.5 rounded-2xl flex items-center justify-between border border-white/5">
-                  <div>
-                    <p className="text-[10px] text-white font-bold">Estat del Permís:</p>
-                    <p className="text-[9px] text-white/60 mt-0.5">
-                      {permisNotificacio === "granted" ? "✅ Permès (Notificacions operatives)" : "❌ No permès o pendent"}
+            {/* Contingut explicatiu en llenguatge planer */}
+            <div className="p-5 overflow-y-auto space-y-3.5 max-h-[60vh] text-left leading-normal">
+              
+              {pestanyaDispositiu === "chrome" && (
+                <div className="space-y-3">
+                  <div className="bg-amber-400/10 border border-amber-400/20 p-3 rounded-xl">
+                    <p className="text-amber-400 font-bold text-[9px] uppercase tracking-wider flex items-center gap-1">
+                      ⚠️ COM EVITAR UN ACCÉS AMB LOGO DE CHROME:
+                    </p>
+                    <p className="text-[9px] text-white/80 mt-1">
+                      No pateixis! A les tauletes Samsung / Android, Chrome mostra <span className="text-amber-300 font-semibold">"Añadir a pantalla de inicio"</span> (el botó que has emmarcat en vermell!) en lloc de "Instal·la". Segueix aquests passos per obrir-la del tot sense barres:
                     </p>
                   </div>
-                  {permisNotificacio !== "granted" && (
-                    <button
-                      onClick={demanarPermisNotificacions}
-                      className="bg-amber-400 hover:bg-amber-300 text-slate-950 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all"
-                    >
-                      Demanar Permís
-                    </button>
-                  )}
-                </div>
-              </div>
 
-              {/* Secció 2: Enllaçar token FCM des de Firebase Console o mòbil d'estudis */}
-              <div className="text-left space-y-2">
-                <p className="text-[10px] font-black text-[#b3f202] uppercase tracking-wider">2. Codi de l'Smartphone (Token FCM)</p>
-                <p className="text-[9.5px] leading-relaxed text-white/70">
-                  Deixa que l'aplicació generi el certificat push directament connectant-se a Google, o bé enganxa en calent la teva clau postal si ho prefereixes:
-                </p>
-
-                <div className="space-y-2.5">
-                  <button
-                    onClick={obtenirTokenNatiu}
-                    disabled={obtinguentToken || !usuariActiu}
-                    className="w-full bg-[#b3f202] hover:bg-[#a1d902] text-slate-950 text-[10px] font-black uppercase py-2.5 px-4 rounded-xl transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 shadow-lg shadow-[#b3f202]/5 cursor-pointer"
-                  >
-                    <Smartphone className="w-3.5 h-3.5 animate-bounce" />
-                    {obtinguentToken ? "Obtinguent certificat..." : "🔔 Generar clau automàticament"}
-                  </button>
-
-                  <textarea
-                    value={tokenFCMInput}
-                    onChange={(e) => setTokenFCMInput(e.target.value)}
-                    placeholder="Enganxa aquí la teva adreça o token postal fcm..."
-                    className="w-full bg-slate-950/80 border border-blue-900/40 rounded-2xl p-3.5 text-white placeholder-white/20 text-[10px] font-mono leading-normal focus:outline-none focus:ring-1 focus:ring-amber-500 h-16 resize-none transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Secció 3: Els meus múltiples dispositius registrats per rebre notificacions d'OposiCAT */}
-              <div className="text-left space-y-2 pt-1">
-                <p className="text-[10px] font-black text-amber-300 uppercase tracking-wider flex items-center justify-between">
-                  <span>3. Els Meus Dispositius ({meusDispositius.length})</span>
-                  {carregantDispositius && <span className="text-[8px] text-amber-400 animate-pulse lowercase font-normal">carregant...</span>}
-                </p>
-                
-                {meusDispositius.length === 0 ? (
-                  <div className="bg-white/5 border border-white/5 p-4 rounded-2xl text-[9px] text-white/50 text-center leading-relaxed">
-                    No tens cap mòbil, tauleta o navegador registrat en calent a OposiCAT encara per rebre avisos. Genera una clau i prem Vincular.
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
-                    {meusDispositius.map((disp, i) => (
-                      <div key={disp.id || i} className="bg-black/30 border border-white/5 p-3 rounded-2xl flex items-center justify-between gap-2 text-left">
-                        <div className="flex items-center gap-2 max-w-[70%]">
-                          <div className="bg-blue-950/80 p-2 rounded-xl text-amber-400 shrink-0">
-                            {disp.plataforma === "web_pc" ? (
-                              <Tablet className="w-3.5 h-3.5 text-sky-400" />
-                            ) : (
-                              <Smartphone className="w-3.5 h-3.5 text-amber-400" />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-white uppercase tracking-tight">
-                              {disp.plataforma === "web_pc" ? "Navegador Web / PC" : disp.plataforma === "ios" ? "Apple iPhone" : "Dispositiu Android"}
-                            </p>
-                            <p className="text-[8px] font-mono text-white/40 truncate">
-                              {disp.token}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => {
-                            if (confirm("Segur que vols desvincular aquest dispositiu d'OposiCAT?")) {
-                              esborrarFCMTokenDeBBDD_Especific(disp.id);
-                            }
-                          }}
-                          disabled={guardantToken}
-                          className="text-red-400 hover:text-red-300 text-[8px] font-black uppercase bg-red-500/10 hover:bg-red-500/20 py-1.5 px-2.5 rounded-xl transition-all cursor-pointer border border-red-500/10"
-                        >
-                          Esborrar
-                        </button>
+                  <div className="space-y-2.5">
+                    <div className="flex gap-2">
+                      <div className="bg-[#b3f202] text-slate-950 w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        1
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        Prem el botó <span className="text-amber-300 font-extrabold uppercase">"Añadir a pantalla de inicio"</span> que tens assenyalat al menú lateral de Chrome.
+                      </p>
+                    </div>
 
-              {/* Nota de privacitat i robustesa acadèmica d'RGPD de forma neta */}
-              <div className="bg-[#b3f252]/5 border border-[#b3f202]/25 p-3.5 rounded-xl text-[9px] leading-relaxed text-white/80 text-left">
-                🛡️ <span className="font-bold text-amber-300">Garantia RGPD:</span> Els dispositius estan enllaçats en calent amb el teu identificador d'estudiant. Les teves claus i correu estan completament blindats i tancats, fora de l'abast de qualsevol altre estudiant de l'escola de mossos.
+                    <div className="flex gap-2">
+                      <div className="bg-[#b3f202] text-slate-950 w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        2
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        Et sortirà una finestreta confirmant el títol <span className="font-bold">OposiCAT</span>. Prem <span className="text-emerald-400 font-bold uppercase">"Añadir"</span> (o "Instalar").
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="bg-[#b3f202] text-slate-950 w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        3
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        <span className="text-[#b3f202] font-semibold">Molt important:</span> Espera uns <span className="text-[#b3f202] font-semibold">30 segons</span> sense tancar Chrome de fons. La tauleta s'està descarregant el nostre motor segur asíncron (Service Worker).
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="bg-[#b3f202] text-slate-950 w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        4
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        Ves a l'escriptori del dispositiu, tanca totes les pestanyes de Chrome i obre la nova icona d'OposiCAT creada. <span className="text-emerald-300 font-extrabold">Ja t'arrencarà a pantalla completa sense cap barra!</span> Si per algun motiu encara veus la barra de dalt, reinicia la tablet un cop i ja quedarà fixat per sempre.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {pestanyaDispositiu === "firefox" && (
+                <div className="space-y-3">
+                  <div className="bg-orange-500/10 border border-orange-500/20 p-3 rounded-xl">
+                    <p className="text-orange-400 font-bold text-[9px] uppercase tracking-wider flex items-center gap-1">
+                      🔥 INSTAL·LACIÓ SUPER SEGURA AMB FIREFOX:
+                    </p>
+                    <p className="text-[9px] text-white/80 mt-1">
+                      Firefox utilitza un motor propi de llançament a Android que es salta els controls lents de Chrome. És extremadament fiable! Segueix aquests senzills passos:
+                    </p>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div className="flex gap-2">
+                      <div className="bg-orange-500 text-white w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        1
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        Obre l'aplicació <span className="text-orange-300 font-semibold">Firefox</span> que acabes d'instal·lar i accedeix a la web d'OposiCAT.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="bg-orange-500 text-white w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        2
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        Mira la barra on s'escriu la direcció web (URL) a dalt de tot. Hi veuràs una <span className="text-amber-300 font-semibold">icona en forma de caseta o mòbil amb un signe de suma (+)</span> a dins o al costat.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="bg-orange-500 text-white w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        3
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        Si no la trobes a la barra, prem els <span className="text-orange-300 font-semibold">tres punts verticals (⋮)</span> de Firefox per obrir el menú principal.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="bg-orange-500 text-white w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        4
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        Prem directament l'opció que diu <span className="text-emerald-400 font-bold uppercase">"+ Instalar"</span> (o "Instal·lar l'aplicació").
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="bg-orange-500 text-white w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        5
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        Firefox et demanarà si vols afegir l'icona automàticament. Prem <span className="text-emerald-400 font-bold uppercase">"Añadir"</span>. Tanca Firefox, obre l'icona nova a l'escriptori i llest! Tindràs OposiCAT a <span className="text-emerald-300 font-black">pantalla completa lliure de qualsevol tipus de barra de navegació.</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {pestanyaDispositiu === "ios" && (
+                <div className="space-y-3">
+                  <div className="bg-blue-400/10 border border-blue-400/20 p-3 rounded-xl">
+                    <p className="text-blue-300 font-bold text-[9px] uppercase tracking-wider flex items-center gap-1">
+                      💡 PER A DISPOSITIUS IPAD D'APPLE SAFARI:
+                    </p>
+                    <p className="text-[9px] text-white/80 mt-1">
+                      iOS té una manera pròpia de descarregar aplicacions lliures en segon pla. Segueix el camí següent en 2 clics natius:
+                    </p>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div className="flex gap-2">
+                      <div className="bg-[#b3f202] text-slate-950 w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        1
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        Assegura't de carregar la web d'OposiCAT exclusivament utilitzant el navegador <span className="text-blue-300 font-semibold">Safari</span>.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="bg-[#b3f202] text-slate-950 w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        2
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        Prem el botó de <span className="text-amber-300 font-semibold">Compartir</span> de Safari (icona quadrat amb fletxa cap amunt, a la part superior de la tablet).
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="bg-[#b3f202] text-slate-950 w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        3
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        Desplaça't cap avall i selecciona l'opció <span className="text-emerald-400 font-bold uppercase">"Afegeix a la pantalla d'inici"</span>. Ara l'App d'estudi arrancarà a pantalla completa a tot color i sense cap barra que molesti!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {pestanyaDispositiu === "hermit" && (
+                <div className="space-y-3">
+                  <div className="bg-violet-500/10 border border-violet-500/20 p-3 rounded-xl">
+                    <p className="text-violet-400 font-bold text-[9px] uppercase tracking-wider flex items-center gap-1">
+                      🐚 L'OPCIÓ DEFINITIVA: CREAR UNA APP NATIVA DE VERITAT AMB HERMIT
+                    </p>
+                    <p className="text-[9px] text-white/80 mt-1">
+                      Si el sistema de Google té problemes a la teva tablet, Hermit és la solució de programari ideal. Permet empaquetar OposiCAT com una aplicació nativa completament aïllada, super ràpida i sense cap barra.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div className="flex gap-2">
+                      <div className="bg-violet-600 text-white w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        1
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        Descarrega i obre l'aplicació gratuïta <span className="text-violet-300 font-bold">Hermit</span> des de l'Android Play Store.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="bg-violet-600 text-white w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        2
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        Prem el botó gran de <span className="text-[#b3f202] font-semibold">crear una aplicació flotant (+)</span> o escriu directament a la seva barra de navegació.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="bg-violet-600 text-white w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        3
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        Escriu la següent direcció web exacta d'OposiCAT: <br />
+                        <span className="text-emerald-300 font-mono select-all bg-black/30 px-1 py-0.5 rounded text-[8px] block mt-1 break-all">
+                          https://ais-pre-mwrzvnpp3gwteykk5wyjc4-602327047220.europe-west2.run.app
+                        </span>
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="bg-violet-600 text-white w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        4
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        Quan s'hagi carregat la pàgina d'inici, prem <span className="text-emerald-300 font-black uppercase">"Crear Lite App"</span> (sol sortir automàticament o a la barra lateral / menú de configuració de carret d'Hermit).
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="bg-violet-600 text-white w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        5
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        Hermit t'oferirà posar el nom de <span className="font-bold">OposiCAT</span>. Confirma-ho i selecciona <span className="text-[#b3f202] font-bold">"Añadir"</span> per col·locar la drecera directa a l'escriptori de la tablet.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="bg-violet-600 text-white w-4 h-4 rounded-full flex items-center justify-center font-black text-[9px] shrink-0 mt-0.5 select-none">
+                        6
+                      </div>
+                      <p className="text-[9px] text-white/85 leading-relaxed">
+                        <span className="text-emerald-400 font-extrabold">Fet!</span> Ja pots sortir, tancar-ho tot i obrir l'icona nova d'OposiCAT. S'obrirà automàticament com una aplicació perfectament independent, a pantalla completa i sense cap barra que et molesti per estudiar i fer testos.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Explicació per a no-programadors: Aquesta pestanya dóna la solució definitiva quan la tablet o el navegador fan el ruc. Expliquem com donar un fitxer .APK directe als usuaris. */}
+              {pestanyaDispositiu === "apk" && (
+                <div className="space-y-3">
+                  <div className="bg-fuchsia-500/10 border border-fuchsia-500/20 p-3 rounded-xl">
+                    <p className="text-fuchsia-400 font-bold text-[9px] uppercase tracking-wider flex items-center gap-1 animate-pulse">
+                      📦 SOLUCIÓ 100% DEFINITIVA: INSTAL·LAR EL FITXER APK DIRECTAMENT
+                    </p>
+                    <p className="text-[9px] text-white/80 mt-1">
+                      Si esteu tips dels problemes dels navegadors mòbils, la millor manera de provar l'aplicació amb la gent de forma lògica és distribuir un format d'**APK Directe (instal·lador d'Android)**. Com que l'aplicació és una PWA, està preparada per convertir-se en un instal·lador Android natiu de veritat molt ràpidament.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 text-[9px] text-white/85 leading-relaxed">
+                    <div className="bg-black/25 p-3 rounded-xl border border-white/5 space-y-1.5">
+                      <p className="font-bold text-fuchsia-300">⚡ Com aconseguir el teu fitxer APK en 1 minut per passar a tothom i oblidar-se de problemes:</p>
+                      <ol className="list-decimal list-inside space-y-1 text-white/80">
+                        <li>Accedeix des d'un ordinador a la utilitat gratuïta i oficial de Microsoft: <a href="https://www.pwabuilder.com" target="_blank" rel="noreferrer" className="text-[#b3f202] underline font-bold">www.pwabuilder.com</a></li>
+                        <li>Enganxa l'adreça web compartida del teu OposiCAT: <span className="text-pink-300 font-mono break-all text-[8px] bg-black/40 px-1 py-0.5 rounded">https://ais-pre-mwrzvnpp3gwteykk5wyjc4-602327047220.europe-west2.run.app</span></li>
+                        <li>Prem el botó <span className="font-bold">"Start"</span> o d'anàlisi de PWA.</li>
+                        <li>A l'apartat d'Android, clica a <span className="text-emerald-300 font-black">"Package for Store"</span> o <span className="text-emerald-300 font-black">"Download APK"</span> per descarregar un fitxer ZIP amb el fiter <span className="font-mono text-fuchsia-400">.apk</span> comprimit a dins.</li>
+                        <li>
+                          Posa aquest fitxer <span className="font-bold">.apk</span> a un grup de WhatsApp, a un Google Drive compartit o envia'l per correu-e. Qualsevol alumne el podrà descarregar a la tablet, obrir-lo i quedarà instal·lada com a aplicació nativa <strong>instantàniament</strong>!
+                        </li>
+                      </ol>
+                    </div>
+
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl">
+                      <p className="text-emerald-400 font-bold text-[9px] uppercase tracking-wider">
+                        💡 CONSELL D'ACOMPANYAMENT ARQUITECTÒNIC "A FUTUR":
+                      </p>
+                      <p className="text-white/80 mt-1">
+                        Instal·lar l'aplicació en format fitxer APK és el mètode més recomanable per a fer grups focals de proves. No cal penjar l'App a la Play Store de Google si només esteu fent simulacions prèvies. El fitxer APK és directament instal·lable a qualsevol tauleta Android habilitant l'opció "Fonts desconegudes" que sol preguntar automàticament el sistema operatiu de la tablet en obrir el fitxer.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-slate-950/40 p-3 rounded-xl text-[8px] text-white/45 leading-relaxed border border-white/5">
+                🔒 <span>La seguretat de l'escola de Mossos garanteix que, un cop instal·lada per qualsevol d'aquests mètodes d'alta gamma de PWA, les teves dades d'estudiants i simulacres d'examen s'autoguardaran.</span>
               </div>
 
             </div>
 
-            {/* Panell d'accions finals */}
-            <div className="px-5 py-4 border-t border-white/10 bg-black/20 flex gap-3">
+            {/* Acció footer de tancament */}
+            <div className="px-5 py-4 border-t border-white/10 bg-black/25 flex">
               <button
-                onClick={() => setModalFCMObert(false)}
-                className="flex-1 border border-white/10 text-white/60 hover:bg-white/5 hover:text-white text-[10px] font-black uppercase py-2.5 px-4 rounded-xl transition-all"
+                onClick={() => setModalConsellsInstalacioObert(false)}
+                className="w-full bg-[#b3f202] hover:bg-[#a1d902] text-slate-950 text-[9px] font-black uppercase py-2.5 px-4 rounded-xl transition-all cursor-pointer shadow-lg tracking-tight"
               >
-                Tancar
-              </button>
-              <button
-                onClick={() => desarFCMTokenABBDD(tokenFCMInput)}
-                disabled={guardantToken || !tokenFCMInput.trim() || !usuariActiu}
-                className="flex-1 bg-amber-500 text-slate-950 hover:bg-amber-400 text-[10px] font-black uppercase py-2.5 px-4 rounded-xl transition-all disabled:opacity-40 shadow-lg shadow-amber-500/10"
-              >
-                {guardantToken ? "Vinculant..." : "🔔 Vincular Dispositiu"}
+                Tancar assistent 🎓
               </button>
             </div>
 
           </div>
         </div>
       )}
-
     </div>
   );
 }

@@ -37,7 +37,7 @@ import { auth, db } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { tancarSessio, garantirFitxaPerfilFirestore } from './lib/authService';
 import { useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 
 import { TEMARI_DETALL } from './constants/temari';
@@ -59,6 +59,13 @@ import WebRedireccioMobil from './pantalles/web/WebRedireccioMobil';
  * Gestiona la navegació entre les diferents pantalles de l'aplicació OposiCAT.
  */
 export default function App() {
+  // Explicació per a no-programadors:
+  // Inicialitzem els gestors de navegació oficials de la barra d'adreces de la web.
+  // "location" serveix per conèixer on és l'usuari ara mateix (ex: si és a la ruta d'admin).
+  // "navigate" serveix per empènyer l'usuari cap a una nova adreça sense haver de re-carregar la pàgina.
+  const location = useLocation();
+  const navigate = useNavigate();
+
   // Estat per saber quina pantalla estem mostrant
   type Pantalla = 'benvinguda_alpha' | 'inici' | 'mossos' | 'prova_teorica' | 'prova_practica' | 'prova_psicologica' | 'examen_teoric' | 'em_costa_estudiar' | 'la_meva_oposicio' | 
     'temari_oficial' | 'temari_ambit_a' | 'temari_ambit_b' | 'temari_ambit_c' | 'detall_tema' | 'lector_contingut' |
@@ -110,6 +117,42 @@ export default function App() {
       document.documentElement.style.overflow = 'auto';
     };
   }, [vistaDev]);
+
+  // ============================================================================
+  // SINCRONITZADORS DE LA BARRA D'ADRECES DE NAVEGADOR AMB EL SELECTOR FLOTANT
+  // ============================================================================
+
+  // Explicació per a no-programadors:
+  // Sincronitzador intel·ligent 1:
+  // Si l'usuari/gestor entra de cop des de fora a la ruta de l'administrador ("admin"),
+  // obliguem al nostre selector flotant a posar-se en valor "web_pc_backoffice" de forma transparent.
+  useEffect(() => {
+    if (location.pathname.startsWith('/admin')) {
+      if (vistaDev !== 'web_pc_backoffice') {
+        setVistaDev('web_pc_backoffice');
+      }
+    }
+  }, [location.pathname, vistaDev]);
+
+  // Explicació per a no-programadors:
+  // Sincronitzador intel·ligent 2:
+  // Si el moderador canvia de vista des del selector flotant de desenvolupament (per exemple a l'APP o Landing),
+  // però la barra d'adreces de dalt encara mostra "admin", el tornem a la ruta pública principal de forma asíncrona.
+  useEffect(() => {
+    if (vistaDev !== 'web_pc_backoffice' && location.pathname.startsWith('/admin')) {
+      navigate('/');
+    }
+  }, [vistaDev, location.pathname, navigate]);
+
+  // Explicació per a no-programadors:
+  // Sincronitzador intel·ligent 3:
+  // Si canviem per mitjà del selector flotant cap al "Backoffice de PC", i resulta que encara no estem a la
+  // ruta web d'administrador ("/admin"), acompanyem al navegador enviant-lo-hi de manera instantània.
+  useEffect(() => {
+    if (vistaDev === 'web_pc_backoffice' && !location.pathname.startsWith('/admin')) {
+      navigate('/admin');
+    }
+  }, [vistaDev, location.pathname, navigate]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -409,22 +452,28 @@ export default function App() {
   const handleAnarLaMevaOposicio = () => setPantalla('la_meva_oposicio');
 
   // Gestió Backoffice
-  const handleSortirBackoffice = () => window.location.href = "/";
+  // Explicació per a no-programadors:
+  // Quan el moderador polsa "Sortir de l'admin" al panell, canviem el selector 
+  // flotant de vistes a darrere de les escenes cap a la pàgina d'inici web pública ràpidament.
+  const handleSortirBackoffice = () => {
+    setVistaDev('web_pc_website');
+  };
 
   return (
-    <Routes>
-      {/* RUTA DE GESTIÓ: Backoffice Web (Bypass temporal segons petició) */}
-      <Route path="/admin/*" element={<AdminPanel onExit={handleSortirBackoffice} />} />
+    <div className="relative min-h-screen">
+      {/* EL SELECTOR FLOTANT SEMPRE ESTARÀ VISIBLE A UN COSTÓ, EXCEPTE EN LA VISTA ESPECIAL DE PRESENTACIÓ O MÀRKETING (?marketing=true) */}
+      {!esVistaMarketing && (
+        <SelectorDesenvolupament vistaActual={vistaDev} onChangeVista={setVistaDev} />
+      )}
 
-      {/* RUTA DE L'APP: Experiència d'usuari (actual) */}
-      <Route path="*" element={
-        <div className="relative min-h-screen">
-          {/* EL SELECTOR FLOTANT SEMPRE ESTARÀ VISIBLE A UN COSTÓ, EXCEPTE EN LA VISTA ESPECIAL DE PRESENTACIÓ O MÀRKETING (?marketing=true) */}
-          {!esVistaMarketing && (
-            <SelectorDesenvolupament vistaActual={vistaDev} onChangeVista={setVistaDev} />
-          )}
+      <Routes>
+        {/* RUTA DE GESTIÓ: Backoffice Web (Bypass temporal segons petició) */}
+        <Route path="/admin/*" element={<AdminPanel onExit={handleSortirBackoffice} />} />
 
-          {/* MODAL DE SESSIÓ DUPLICADA GLOBAL (Control anti-compartir compte) */}
+        {/* RUTA DE L'APP: Experiència d'usuari (actual) */}
+        <Route path="*" element={
+          <div className="relative min-h-screen">
+            {/* MODAL DE SESSIÓ DUPLICADA GLOBAL (Control anti-compartir compte) */}
           {errorSessioDuplicada && (
             <div id="modal-sessio-duplicada" className="fixed inset-0 z-[100000] bg-[#00274d]/98 backdrop-blur-xl flex items-center justify-center p-6">
               <div className="bg-slate-900 border border-red-500/20 rounded-3xl p-8 max-w-sm text-center shadow-2xl flex flex-col items-center gap-5">
@@ -819,5 +868,6 @@ export default function App() {
         </div>
       } />
     </Routes>
+    </div>
   );
 }
