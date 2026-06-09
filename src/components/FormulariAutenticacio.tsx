@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   crearCompteAmbCorreu, 
   iniciarSessioAmbCorreu, 
-  iniciarSessioAmbGoogle 
+  iniciarSessioAmbGoogle,
+  recuperarContrasenyaPerCorreu
 } from '../lib/authService';
 import { Mail, Lock, User, AlertCircle, CheckCircle2, ArrowLeft, Chrome, Loader2 } from 'lucide-react';
 
@@ -143,6 +144,31 @@ export default function FormulariAutenticacio({
     }
   };
 
+  // Comentari planer per a no-programadors:
+  // Gestiona el procés de recuperació de la contrasenya quan l'estudiant de l'App té un oblit.
+  // Demana que s'hagi escrit el correu primer, crida el mètode de restabliment oficial de Firebase i
+  // presenta un missatge d'èxit de color verd amb les indicacions per canviar-la des del seu correu.
+  const handleRecuperarContrasenya = async () => {
+    setErrorString(null);
+    setExitString(null);
+
+    if (!email) {
+      setErrorString("Si us plau, introdueix primer el teu correu electrònic per poder rebre l'enllaç de recuperació.");
+      return;
+    }
+
+    setCarregant(true);
+    try {
+      await recuperarContrasenyaPerCorreu(email);
+      setExitString(`S'ha enviat un correu de restabliment oficial a la bústia de ${email}. Revisa la teva adreça de correu.`);
+    } catch (err: any) {
+      console.error("Error en enviar el correu de recuperació mòbil:", err);
+      setErrorString(traduirErrorFirebase(err.code || ''));
+    } finally {
+      setCarregant(false);
+    }
+  };
+
   return (
     <div id="auth-container" className="w-full max-w-sm mx-auto bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
       {/* Botó Tornar Enrere */}
@@ -271,9 +297,15 @@ export default function FormulariAutenticacio({
               Contrasenya
             </label>
             {mode === 'login' && (
-              <span className="text-[10px] text-white/45 font-semibold hover:text-white cursor-pointer transition-colors">
+              <button
+                id="btn-recuperar-password"
+                type="button"
+                onClick={handleRecuperarContrasenya}
+                disabled={carregant}
+                className="text-[10px] text-[#00f296] font-extrabold uppercase hover:underline cursor-pointer bg-transparent border-none p-0 disabled:opacity-50"
+              >
                 L'has oblidat?
-              </span>
+              </button>
             )}
           </div>
           <div className="relative">

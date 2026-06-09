@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   iniciarSessioAmbCorreu, 
   crearCompteAmbCorreu, 
-  iniciarSessioAmbGoogle 
+  iniciarSessioAmbGoogle,
+  recuperarContrasenyaPerCorreu
 } from '../../lib/authService';
 import { Mail, Lock, User, AlertCircle, CheckCircle2, ArrowLeft, Chrome, Loader2, ShieldAlert } from 'lucide-react';
 
@@ -140,6 +141,31 @@ export default function WebLoginPC({ onSessioIniciada, onTornar }: WebLoginPCPro
       }, 1250);
     } catch (err: any) {
       console.error("Incident amb l'accés de Google en PC:", err);
+      setErrorString(traduirErrorFirebase(err.code || ''));
+    } finally {
+      setCarregant(false);
+    }
+  };
+
+  // Comentari planer per a no-programadors:
+  // Gestiona el procés de recuperació de la contrasenya quan l'estudiant té un oblit.
+  // Demana que s'hagi escrit el correu primer, crida el mètode de restabliment oficial de Firebase i
+  // presenta un missatge d'èxit de color verd amb les indicacions per canviar-la des del seu correu.
+  const handleRecuperarContrasenya = async () => {
+    setErrorString(null);
+    setExitString(null);
+
+    if (!email) {
+      setErrorString("Si us plau, introdueix primer el teu correu electrònic al camp superior per poder rebre l'enllaç de recuperació.");
+      return;
+    }
+
+    setCarregant(true);
+    try {
+      await recuperarContrasenyaPerCorreu(email);
+      setExitString(`S'ha enviat un enllaç de recuperació oficial a la bústia de ${email}. Revisa el teu correu electrònic (i la bústia de correu brossa o spam).`);
+    } catch (err: any) {
+      console.error("Error en enviar el correu de recuperació:", err);
       setErrorString(traduirErrorFirebase(err.code || ''));
     } finally {
       setCarregant(false);
@@ -323,9 +349,14 @@ export default function WebLoginPC({ onSessioIniciada, onTornar }: WebLoginPCPro
                     Recorda'm a l'ordinador
                   </span>
                 </label>
-                <span className="text-[9px] text-[#00f296] font-extrabold uppercase hover:underline cursor-pointer">
+                <button 
+                  type="button"
+                  onClick={handleRecuperarContrasenya}
+                  disabled={carregant}
+                  className="text-[9px] text-[#00f296] font-extrabold uppercase hover:underline cursor-pointer bg-transparent border-none p-0 disabled:opacity-50"
+                >
                   Recuperar dades
-                </span>
+                </button>
               </div>
 
               {/* BOTÓ D'ACCÉS PRINCIPAL */}

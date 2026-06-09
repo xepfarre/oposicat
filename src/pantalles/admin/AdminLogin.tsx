@@ -1,14 +1,40 @@
 import { useState, useEffect } from "react";
 import { auth } from "../../lib/firebase";
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { ShieldAlert, Mail, Lock, LogIn, Chrome } from "lucide-react";
+import { ShieldAlert, Mail, Lock, LogIn, Chrome, CheckCircle2 } from "lucide-react";
 import { motion } from "motion/react";
+import { recuperarContrasenyaPerCorreu } from "../../lib/authService";
 
 export default function AdminLogin({ onLoginSuccess, initialError }: { onLoginSuccess: () => void; initialError?: string }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(initialError || "");
+  const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Comentari planer per a no-programadors:
+  // Envia un correu de recuperació o restabliment de contrasenya de seguretat a l'administrador
+  // si clica "Recuperar dades" des de la interfície del backoffice. Es demana escriure el correu primer.
+  const handleRecuperarContrasenya = async () => {
+    setError("");
+    setSuccessMsg("");
+    
+    if (!email) {
+      setError("Si us plau, escriu primer el teu correu electrònic d'administrador al camp corresponent per poder rebre l'enllaç de restabliment.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await recuperarContrasenyaPerCorreu(email);
+      setSuccessMsg(`S'ha enviat correctament un correu de restabliment oficial a la bústia de ${email}. Revisa la teva adreça.`);
+    } catch (err: any) {
+      console.error("Error enviant correu de recuperació admin:", err);
+      setError("Hi ha hagut un inconvenient en enviar el correu de recuperació d'administrador. Comprova el format.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (initialError) {
@@ -72,31 +98,50 @@ export default function AdminLogin({ onLoginSuccess, initialError }: { onLoginSu
           </div>
         )}
 
+        {successMsg && (
+          <div className="bg-emerald-50 text-emerald-600 p-4 rounded-xl text-xs font-bold text-center border border-emerald-100 italic flex items-center justify-center gap-2">
+            <CheckCircle2 size={16} />
+            <span>{successMsg}</span>
+          </div>
+        )}
+
         <form onSubmit={handleEmailLogin} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              {/* Comentari planer per a no-programadors: Camp on s'introdueix l'adreça de correu. S'afegeix 'text-slate-800' per forçar que la lletra escrita sigui fosca sobre el fons blanc. */}
               <input 
                 type="email"
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="correu@empresa.com"
-                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border border-slate-100 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 font-medium"
+                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border border-slate-100 text-slate-800 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 font-medium"
               />
             </div>
           </div>
           <div className="flex flex-col gap-2">
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              {/* Comentari planer per a no-programadors: Camp de text on s'introdueix la de contrasenya. També s'hi afegeix 'text-slate-800' perquè el text no sigui blanc i sigui fosc sobre el fons clar de la targeta. */}
               <input 
                 type="password"
                 required
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="Contrasenya"
-                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border border-slate-100 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 font-medium"
+                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border border-slate-100 text-slate-800 focus:border-blue-500 outline-none transition-all placeholder:text-slate-300 font-medium"
               />
+            </div>
+            <div className="flex justify-end pr-1">
+              <button 
+                type="button"
+                onClick={handleRecuperarContrasenya}
+                disabled={loading}
+                className="text-[9px] text-blue-600 font-extrabold uppercase hover:underline cursor-pointer bg-transparent border-none p-0 disabled:opacity-50"
+              >
+                He oblidat la contrasenya
+              </button>
             </div>
           </div>
           <button 

@@ -7,6 +7,7 @@ import {
   sendEmailVerification, 
   signOut,
   updateProfile,
+  sendPasswordResetEmail,
   User as FirebaseUser
 } from 'firebase/auth';
 import { 
@@ -283,4 +284,14 @@ export async function dolsEnviaCorreuVerificacio(): Promise<void> {
  */
 export async function tancarSessio(): Promise<void> {
   await signOut(auth);
+}
+
+/**
+ * 6. RECUPERACIÓ DE CONTRASENYA / PASSWORD RESET
+ * Comentari planer per a no-programadors:
+ * Aquesta funció permet que un opositor rebi un missatge de correu electrònic automàtic oficial
+ * de seguretat per poder canviar o restablir de manera segura la seva contrasenya si l'ha oblidat.
+ */
+export async function recuperarContrasenyaPerCorreu(email: string): Promise<void> {
+  await sendPasswordResetEmail(auth, email);
 }
