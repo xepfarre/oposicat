@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, Bell, X, Check, BellRing, Settings, ShieldAlert, KeyRound, Smartphone, Tablet, Trophy, Clock, ClipboardList, Dumbbell, Apple, Users, Flame, ChevronRight, Award, Medal, Star, Sparkles, MessageSquare, Send } from "lucide-react";
+import { ChevronLeft, Bell, X, Check, BellRing, Settings, ShieldAlert, KeyRound, Smartphone, Tablet, Trophy, Clock, ClipboardList, Dumbbell, Apple, Users, Flame, ChevronRight, Award, Medal, Star, Sparkles, MessageSquare, Send, MessageCircle, PlusCircle, Hash } from "lucide-react";
 import { auth, db, obtenirMissatgeria } from "../../lib/firebase";
 import { collection, query, orderBy, limit, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { getToken } from "firebase/messaging";
@@ -81,6 +81,45 @@ export default function OposiMossosInici({
   const [pwaInstallPrompt, setPwaInstallPrompt] = useState<any>(null);
   const [modalConsellsInstalacioObert, setModalConsellsInstalacioObert] = useState<boolean>(false);
   const [pestanyaDispositiu, setPestanyaDispositiu] = useState<"chrome" | "firefox" | "ios" | "hermit" | "apk">("chrome");
+
+  // Explicació per a no-programadors: Estats de control per al Fòrum d'estudiants opositors de Mossos.
+  const [modalForumObert, setModalForumObert] = useState<boolean>(false);
+  const [forumChatroomId, setForumChatroomId] = useState<string | null>(null); // per saber quin canal o xat concret del fòrum estem veient
+  const [forumPersonalitzatNom, setForumPersonalitzatNom] = useState<string>("");
+  const [forumPersonalitzatDesc, setForumPersonalitzatDesc] = useState<string>("");
+  const [forumsCreats, setForumsCreats] = useState<{nom: string, desc: string}[]>([]);
+  const [mostrarCreacioForum, setMostrarCreacioForum] = useState<boolean>(false);
+  const [nouMissatgeForumText, setNouMissatgeForumText] = useState<string>("");
+
+  // Explicació per a no-programadors: Els missatges pre-carregats amb xats de simulació súper sans de "més que opositors"
+  const [missatgesPorCanal, setMissatgesPorCanal] = useState<Record<string, any[]>>({
+    "Xat general": [
+      { id: 101, nom: "Gerard Font", text: "Hola mossos! Com porteu l'estudi? Es fa dura la recta final però valdrà la pena! 👮‍♀️✨", hora: "12:15" },
+      { id: 102, nom: "Mireia Puig", text: "Super recolzada pel fòrum! Algú sap on compren les millors sabates per a la prova física?", hora: "12:44" },
+      { id: 103, nom: "Toni Camps", text: "Jo vaig agafar unes asics a decathlon, genials per als girs i la navette! No rellisquen gens. 🏃‍♂️💨", hora: "13:01" }
+    ],
+    "Xat prova teòrica": [
+      { id: 201, nom: "Sònia Homs", text: "Heu vist les últimes modificacions d'actualitat constitucional? Quin lio amb els terminis del títol primer! 📚👮‍♀️", hora: "14:10" },
+      { id: 202, nom: "Ramon Cases", text: "Sònia, sí! Recomano fortament el Tema 1.3, està súper ben sintetitzat i resol el dubte!", hora: "14:22" },
+      { id: 203, nom: "Carles Grau", text: "Demà de bon matí faré un simulation-test de 30 preguntes de l'Àmbit A! A tope!", hora: "14:55" }
+    ],
+    "Xat prova física": [
+      { id: 301, nom: "Sílvia Lopez", text: "Com feu per millorar els temps al circuit d'agilitat? Se'm resisteix el salt de plint... 🤸‍♀️", hora: "10:30" },
+      { id: 302, nom: "David Prat", text: "Sílvia, és tot tècnica i recolzar bé el centre de gravetat. Practica la caiguda i el pivot!", hora: "10:45" }
+    ],
+    "Xat prova psicològica": [
+      { id: 401, nom: "Marta Solanes", text: "Consells pels tests de personalitat de Mossos? Tinc por de contradir-me en les preguntes creuades. 🧠⏱️", hora: "16:03" },
+      { id: 402, nom: "Àngel Coll", text: "El millor consell és sinceritat i no voler donar perfil perfecte mentint, que ho detecten al moment. Tranquil·litat total!", hora: "16:15" }
+    ],
+    "Estudiem junts": [
+      { id: 501, nom: "Laia Solé", text: "Demà quedem al matí a la biblioteca de Vic? Sala d'estudi grupal reservada a partir de les 09:00! 🤓📖", hora: "17:11" },
+      { id: 502, nom: "Bernat Pujol", text: "Laia, em sumo! Portaré cafè i moltes ganes de preguntar-vos dubtes de l'Estatut d'Autonomia!", hora: "17:30" }
+    ],
+    "Entrenem junts": [
+      { id: 601, nom: "Oriol Roca", text: "Algú vol anar a fer navette i agilitat demà a les pistes de Sabadell? He agafat conus de mida oficial! 🏃‍♂️⚡", hora: "18:02" },
+      { id: 602, nom: "Sandra Mas", text: "Jo vinc segur Oriol! Em va fantàstic mesurar el ritme amb un outro opo. A quina hora quedem?", hora: "18:20" }
+    ]
+  });
 
   // Auto-detectem de fons si la tauleta de l'opositor és Apple, Firefox o Android Chrome
   useEffect(() => {
@@ -1150,22 +1189,21 @@ export default function OposiMossosInici({
             </span>
           </button>
 
-          {/* Explicació per a no-programadors: Botó d'instal·lació PWA directament disponible que obre la descàrrega neta o obre la guia interactiva si és un iPad o tablet Android que necessita camí manual dels 3 puntets. */}
+          {/* Explicació per a no-programadors: Botó del Fòrum que obre un espai interactiu i de debat, il·luminat amb un gradient rosa suau i ombra brillant/pulsant polida per convidar a fer-hi clic. */}
           <button 
             id="boto-instalacio-pwa"
-            onClick={instal_larAppNativaPWA}
-            className="bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl py-4 flex flex-col items-center justify-center shadow-lg transition-all active:scale-90 group relative cursor-pointer"
+            onClick={() => setModalForumObert(true)}
+            className="bg-gradient-to-b from-pink-500/10 to-purple-500/10 hover:from-pink-500/20 hover:to-purple-500/20 border border-pink-500/30 hover:border-pink-500/50 rounded-xl py-4 flex flex-col items-center justify-center shadow-[0_0_12px_rgba(236,72,153,0.15)] hover:shadow-[0_0_20px_rgba(236,72,153,0.35)] transition-all active:scale-95 group relative cursor-pointer"
           >
-            <Smartphone className="w-4 h-4 mb-1 text-amber-400 group-hover:scale-110 transition-transform animate-pulse" />
+            <MessageSquare className="w-4 h-4 mb-1 text-pink-400 group-hover:scale-110 transition-transform" />
             <span className="text-white font-black italic text-[8px] md:text-[10px] uppercase tracking-tighter text-center px-1">
-              Instal·lar App 📱
+              Fòrum 💬
             </span>
-            {pwaInstallPrompt && (
-              <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-            )}
+            {/* Petit indicador polsant que brilla de forma subtil per demanar participació */}
+            <span className="absolute top-1.5 right-1.5 flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-pink-500"></span>
+            </span>
           </button>
 
           {/* Explicació per a no-programadors: Botó de notificacions completament operatiu amb comptador real de missatges rebuts per l'equip d'OposiCAT en forma de campana amb un 'badge' o globus vermell polsat amb animació. */}
@@ -1699,6 +1737,300 @@ export default function OposiMossosInici({
                 className="w-full bg-[#b3f202] hover:bg-[#a1d902] text-slate-950 text-[9px] font-black uppercase py-2.5 px-4 rounded-xl transition-all cursor-pointer shadow-lg tracking-tight"
               >
                 Tancar assistent 🎓
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DEL FÒRUM DE L'OPOSICIÓ (INTERACTIU I MULTI-CANAL) */}
+      {modalForumObert && (
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-end sm:items-center justify-center px-4 py-6 transition-all duration-300">
+          <div className="bg-[#0b1e36] border border-pink-500/30 w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+            
+            {/* Capçalera del Fòrum */}
+            <div className="px-5 py-4 border-b border-pink-500/20 flex items-center justify-between shrink-0 bg-black/30">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-pink-400 animate-pulse" />
+                <h3 className="text-white font-black italic text-sm uppercase tracking-wider">
+                  Fòrum de l'Oposició
+                </h3>
+                <span className="bg-pink-500/20 text-pink-400 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                  {forumChatroomId ? "Xat Actiu" : "Canals"}
+                </span>
+              </div>
+              
+              <button 
+                onClick={() => {
+                  if (forumChatroomId) {
+                    setForumChatroomId(null); // torna als canals
+                  } else {
+                    setModalForumObert(false);
+                  }
+                }}
+                className="text-white/60 hover:text-white p-1 hover:bg-white/10 rounded-full transition-all cursor-pointer"
+              >
+                {forumChatroomId ? <ChevronLeft className="w-5 h-5" /> : <X className="w-5 h-5" />}
+              </button>
+            </div>
+
+            {/* Contingut principal del Fòrum */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4" style={{ WebkitOverflowScrolling: "touch" }}>
+              
+              {!forumChatroomId ? (
+                /* VISTA Principal: Llistat de Canals/Xats i informació */
+                <div className="space-y-4">
+                  {/* Descripció del fòrum sol·licitada exactament per l'usuari */}
+                  <div className="bg-pink-950/20 border border-pink-500/10 p-4 rounded-2xl text-left shadow-inner">
+                    <p className="text-xs text-white/90 leading-relaxed font-semibold">
+                      Xateja amb altres companys i companyes sobre temes d'interès relacionats amb l'oposició, l'estudi, els entrenaments o la mateixa APP. Compartiu experiències, resoleu dubtes, ajudeu-vos mútuament i quedeu per estudiar o entrenar junts per assolir el vostre objectiu!
+                    </p>
+                  </div>
+
+                  {/* Secció canals preestablerts */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-pink-400 font-extrabold uppercase tracking-wider text-left pl-1">
+                      Canals de debat actius
+                    </p>
+                    
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {[
+                        { nom: "Xat general", desc: "Debat obert general" },
+                        { nom: "Xat prova teòrica", desc: "Dubtes de temari i exàmens" },
+                        { nom: "Xat prova física", desc: "Navette, circuit i l'agilitat" },
+                        { nom: "Xat prova psicològica", desc: "Tests psicotècnics i personalitat" },
+                        { nom: "Estudiem junts", desc: "Grups d'estudi i biblioteques" },
+                        { nom: "Entrenem junts", desc: "Quedades per córrer i gimnasos" }
+                      ].map((ch) => (
+                        <button
+                          key={ch.nom}
+                          onClick={() => setForumChatroomId(ch.nom)}
+                          className="bg-white/5 hover:bg-pink-500/10 border border-white/5 hover:border-pink-500/20 rounded-2xl p-3 flex flex-col text-left transition-all active:scale-95 cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-1.5 font-sans">
+                            <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse shrink-0" />
+                            <span className="text-white font-extrabold text-xs group-hover:text-pink-300 transition-colors">
+                              {ch.nom}
+                            </span>
+                          </div>
+                          <span className="text-[9px] text-white/40 mt-1 leading-normal font-medium font-sans">
+                            {ch.desc}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* FÒRUMS CREATS PEL PROPI ESTUDIANT */}
+                  {forumsCreats.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t border-white/5">
+                      <p className="text-[10px] text-amber-400 font-extrabold uppercase tracking-wider text-left pl-1">
+                        Els teus fòrums ràpids
+                      </p>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        {forumsCreats.map((f, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              // inicialitza el canal buit si no existís mai
+                              if (!missatgesPorCanal[f.nom]) {
+                                setMissatgesPorCanal(prev => ({
+                                  ...prev,
+                                  [f.nom]: [
+                                    { id: 999, nom: "Sistema d'OposiCAT", text: `Fòrum personalitzat "${f.nom}" creat correctament sobre: ${f.desc}. Comença la conversa!`, hora: "Ara" }
+                                  ]
+                                }));
+                              }
+                              setForumChatroomId(f.nom);
+                            }}
+                            className="bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/10 hover:border-amber-500/20 rounded-2xl p-3 flex flex-col text-left transition-all active:scale-95 cursor-pointer group"
+                          >
+                            <div className="flex items-center gap-1.5 font-sans">
+                              <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                              <span className="text-white font-bold text-xs group-hover:text-amber-300 transition-colors">
+                                {f.nom}
+                              </span>
+                            </div>
+                            <span className="text-[9px] text-white/40 mt-1 leading-normal font-medium font-sans">
+                              {f.desc}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Petita separació sol·licitada */}
+                  <div className="py-2 border-t border-white/10 flex items-center justify-center">
+                    <div className="h-px bg-white/5 flex-grow" />
+                  </div>
+
+                  {/* Opció per crear fòrum personalitzat */}
+                  {!mostrarCreacioForum ? (
+                    <button
+                      onClick={() => setMostrarCreacioForum(true)}
+                      className="w-full py-3 bg-gradient-to-r from-pink-600/30 to-purple-600/20 hover:from-pink-600/40 hover:to-purple-600/30 border border-pink-500/30 hover:border-pink-500/40 rounded-2xl flex items-center justify-center gap-2 text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer active:scale-95"
+                    >
+                      <PlusCircle className="w-4 h-4 text-pink-400" />
+                      Crea un fòrum personalitzat
+                    </button>
+                  ) : (
+                    /* Formulari interactiu per crear un fòrum personalitzat */
+                    <div className="bg-black/30 border border-white/10 rounded-2xl p-4 space-y-3 text-left">
+                      <p className="text-[10px] font-black text-pink-400 uppercase tracking-widest">
+                        🛡️ Nou fòrum de debat
+                      </p>
+                      
+                      <div className="space-y-1">
+                        <label className="text-[9px] text-white/50 font-bold uppercase">Nom de la comunitat o tema</label>
+                        <input
+                          type="text"
+                          value={forumPersonalitzatNom}
+                          onChange={(e) => setForumPersonalitzatNom(e.target.value)}
+                          placeholder="Ex. Quedada Girona, Dubtes de Psicotècnics"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/35 focus:outline-none focus:border-pink-500/50"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] text-white/50 font-bold uppercase">Breu descripció</label>
+                        <input
+                          type="text"
+                          value={forumPersonalitzatDesc}
+                          onChange={(e) => setForumPersonalitzatDesc(e.target.value)}
+                          placeholder="Ex. Per debatre on entrenar a Girona o resoldre dubtes d'actualitat"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/35 focus:outline-none focus:border-pink-500/50"
+                        />
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMostrarCreacioForum(false);
+                            setForumPersonalitzatNom("");
+                            setForumPersonalitzatDesc("");
+                          }}
+                          className="flex-1 py-2 border border-white/10 hover:bg-white/5 rounded-xl text-center text-[10px] text-white/60 font-bold uppercase transition-all cursor-pointer"
+                        >
+                          Cancel·lar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!forumPersonalitzatNom.trim()) return;
+                            const nouT = {
+                              nom: forumPersonalitzatNom,
+                              desc: forumPersonalitzatDesc || "Fòrum creat per un alumne actiu de la convocatòria."
+                            };
+                            setForumsCreats([...forumsCreats, nouT]);
+                            setMostrarCreacioForum(false);
+                            setForumPersonalitzatNom("");
+                            setForumPersonalitzatDesc("");
+                          }}
+                          className="flex-1 py-2 bg-pink-600 hover:bg-pink-500 rounded-xl text-center text-[10px] text-white font-bold uppercase transition-all cursor-pointer"
+                        >
+                          Crear fòrum ✅
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              ) : (
+                /* VISTA Secundària: Finestra de xat actiu per al canal seleccionat */
+                <div className="flex flex-col h-full space-y-3 font-sans">
+                  <div className="bg-pink-950/20 border border-pink-500/10 p-3 rounded-xl flex items-center justify-between font-sans">
+                    <div>
+                      <p className="text-xs font-black text-pink-300 uppercase shrink-0">
+                        💬 #{forumChatroomId}
+                      </p>
+                      <p className="text-[9px] text-white/50 font-semibold text-left">
+                        Debat lliure en temps real entre els alumnes d'OposiCAT.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setForumChatroomId(null)}
+                      className="text-[9px] font-bold text-pink-400 bg-pink-500/10 px-2 py-1 rounded-lg shrink-0 hover:bg-pink-500/20 cursor-pointer"
+                    >
+                      Canviar canal
+                    </button>
+                  </div>
+
+                  {/* Llista dels missatges de la conversa sota scroll actiu */}
+                  <div className="flex flex-col gap-3 overflow-y-auto max-h-[300px] min-h-[160px] pr-1 py-2" style={{ WebkitOverflowScrolling: "touch" }}>
+                    {(missatgesPorCanal[forumChatroomId] || []).map((m: any) => (
+                      <div key={m.id} className="flex flex-col gap-1 text-left font-sans animate-fade-in">
+                        <div className="flex items-center gap-1.5 justify-start font-sans">
+                          <span className="text-[9px] font-mono text-pink-300 font-extrabold uppercase px-1.5 py-0.5 rounded bg-pink-500/10 border border-pink-500/20">
+                            {m.nom}
+                          </span>
+                          <span className="text-[8px] text-white/30 font-mono">{m.hora}</span>
+                        </div>
+                        <p className="text-xs text-white/90 bg-white/5 border border-white/5 px-3 py-2 rounded-2xl ml-1 leading-relaxed">
+                          {m.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Formulari per col·locar nous comentaris al fòrum */}
+                  <form 
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!nouMissatgeForumText.trim()) return;
+                      const nomDeVeritat = usuariActiu?.displayName || "Tu (Opositor)";
+                      const nouM = {
+                        id: Date.now(),
+                        nom: nomDeVeritat,
+                        text: nouMissatgeForumText,
+                        hora: new Date().toLocaleTimeString("ca-ES", { hour: "2-digit", minute: "2-digit" })
+                      };
+
+                      // guardem el missatge al canal corresponent en memòria reactiva d'OposiCAT
+                      setMissatgesPorCanal(prev => ({
+                        ...prev,
+                        [forumChatroomId]: [...(prev[forumChatroomId] || []), nouM]
+                      }));
+                      setNouMissatgeForumText("");
+                    }}
+                    className="flex items-center gap-2 mt-2 pt-2 border-t border-white/5"
+                  >
+                    <input
+                      type="text"
+                      value={nouMissatgeForumText}
+                      onChange={(e) => setNouMissatgeForumText(e.target.value)}
+                      placeholder={`Xateja a #${forumChatroomId}...`}
+                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/35 focus:outline-none focus:border-pink-500/50"
+                    />
+                    <button
+                      type="submit"
+                      className="p-2.5 bg-pink-600 hover:bg-pink-500 rounded-xl transition-all cursor-pointer text-white active:scale-95 shadow-md shadow-pink-600/20"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                    </button>
+                  </form>
+                </div>
+              )}
+
+            </div>
+
+            {/* Acció footer de tancament del fòrum */}
+            <div className="px-5 py-4 border-t border-white/10 bg-black/35 flex gap-2">
+              {forumChatroomId && (
+                <button
+                  onClick={() => setForumChatroomId(null)}
+                  className="flex-1 py-2.5 bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer"
+                >
+                  ◀ Canals
+                </button>
+              )}
+              <button
+                onClick={() => setModalForumObert(false)}
+                className="flex-2 bg-pink-600 hover:bg-pink-500 text-white text-[10px] font-black uppercase py-2.5 px-4 rounded-xl transition-all cursor-pointer shadow-lg tracking-tight w-full"
+              >
+                Tancar fòrum 💬
               </button>
             </div>
 
