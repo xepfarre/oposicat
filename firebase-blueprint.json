@@ -334,9 +334,19 @@
         }
       },
       "required": ["preguntaId", "encertada", "respostaSeleccionada", "intents", "correctes", "errors", "actualitzatEl"]
+    },
+    "Comptador": {
+      "title": "Comptadors de Temari d'Estudi",
+      "description": "Comptadors de volum i estadístiques de preguntes totals d'oposició agrupades per tema.",
+      "type": "object",
+      "properties": {}
     }
   },
   "firestore": {
+    "comptadors/{comptadorId}": {
+      "schema": "Comptador",
+      "description": "Col·lecció de comptadors i estadístiques globals com a denominadors d'anàlisi de rendiment"
+    },
     "usuaris/{userId}": {
       "schema": "Usuari",
       "description": "Col·lecció de seguiment de perfils d'opositors gestionats mitjançant l'UID propi de Firebase Auth"

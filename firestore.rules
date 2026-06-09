@@ -286,5 +286,12 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // 21. Comptadors globals de preguntes i temes (comptadors)
+    // Comentari planer per a no-programadors: Permet que qualsevol alumne registrat a l'aplicació llegeixi els totals de preguntes dels diferents temes per així determinar correctament i de forma automàtica els seus percentatges de superació o estadístiques. Els canvis d'escriptura queden reservats només per als administradors d'OposiCAT.
+    match /comptadors/{comptadorId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
   }
 }

@@ -508,10 +508,16 @@ export default function GestioRols({ darkMode }: { darkMode: boolean }) {
         <div className="flex items-start gap-4">
           <AlertOctagon className="w-8 h-8 flex-shrink-0 mt-1 animate-bounce" />
           <div className="space-y-2">
-            <h4 className="text-sm font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">🚨 Avís Legal i Normativa Corporativa Exclusiva:</h4>
-            <p className="text-xs leading-relaxed font-semibold">
-              Aquesta pantalla esta reservada per l'administracio de l'empresa amb grau d'Administrador. Si visualitzes aquesta paguina avisa al teu superior d'inmediat. Efectuar qualsevol tipus de canvi en aquesta paguina sense el permis expliocit de l'empresa pot comportar greus carregels legals a part de l'expulsio inmediata de l'empresa. Moltes gracies.
-            </p>
+            {/* Comentari planer per a no-programadors:
+                Mostra el cartell d'avis legal oficial actualitzat. També hem introduït el text corregit en
+                diversos paràgrafs ben estructurats amb un espaiat intern correcte perquè es pugui llegir perfectament. */}
+            <h4 className="text-sm font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">🚨 Avís Legal i Normativa Corporativa</h4>
+            <div className="text-xs leading-relaxed font-semibold space-y-2 mt-1">
+              <p>Aquesta secció està restringida exclusivament al personal autoritzat amb permisos d'Administrador.</p>
+              <p>Si heu accedit a aquesta pàgina sense disposar de l'autorització corresponent, informeu-ne immediatament al vostre superior o al departament responsable.</p>
+              <p>Qualsevol modificació, alteració o intervenció en aquesta secció sense l'autorització expressa de l'empresa constitueix un incompliment greu de la normativa interna i pot comportar mesures disciplinàries, inclosa l'expulsió immediata de l'organització, així com les accions legals que es considerin oportunes.</p>
+              <p>Gràcies per la vostra col·laboració i pel compliment de les normes de seguretat i confidencialitat corporatives.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -543,6 +549,10 @@ export default function GestioRols({ darkMode }: { darkMode: boolean }) {
             <div className="flex flex-col gap-3">
               
               {/* 1r Boto: ROLS */}
+              {/* Comentari planer per a no-programadors:
+                  Aquest primer botó permet anar a la pantalla amb l'estructura de rols.
+                  S'ha afegit 'hover:text-slate-900' i 'dark:hover:text-black' perquè, en passar el ratolí per sobre,
+                  el fons es torna blanc/clar, i així el text d'aquest botó i la seva icona es tornen de color fosc/negre pur per tenir un contrast perfecte i ser 100% llegible. */}
               <button
                 disabled={!teRolAdministrador}
                 onClick={() => {
@@ -554,7 +564,7 @@ export default function GestioRols({ darkMode }: { darkMode: boolean }) {
                     ? "bg-slate-300 dark:bg-slate-800 text-slate-400 cursor-not-allowed opacity-50 border border-transparent"
                     : activeTab === "rols_info"
                     ? "bg-indigo-600 text-white shadow-lg"
-                    : "bg-slate-150 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-200 border border-transparent"
+                    : "bg-slate-100 hover:bg-slate-200 hover:text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-100 dark:hover:text-black text-slate-700 dark:text-slate-200 border border-transparent"
                 }`}
               >
                 <Database className="w-4 h-4" />
@@ -562,6 +572,9 @@ export default function GestioRols({ darkMode }: { darkMode: boolean }) {
               </button>
 
               {/* 2n Boto: Gestio de rols */}
+              {/* Comentari planer per a no-programadors:
+                  Aquest segon botó condueix a la pantalla on es configuren els permisos especifics de cada rol.
+                  S'aplica la mateixa llista de millora visual de colors per evitar l'efecte de lletra invisible sobre blanc. */}
               <button
                 disabled={!teRolAdministrador}
                 onClick={() => {
@@ -573,7 +586,7 @@ export default function GestioRols({ darkMode }: { darkMode: boolean }) {
                     ? "bg-slate-300 dark:bg-slate-800 text-slate-400 cursor-not-allowed opacity-50 border border-transparent"
                     : activeTab === "gestio_permisos"
                     ? "bg-indigo-600 text-white shadow-lg"
-                    : "bg-slate-150 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-200 border border-transparent"
+                    : "bg-slate-100 hover:bg-slate-200 hover:text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-100 dark:hover:text-black text-slate-700 dark:text-slate-200 border border-transparent"
                 }`}
               >
                 <Sliders className="w-4 h-4" />
@@ -581,6 +594,9 @@ export default function GestioRols({ darkMode }: { darkMode: boolean }) {
               </button>
 
               {/* 3r Boto: Gestio de rols d'usuari */}
+              {/* Comentari planer per a no-programadors:
+                  Aquest tercer botó obre la gestió de rols on s'assignen directament els rols a les diferents persones.
+                  S'ha reprogramat el contrast sobre fons clar en hover utilitzant els canvis natius de Tailwind. */}
               <button
                 disabled={!teRolAdministrador}
                 onClick={() => {
@@ -592,7 +608,7 @@ export default function GestioRols({ darkMode }: { darkMode: boolean }) {
                     ? "bg-slate-300 dark:bg-slate-800 text-slate-400 cursor-not-allowed opacity-50 border border-transparent"
                     : activeTab === "gestio_usuaris"
                     ? "bg-indigo-600 text-white shadow-lg"
-                    : "bg-slate-150 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-200 border border-transparent"
+                    : "bg-slate-100 hover:bg-slate-200 hover:text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-100 dark:hover:text-black text-slate-700 dark:text-slate-200 border border-transparent"
                 }`}
               >
                 <UserCheck className="w-4 h-4" />
