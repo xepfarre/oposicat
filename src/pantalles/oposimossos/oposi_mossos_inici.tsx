@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, Bell, X, Check, BellRing, Settings, ShieldAlert, KeyRound, Smartphone, Tablet, Trophy, Clock, ClipboardList, Dumbbell, Apple, Users, Flame, ChevronRight, Award, Medal, Star, Sparkles } from "lucide-react";
+import { ChevronLeft, Bell, X, Check, BellRing, Settings, ShieldAlert, KeyRound, Smartphone, Tablet, Trophy, Clock, ClipboardList, Dumbbell, Apple, Users, Flame, ChevronRight, Award, Medal, Star, Sparkles, MessageSquare, Send } from "lucide-react";
 import { auth, db, obtenirMissatgeria } from "../../lib/firebase";
 import { collection, query, orderBy, limit, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { getToken } from "firebase/messaging";
@@ -32,6 +32,17 @@ export default function OposiMossosInici({
   // Explicació per a no-programadors: Estats per gestionar si s'ha d'obrir la pantalla integrada de Rankings d'OposiCAT i quina taula o categoria de classificació estem consultant.
   const [mostrarRankings, setMostrarRankings] = useState<boolean>(false);
   const [rankingSeleccionatId, setRankingSeleccionatId] = useState<string | null>(null);
+
+  // Explicació per a no-programadors: Estats de control per al xat associat al rànquing per fomentar la diversió, motivació i competició sana amb comentaris divertits de 5 mossos simulats.
+  const [mostrarChat, setMostrarChat] = useState<boolean>(false);
+  const [nouMissatgeText, setNouMissatgeText] = useState<string>("");
+  const [missatgesChat, setMissatgesChat] = useState<any[]>([
+    { id: 1, nom: "Jordi Muñoz", text: "Ei! T'he superat a la prova de testos! He fet 14 exàmens avui! 💪🏻👮‍♂️", hora: "15:42", color: "text-blue-300 bg-blue-500/10 border-blue-500/20" },
+    { id: 2, nom: "Laura Vilanova", text: "Mare meva Jordi, no dorms o què? Després t'enxampo segur, avui repasso l'Àmbit C i et desbanco! Hahaha 🚀", hora: "15:45", color: "text-pink-300 bg-pink-500/10 border-pink-500/20" },
+    { id: 3, nom: "Marc Soler", text: "Vigileu que estic escalfant motors a la navette del rànquing físic... Crec que us passaré a tots per sobre ben aviat 🏃‍♂️💨!", hora: "16:01", color: "text-purple-300 bg-purple-500/10 border-purple-500/20" },
+    { id: 4, nom: "Sílvia Garcia", text: "Sí, Marc, ja veurem! Jo compleixo la dieta al 100%, la meva disciplina d'estudi és d'acer mossos! 😉", hora: "16:15", color: "text-emerald-300 bg-emerald-500/10 border-emerald-500/20" },
+    { id: 5, nom: "Anna Prat", text: "Ostres nois, quin ritme de testos controleu! Jo vaig de camí al ràtio perfecte d'actualitat, tremoleu! 🔥📚", hora: "16:30", color: "text-amber-300 bg-amber-500/10 border-amber-500/20" }
+  ]);
 
   // Explicació per a no-programadors: Controlador per saber si l'alumne ja ha permès rebre notificacions emergents del mòbil (granted, denied o default)
   const [permisNotificacio, setPermisNotificacio] = useState<string>(() => {
@@ -837,6 +848,86 @@ export default function OposiMossosInici({
           </div>
         </div>
 
+        {/* BOTÓ DE XAT DEL RÀNQUING (MOLT POC AMPLE PER RESPECTAR EL DISSENY SMARTPHONE) */}
+        <div className="flex justify-center w-full mt-4">
+          <button
+            onClick={() => setMostrarChat(!mostrarChat)}
+            className="w-auto px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-full flex items-center justify-center gap-2 transition-all text-indigo-300 font-bold text-[11px] uppercase tracking-wider select-none cursor-pointer active:scale-95 shadow-md shadow-indigo-950/40"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Chat del ranking</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          </button>
+        </div>
+
+        {/* INTERFÍCIE DEL XAT INTERACTIU AMB COMENTARIS DIVERTITS I INPUT ACTIU */}
+        {mostrarChat && (
+          <div className="w-full bg-black/45 border border-white/10 rounded-[1.8rem] p-4 flex flex-col gap-3 mt-2 font-sans shadow-2xl backdrop-blur-md animate-fade-in">
+            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-yellow-400 animate-pulse" />
+                Debat de l'oposició en directe
+              </span>
+              <button 
+                onClick={() => setMostrarChat(false)}
+                className="text-xs font-black text-white/40 hover:text-white/80 transition-all uppercase tracking-widest text-[9px] bg-white/5 px-2.5 py-1 rounded-full cursor-pointer"
+              >
+                Amagar xat
+              </button>
+            </div>
+
+            {/* Llista de missatges de la conversa sota scroll actiu */}
+            <div className="flex flex-col gap-3 overflow-y-auto max-h-[220px] pr-1 py-1" style={{ WebkitOverflowScrolling: "touch" }}>
+              {missatgesChat.map((m) => (
+                <div key={m.id} className="flex flex-col gap-1 text-left">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-[10px] font-black uppercase tracking-wide px-2 py-0.5 rounded-lg border ${m.color}`}>
+                      {m.nom}
+                    </span>
+                    <span className="text-[9px] text-white/30 font-mono">{m.hora}</span>
+                  </div>
+                  <p className="text-xs text-white/95 bg-white/5 border border-white/5 px-3 py-2 rounded-2xl ml-1 leading-relaxed shadow-sm">
+                    {m.text}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Formulari d'enviament directe on qualsevol opositor pot parlar amb el seu nom d'usuari de veritat */}
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!nouMissatgeText.trim()) return;
+                const nomDeVeritat = usuariActiu?.displayName || "Tu (Estudiant)";
+                const nouM = {
+                  id: Date.now(),
+                  nom: nomDeVeritat,
+                  text: nouMissatgeText,
+                  hora: new Date().toLocaleTimeString("ca-ES", { hour: "2-digit", minute: "2-digit" }),
+                  color: "text-indigo-200 bg-indigo-500/25 border-indigo-500/45 font-black uppercase"
+                };
+                setMissatgesChat([...missatgesChat, nouM]);
+                setNouMissatgeText("");
+              }}
+              className="flex items-center gap-2 mt-1 pt-2 border-t border-white/5"
+            >
+              <input
+                type="text"
+                value={nouMissatgeText}
+                onChange={(e) => setNouMissatgeText(e.target.value)}
+                placeholder="Escriu un comentari o broma opositora..."
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-indigo-500/50"
+              />
+              <button
+                type="submit"
+                className="p-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all cursor-pointer text-white active:scale-95 shadow-md shadow-indigo-600/20"
+              >
+                <Send className="w-3.5 h-3.5" />
+              </button>
+            </form>
+          </div>
+        )}
+
         {/* BLOC INDICATIU DE PROPERES INSTÀNCIES DE RÀQUIS */}
         <div className="p-4 bg-indigo-950/40 border border-indigo-500/20 rounded-2xl mt-4 shadow-md backdrop-blur-sm">
           <h4 className="text-xs font-black italic uppercase tracking-wider text-indigo-300 mb-1 flex items-center gap-1.5 justify-center">
@@ -898,9 +989,10 @@ export default function OposiMossosInici({
         {rankingSeleccionatId === null ? (
           /* PANTALLA PRINCIPAL DE RANKINGS: LLISTAT DE BOTONS DE CATEGORIES */
           <main className="w-full max-w-md flex flex-col gap-4 font-sans">
+            {/* Explicació per a no-programadors: Text d'introducció destacant en diferents colors (groc, rosa, verd i taronja) els premis que poden guanyar per motivar l'estudiant */}
             <div className="text-center mb-6 px-2 bg-white/5 border border-white/10 rounded-2xl p-4 shadow-lg backdrop-blur-sm">
               <p className="text-white/80 text-xs font-semibold leading-relaxed">
-                Participa als nostres rànquings! Entra a cadascun d'ells, descobreix què has de fer per <span className="text-red-500 font-black uppercase">participar</span> i aconsegueix <span className="text-yellow-400 font-black">regals, vals de descompte dels nostres patrocinadors, mesos gratuïts de la nostra APP</span> i <span className="text-yellow-400 font-black">molts altres premis</span>. No t'ho perdis, diverteix-te mentre aprens i prepara't per convertir-te en el pròxim Mosso o la pròxima Mossa d'Esquadra!
+                Participa als nostres rànquings! Entra a cadascun d'ells, descobreix què has de fer per <span className="text-red-500 font-black uppercase">participar</span> i aconsegueix <span className="text-yellow-400 font-black">regals</span>, <span className="text-pink-400 font-black">vals de descompte dels nostres patrocinadors</span>, <span className="text-emerald-400 font-black">mesos gratuïts de la nostra APP</span> i <span className="text-orange-500 font-black">molts altres premis</span>. No t'ho perdis, diverteix-te mentre aprens i prepara't per convertir-te en el pròxim Mosso o la pròxima Mossa d'Esquadra!
               </p>
             </div>
 
