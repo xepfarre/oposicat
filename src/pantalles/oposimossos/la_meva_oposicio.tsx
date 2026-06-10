@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, BookOpen, Target, Calendar, Brain, RefreshCw } from 'lucide-react';
+import { ArrowLeft, BookOpen, Target, Calendar, Brain, RefreshCw, ExternalLink } from 'lucide-react';
 import { db, auth } from '../../lib/firebase';
 import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 
@@ -244,238 +244,219 @@ export default function LaMevaOposicio({
         </div>
       </header>
 
-      <main className="w-full max-w-md flex flex-col gap-6">
+       <main className="w-full max-w-md flex flex-col gap-6">
+
+        {/* Explicació per a no-programadors: Secció de Links Oficials sol·licitada.
+            Presenta botons mòbils estilitzats per obrir directament les pàgines de convocatòria oficial de la Generalitat. */}
+        <div className="flex flex-col gap-2 w-full">
+          <div className="text-left w-full pl-1">
+            <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+              Link oficials
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <a 
+              href="https://mossos.gencat.cat/ca/els_mossos_desquadra/acces_al_cos/Mosso_a/mosso-a-convocatoria-46-25-de-maig-de-2025/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-full bg-white/5 hover:bg-[#003c75] border border-white/10 hover:border-amber-500/40 rounded-2xl p-4 flex items-center justify-between transition-all active:scale-[0.98] group cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="text-white font-extrabold text-xs group-hover:text-amber-300 transition-colors">
+                  Convocatoria 2025 (46/25) - Activa
+                </span>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-white/30 group-hover:text-white/70 group-hover:translate-x-0.5 transition-all animate-pulse" />
+            </a>
+
+            <a 
+              href="https://mossos.gencat.cat/ca/els_mossos_desquadra/acces_al_cos/Mosso_a/mosso-a-convocatoria-46-26/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-full bg-white/5 hover:bg-[#003c75] border border-white/10 hover:border-amber-500/40 rounded-2xl p-4 flex items-center justify-between transition-all active:scale-[0.98] group cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="text-white font-extrabold text-xs group-hover:text-amber-300 transition-colors">
+                  Convocatoria 2026 (46/26) - Activa
+                </span>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-white/30 group-hover:text-white/70 group-hover:translate-x-0.5 transition-all animate-pulse" />
+            </a>
+          </div>
+        </div>
+
+        {/* Explicació per a no-programadors: Etiqueta de l'Avenç Personal abans dels blocs de rendiment i progrés actuals de l'estudiant. */}
+        <div className="text-left w-full pl-1 mt-1">
+          <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+            Avenç personal :
+          </span>
+        </div>
 
         {/* BLOC EXTRA NOU: ANÀLISI DETALLAT DE RENDIMENT DE PREGUNTES EN DIRECTE */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full bg-gradient-to-br from-[#001e3d] to-[#001124] rounded-[2.5rem] border border-white/10 p-8 shadow-2xl relative overflow-hidden"
+          className="w-full bg-gradient-to-br from-[#001e3d] to-[#001124] rounded-3xl border border-white/10 p-5 shadow-xl relative overflow-hidden"
         >
           {/* Fons sensorials decoratius per a una estètica de primer nivell */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-red-500/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-red-500/5 rounded-full blur-2xl pointer-events-none" />
 
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-              <Brain size={28} />
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-emerald-500/10 rounded-xl border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+              <Brain size={20} />
             </div>
             <div>
-              <span className="text-white font-black italic uppercase text-base tracking-tighter block">Rendiment de Teòrica</span>
-              <span className="text-white/30 text-[10px] font-black uppercase tracking-widest leading-none">Càlcul matemàtic d'encert per temes</span>
+              <span className="text-white font-black italic uppercase text-sm tracking-tighter block">Rendiment de Teòrica</span>
+              <span className="text-white/30 text-[9px] font-semibold uppercase tracking-wider leading-none">Ràtio d'encert real per temes</span>
             </div>
           </div>
 
           {loadingStats ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <RefreshCw className="animate-spin text-emerald-400" size={24} />
-              <span className="text-[9px] font-black uppercase tracking-widest text-white/35">Sincronitzant analítica...</span>
+            <div className="flex flex-col items-center justify-center py-6 gap-2">
+              <RefreshCw className="animate-spin text-emerald-400" size={18} />
+              <span className="text-[8px] font-black uppercase tracking-widest text-white/35">Sincronitzant...</span>
             </div>
           ) : (
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-4">
               
               {/* Graella d'encerts actius i errades actives */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 
                 {/* targetes d'encerts actius */}
-                <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-3xl p-5 flex flex-col gap-1.5 relative overflow-hidden">
-                  <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  <span className="text-white/40 text-[9px] font-black uppercase tracking-widest">Encerts Actius</span>
-                  <span className="text-3xl font-black text-emerald-400 tracking-tighter italic leading-none">{totalEncerts}</span>
-                  <p className="text-[8px] text-white/50 leading-normal mt-1">Preguntes que mantens encertades actualment.</p>
+                <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-3 flex items-center justify-between relative overflow-hidden">
+                  <div className="flex flex-col">
+                    <span className="text-white/40 text-[8px] font-bold uppercase tracking-wider">Encerts</span>
+                    <span className="text-xl font-black text-emerald-400 tracking-tighter italic leading-none mt-1">{totalEncerts}</span>
+                  </div>
+                  <span className="text-lg select-none">🟢</span>
                 </div>
 
                 {/* targetes d'errades actives */}
-                <div className="bg-red-500/5 border border-red-500/10 rounded-3xl p-5 flex flex-col gap-1.5 relative overflow-hidden">
-                  <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                  <span className="text-white/40 text-[9px] font-black uppercase tracking-widest">Errades Actives</span>
-                  <span className="text-3xl font-black text-red-400 tracking-tighter italic leading-none">{totalErrades}</span>
-                  <p className="text-[8px] text-white/50 leading-normal mt-1">Preguntes fallades. Fins i tot fent-ne 3 cops compta com 1.</p>
+                <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-3 flex items-center justify-between relative overflow-hidden">
+                  <div className="flex flex-col">
+                    <span className="text-white/40 text-[8px] font-bold uppercase tracking-wider">Errades</span>
+                    <span className="text-xl font-black text-red-400 tracking-tighter italic leading-none mt-1">{totalErrades}</span>
+                  </div>
+                  <span className="text-lg select-none">🔴</span>
                 </div>
 
               </div>
 
               {/* Secció millor i pitjor tema segons ràtio de % d'encert total del contingut actiu */}
-              <div className="flex flex-col gap-3.5 border-t border-white/5 pt-5">
+              <div className="flex flex-col gap-2 border-t border-white/5 pt-3">
                 
                 {/* Millor tema */}
-                <div className="flex items-center justify-between gap-4 bg-white/5 p-4 rounded-3xl border border-white/5 hover:bg-white/10 transition-colors">
+                <div className="flex items-center justify-between gap-3 bg-white/5 px-3 py-2 rounded-xl border border-white/5">
                   <div className="flex flex-col min-w-0">
                     <span className="text-emerald-400 text-[8px] font-black uppercase tracking-widest">Millor Tema</span>
-                    <span className="text-white font-black uppercase italic tracking-tight truncate mt-0.5">
-                      {millorTema ? millorTema.name : 'Tema per determinar'}
-                    </span>
-                    <span className="text-[9px] text-white/40 font-bold mt-0.5">
-                      {millorTema ? `${millorTema.encertades} de ${millorTema.totals} respostes correctes` : 'Realitza un simulacre de test primer'}
+                    <span className="text-white font-black uppercase italic tracking-tight text-[11px] truncate">
+                      {millorTema ? millorTema.name : 'Per determinar'}
                     </span>
                   </div>
                   <div className="shrink-0 text-right">
-                    <span className="text-emerald-400 font-black text-xl italic tracking-tighter block leading-none">
+                    <span className="text-emerald-400 font-black text-sm italic tracking-tighter leading-none">
                       {millorTema ? `${millorTema.percent}%` : '--'}
                     </span>
-                    <span className="text-[7px] text-white/20 uppercase font-black tracking-widest block mt-0.5">ÈXIT TEMA</span>
                   </div>
                 </div>
 
                 {/* Pitjor tema */}
-                <div className="flex items-center justify-between gap-4 bg-white/5 p-4 rounded-3xl border border-white/5 hover:bg-white/10 transition-colors">
+                <div className="flex items-center justify-between gap-3 bg-white/5 px-3 py-2 rounded-xl border border-white/5">
                   <div className="flex flex-col min-w-0">
                     <span className="text-red-400 text-[8px] font-black uppercase tracking-widest">Pitjor Tema</span>
-                    <span className="text-white font-black uppercase italic tracking-tight truncate mt-0.5">
-                      {pitjorTema ? pitjorTema.name : 'Tema per determinar'}
-                    </span>
-                    <span className="text-[9px] text-white/40 font-bold mt-0.5">
-                      {pitjorTema ? `${pitjorTema.encertades} de ${pitjorTema.totals} respostes correctes` : 'Tots els temes estan al dia o per iniciar'}
+                    <span className="text-white font-black uppercase italic tracking-tight text-[11px] truncate">
+                      {pitjorTema ? pitjorTema.name : 'Per determinar'}
                     </span>
                   </div>
                   <div className="shrink-0 text-right">
-                    <span className="text-red-400 font-black text-xl italic tracking-tighter block leading-none">
+                    <span className="text-red-400 font-black text-sm italic tracking-tighter leading-none">
                       {pitjorTema ? `${pitjorTema.percent}%` : '--'}
                     </span>
-                    <span className="text-[7px] text-white/20 uppercase font-black tracking-widest block mt-0.5">ÈXIT TEMA</span>
                   </div>
                 </div>
 
               </div>
-
-              {!millorTema && (
-                <div className="text-center bg-white/5 border border-dashed border-white/10 rounded-2xl p-4">
-                  <p className="text-[8px] font-bold text-white/40 leading-relaxed uppercase tracking-wider">
-                    Dóna d'alta respostes fent els qüestionaris del simulador d'examen per activar les mètriques en temps real!
-                  </p>
-                </div>
-              )}
-
             </div>
           )}
         </motion.div>
         
-        {/* BLOC 1: PROGRÉS DEL TEMARI */}
+        {/* BLOC GLOBAL D'AVENÇ SENSE REDUNDÀNCIES VERTICALS */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="w-full bg-[#001a33]/60 backdrop-blur-md rounded-[2.5rem] border border-white/10 p-8 shadow-2xl"
+          className="w-full bg-[#001a33]/60 backdrop-blur-md rounded-3xl border border-white/10 p-5 shadow-xl flex flex-col gap-4"
         >
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-blue-500/10 rounded-2xl border border-blue-500/20 flex items-center justify-center">
-                <BookOpen className="text-blue-400" size={28} />
+          {/* Progrés 1: Temari Oficial */}
+          <div className="flex flex-col gap-1.5 pb-3 border-b border-white/5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BookOpen className="text-blue-400 w-4 h-4 shrink-0" />
+                <span className="text-white font-black italic uppercase text-xs tracking-tight">Temari Oficial (A, B, C)</span>
               </div>
-              <div>
-                <span className="text-white font-black italic uppercase text-base tracking-tighter block">Temari Oficial</span>
-                <span className="text-white/30 text-[10px] font-black uppercase tracking-widest">Àmbits A, B i C</span>
-              </div>
+              <span className="text-emerald-400 font-black text-sm italic tracking-tighter">{percentatgeGlobal}%</span>
             </div>
-            <div className="text-right">
-              <span className="text-emerald-400 font-black text-3xl italic tracking-tighter">{percentatgeGlobal}%</span>
+            
+            <div className="w-full bg-white/5 h-2.5 rounded-full overflow-hidden border border-white/5">
+              <div 
+                style={{ width: `${percentatgeGlobal}%` }}
+                className="bg-gradient-to-r from-emerald-500 via-emerald-400 to-blue-500 h-full rounded-full"
+              />
             </div>
-          </div>
-          
-          <div className="w-full bg-white/5 h-4 rounded-full overflow-hidden border border-white/5 mb-8">
-            <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: `${percentatgeGlobal}%` }}
-              transition={{ duration: 1.5, ease: "easeOut" }}
-              className="bg-gradient-to-r from-emerald-500 to-blue-500 h-full rounded-full shadow-[0_0_20px_rgba(16,185,129,0.3)]"
-            />
-          </div>
 
-          <div className="flex flex-col gap-3 mb-8">
-            <div className="flex justify-between items-center px-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/30 italic">Àmbit A:</span>
-              <span className="text-xs font-black italic text-white uppercase"><span className="text-emerald-400">{puntsA.estudiats}</span>/{puntsA.totals} Punts</span>
-            </div>
-            <div className="flex justify-between items-center px-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/30 italic">Àmbit B:</span>
-              <span className="text-xs font-black italic text-white uppercase"><span className="text-emerald-400">{puntsB.estudiats}</span>/{puntsB.totals} Punts</span>
-            </div>
-            <div className="flex justify-between items-center px-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/30 italic">Àmbit C:</span>
-              <span className="text-xs font-black italic text-white uppercase"><span className="text-emerald-400">{puntsC.estudiats}</span>/{puntsC.totals} Punts</span>
+            <div className="flex justify-between items-center text-[9px] text-white/50 font-bold px-1 mt-0.5">
+              <span>Àmbit A: <b className="text-blue-300">{puntsA.estudiats}/{puntsA.totals}</b></span>
+              <span>Àmbit B: <b className="text-blue-300">{puntsB.estudiats}/{puntsB.totals}</b></span>
+              <span>Àmbit C: <b className="text-blue-300">{puntsC.estudiats}/{puntsC.totals}</b></span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <button className="py-5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-white/60 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 text-center">
-              Més informació
-            </button>
-            <button className="py-5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-2xl text-emerald-400 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 text-center">
-              Ajuda'm a millorar
-            </button>
-          </div>
-        </motion.div>
-
-        {/* BLOC 2: PROCÉS FÍSIC */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="w-full bg-[#001a33]/60 backdrop-blur-md rounded-[2.5rem] border border-white/10 p-8 shadow-2xl"
-        >
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-red-500/10 rounded-2xl border border-red-500/20 flex items-center justify-center">
-                <Target className="text-red-400" size={28} />
+          {/* Progrés 2: Procés Físic */}
+          <div className="flex flex-col gap-1.5 pb-3 border-b border-white/5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Target className="text-red-400 w-4 h-4 shrink-0" />
+                <span className="text-white font-black italic uppercase text-xs tracking-tight">Procés Físic (Navette i Circuit)</span>
               </div>
-              <div>
-                <span className="text-white font-black italic uppercase text-base tracking-tighter block">Procés Físic</span>
-                <span className="text-white/30 text-[10px] font-black uppercase tracking-widest">Circuit, Navette, Banca</span>
-              </div>
+              <span className="text-red-400 font-black text-sm italic tracking-tighter">66%</span>
             </div>
-            <div className="text-right">
-              <span className="text-blue-400 font-black text-3xl italic tracking-tighter">66%</span>
+            
+            <div className="w-full bg-white/5 h-2.5 rounded-full overflow-hidden border border-white/5">
+              <div 
+                style={{ width: '66%' }}
+                className="bg-gradient-to-r from-red-500 to-orange-500 h-full rounded-full"
+              />
             </div>
           </div>
-          
-          <div className="w-full bg-white/5 h-4 rounded-full overflow-hidden border border-white/5 mb-8">
-            <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: '66%' }}
-              transition={{ duration: 1.5, ease: "easeOut" }}
-              className="bg-gradient-to-r from-red-500 to-blue-500 h-full rounded-full shadow-[0_0_20px_rgba(59,130,246,0.3)]"
-            />
-          </div>
 
-          <button className="w-full py-5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-white/60 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95">
-            Més informació
-          </button>
-        </motion.div>
-
-        {/* BLOC 3: PROCÉS PSICOTÈCNIC */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="w-full bg-[#001a33]/60 backdrop-blur-md rounded-[2.5rem] border border-white/10 p-8 shadow-2xl"
-        >
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-amber-500/10 rounded-2xl border border-amber-500/20 flex items-center justify-center">
-                <Calendar className="text-amber-400" size={28} />
+          {/* Progrés 3: Procés Psicotècnic */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="text-amber-400 w-4 h-4 shrink-0" />
+                <span className="text-white font-black italic uppercase text-xs tracking-tight">Procés Psicotècnic</span>
               </div>
-              <div>
-                <span className="text-white font-black italic uppercase text-base tracking-tighter block">Procés Psicotècnic</span>
-                <span className="text-white/30 text-[10px] font-black uppercase tracking-widest">Raoament i Personalitat</span>
-              </div>
+              <span className="text-amber-400 font-black text-sm italic tracking-tighter">40%</span>
             </div>
-            <div className="text-right">
-              <span className="text-amber-400 font-black text-3xl italic tracking-tighter">40%</span>
+            
+            <div className="w-full bg-white/5 h-2.5 rounded-full overflow-hidden border border-white/5">
+              <div 
+                style={{ width: '40%' }}
+                className="bg-gradient-to-r from-amber-400 to-yellow-500 h-full rounded-full"
+              />
             </div>
           </div>
-          
-          <div className="w-full bg-white/5 h-4 rounded-full overflow-hidden border border-white/5 mb-8">
-            <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: '40%' }}
-              transition={{ duration: 1.5, ease: "easeOut" }}
-              className="bg-gradient-to-r from-amber-400 to-amber-700 h-full rounded-full shadow-[0_0_20px_rgba(251,191,36,0.3)]"
-            />
-          </div>
 
-          <button className="w-full py-5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-white/60 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95">
-            Més informació
-          </button>
         </motion.div>
 
       </main>

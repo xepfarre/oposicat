@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, Bell, X, Check, BellRing, Settings, ShieldAlert, KeyRound, Smartphone, Tablet, Trophy, Clock, ClipboardList, Dumbbell, Apple, Users, Flame, ChevronRight, Award, Medal, Star, Sparkles, MessageSquare, Send, MessageCircle, PlusCircle, Hash } from "lucide-react";
+import { ChevronLeft, Bell, X, Check, BellRing, Settings, ShieldAlert, KeyRound, Smartphone, Tablet, Trophy, Clock, ClipboardList, Dumbbell, Apple, Users, Flame, ChevronRight, Award, Medal, Star, Sparkles, MessageSquare, Send, MessageCircle, PlusCircle, Hash, User, Home } from "lucide-react";
 import { auth, db, obtenirMissatgeria } from "../../lib/firebase";
 import { collection, query, orderBy, limit, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { getToken } from "firebase/messaging";
@@ -35,6 +35,7 @@ export default function OposiMossosInici({
 
   // Explicació per a no-programadors: Estats de control per al xat associat al rànquing per fomentar la diversió, motivació i competició sana amb comentaris divertits de 5 mossos simulats.
   const [mostrarChat, setMostrarChat] = useState<boolean>(false);
+  const [mostrarPremis, setMostrarPremis] = useState<boolean>(false);
   const [nouMissatgeText, setNouMissatgeText] = useState<string>("");
   const [missatgesChat, setMissatgesChat] = useState<any[]>([
     { id: 1, nom: "Jordi Muñoz", text: "Ei! T'he superat a la prova de testos! He fet 14 exàmens avui! 💪🏻👮‍♂️", hora: "15:42", color: "text-blue-300 bg-blue-500/10 border-blue-500/20" },
@@ -91,7 +92,16 @@ export default function OposiMossosInici({
   const [mostrarCreacioForum, setMostrarCreacioForum] = useState<boolean>(false);
   const [nouMissatgeForumText, setNouMissatgeForumText] = useState<string>("");
 
-  // Explicació per a no-programadors: Els missatges pre-carregats amb xats de simulació súper sans de "més que opositors"
+  // Explicació per a no-programadors: Estat d'obertura del modal per a la personalització gamificada de l'avatar de l'opositor.
+  const [modalAvatarObert, setModalAvatarObert] = useState<boolean>(false);
+  const [avatarEstil, setAvatarEstil] = useState<string>(() => localStorage.getItem("avatar_estil") || "👮‍♂️"); // Cara base: Mosso / Mossa
+  const [avatarGorra, setAvatarGorra] = useState<string>(() => localStorage.getItem("avatar_gorra") || "🧢"); // Gorra de servei / Galea / Altres
+  const [avatarFons, setAvatarFons] = useState<string>(() => localStorage.getItem("avatar_fons") || "bg-gradient-to-br from-blue-900 to-slate-900"); // Color de fons de la tarja
+  const [avatarAccessori, setAvatarAccessori] = useState<string>(() => localStorage.getItem("avatar_accessori") || "📢"); // Megàfon / Xiulet / Cafè / Ulleres
+  const [avatarUniforme, setAvatarUniforme] = useState<string>(() => localStorage.getItem("avatar_uniforme") || "👔"); // Uniforme / Gala / Esports / Armilla
+  const [avatarFonsNom, setAvatarFonsNom] = useState<string>(() => localStorage.getItem("avatar_fons_nom") || "Blau OposiCAT");
+
+  // Escolta l'event natiu de descàrrega d'aplicacions PWA a Android/Chrome
   const [missatgesPorCanal, setMissatgesPorCanal] = useState<Record<string, any[]>>({
     "Xat general": [
       { id: 101, nom: "Gerard Font", text: "Hola mossos! Com porteu l'estudi? Es fa dura la recta final però valdrà la pena! 👮‍♀️✨", hora: "12:15" },
@@ -918,7 +928,7 @@ export default function OposiMossosInici({
   if (mostrarRankings) {
     return (
       <div 
-        className="fixed inset-0 w-full bg-[#001f3d] overflow-y-auto flex flex-col items-center px-6 pb-20 text-white"
+        className="fixed inset-0 w-full bg-[#001f3d] overflow-y-auto flex flex-col items-center px-6 pb-36 text-white"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {/* Capçalera dels Rankings */}
@@ -955,17 +965,95 @@ export default function OposiMossosInici({
               </p>
             </div>
 
-            {/* Explicació per a no-programadors: Botó de Xat opositor general mogut perquè surti dalt del tot del llistat de rànquings genèrics (sota el text explicatiu i abans del primer botó) */}
-            <div className="flex justify-center w-full my-2">
+            {/* Explicació per a no-programadors: Fila de dos botons en paral·lel d'igual mida i proporció perquè s'ajustin al disseny mòbil i estiguin a l'abast de l'estudiant */}
+            <div className="flex gap-2 justify-center w-full my-2">
               <button
-                onClick={() => setMostrarChat(!mostrarChat)}
-                className="w-auto px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-full flex items-center justify-center gap-2 transition-all text-indigo-300 font-bold text-[11px] uppercase tracking-wider select-none cursor-pointer active:scale-95 shadow-md shadow-indigo-950/40"
+                onClick={() => {
+                  setMostrarChat(!mostrarChat);
+                  setMostrarPremis(false); // Amaguem els premis per no tapar tota la pantalla si obre el xat
+                }}
+                className="flex-1 px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-full flex items-center justify-center gap-1.5 transition-all text-indigo-300 font-bold text-[11px] uppercase tracking-wider select-none cursor-pointer active:scale-95 shadow-md shadow-indigo-950/40"
               >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>Chat del ranking</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+                <span>Chat rànquing</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              </button>
+
+              <button
+                onClick={() => {
+                  setMostrarPremis(!mostrarPremis);
+                  setMostrarChat(false); // Amaguem el xat per no saturar la pantalla si obre els premis
+                }}
+                className={`flex-1 px-3 py-2 border rounded-full flex items-center justify-center gap-1.5 transition-all font-bold text-[11px] uppercase tracking-wider select-none cursor-pointer active:scale-95 shadow-md ${
+                  mostrarPremis 
+                    ? "bg-amber-500/40 border-amber-400 text-white shadow-amber-950/60" 
+                    : "bg-amber-600/20 hover:bg-amber-600/30 border-amber-500/30 text-amber-300 shadow-amber-950/40"
+                }`}
+              >
+                <Trophy className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                <span>Premis</span>
               </button>
             </div>
+
+            {/* INTERFÍCIE HISTÒRICA I DETALLADA DE PREMIS MENSUALS DESTACATS */}
+            {mostrarPremis && (
+              <div className="w-full bg-slate-900/90 border border-amber-500/30 rounded-[1.8rem] p-5 flex flex-col gap-4 mb-4 font-sans shadow-2xl backdrop-blur-md animate-fade-in text-left">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                    <Trophy className="w-4 h-4 text-amber-400 animate-bounce animate-pulse" />
+                    Premis i Recompenses d'OposiCAT
+                  </span>
+                  <button 
+                    onClick={() => setMostrarPremis(false)}
+                    className="text-xs font-black text-white/40 hover:text-white/80 transition-all uppercase tracking-widest text-[9px] bg-white/5 px-2.5 py-1 rounded-full cursor-pointer"
+                  >
+                    Amagar
+                  </button>
+                </div>
+
+                <p className="text-xs text-white/90 leading-relaxed font-semibold">
+                  Els premis mensuals podem variar en funció de les aportacions i obsequis que els nostres patrocinadors ofereixen a la millor comunitat d'opositors: la nostra.
+                </p>
+
+                {/* Podi de premis mensuals */}
+                <div className="flex flex-col gap-2.5 py-1">
+                  
+                  {/* 1r Classificat */}
+                  <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3">
+                    <span className="text-2xl select-none">🏆</span>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-300">1a posició rànquing</p>
+                      <p className="text-xs text-white font-extrabold">Val de descompte de 20 € a Prozis.</p>
+                    </div>
+                  </div>
+
+                  {/* 2n Classificat */}
+                  <div className="flex items-center gap-3 bg-slate-500/10 border border-slate-500/30 rounded-2xl p-3">
+                    <span className="text-2xl select-none font-sans font-black">🥈</span>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">2a posició rànquing</p>
+                      <p className="text-xs text-white font-extrabold">Descomptes per un valor de 15 € al supermercat Plusfresc.</p>
+                    </div>
+                  </div>
+
+                  {/* 3r Classificat */}
+                  <div className="flex items-center gap-3 bg-amber-800/10 border border-amber-800/30 rounded-2xl p-3">
+                    <span className="text-2xl select-none">🥉</span>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">3a posició rànquing</p>
+                      <p className="text-xs text-white font-extrabold">Val de descompte de 10 € a Decathlon.</p>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div className="border-t border-white/5 pt-2 font-sans">
+                  <p className="text-[10px] text-white/55 italic leading-relaxed font-medium">
+                    Els premis estan subjectes a disponibilitat i poden ser modificats o substituïts per altres de valor equivalent segons les col·laboracions vigents.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* INTERFÍCIE DEL XAT INTERACTIU AMB COMENTARIS DIVERTITS I INPUT ACTIU MOGUT AL TOP */}
             {mostrarChat && (
@@ -1044,7 +1132,7 @@ export default function OposiMossosInici({
                 { id: "exercici", títol: "Més exercici fet", icon: Dumbbell, desc: "Sessions d'exercici físic d'oposició realitzades", color: "from-purple-500/20 to-pink-500/10 border-purple-500/30 text-purple-200" },
                 { id: "dieta", títol: "El que més segueix la dieta", icon: Apple, desc: "Millors ràtios de compliment del menú nutricional", color: "from-rose-500/20 to-red-500/10 border-rose-500/30 text-rose-200" },
                 { id: "entrevistes", títol: "Més entrevistes fetes", icon: Users, desc: "Simulacres de prova personal completats", color: "from-cyan-500/20 to-sky-500/10 border-cyan-500/30 text-cyan-200" },
-                { id: "entrenaments", títol: "Més sessions d'entrenaments completades", icon: Flame, desc: "Més sessions d'entrenament físic completes", color: "from-orange-500/20 to-amber-500/10 border-orange-500/30 text-orange-200" }
+                { id: "entrenaments", títol: "Més sessions d'entrenaments completades", icon: Flame, desc: "Més sessions d'entrenament físic completes", color: "from-orange-500/20 to-amber-500/10 border-orange-500/30 text-orange-200 text-left" }
               ].map((b) => {
                 const Icon = b.icon;
                 return (
@@ -1088,13 +1176,107 @@ export default function OposiMossosInici({
             {renderDetallRanking(rankingSeleccionatId)}
           </main>
         )}
+
+        {/* Explicació per a no-programadors: Barra flotant inferior permanent (estil iOS/Instagram/Android) de 4 botons adaptada dinàmicament a la mida física i la barra de gestos de qualsevol telèfon, incloent l'iPhone 17 Pro. S'ajusta automàticament mitjançant 'env(safe-area-inset-bottom)' per no tapar els botons de baix. */}
+        <div 
+          className="fixed bottom-0 left-0 right-0 z-40 bg-[#001326]/95 backdrop-blur-md border-t border-white/10 px-4 pt-3 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] flex items-center justify-center transition-all duration-300"
+          style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 12px))" }}
+        >
+          <div className="w-full max-w-md grid grid-cols-4 gap-2">
+            
+            {/* Botó 1: Casa (Tornar a l'inici / Principal de l'APP) */}
+            <button 
+              onClick={() => {
+                setMostrarRankings(false);
+                setModalForumObert(false);
+                setModalNotificacionsObert(false);
+                setModalAvatarObert(false);
+              }}
+              className="bg-white/5 hover:bg-white/15 border border-white/10 rounded-2xl py-2.5 flex flex-col items-center justify-center transition-all active:scale-95 group cursor-pointer"
+            >
+              <Home className="w-4 h-4 text-slate-300 group-hover:text-white group-hover:scale-110 transition-all" />
+              <span className="text-white/80 font-black italic text-[8px] uppercase tracking-tighter text-center mt-1">
+                Inici
+              </span>
+            </button>
+
+            {/* Botó 2: Fòrum de dubtes i debat amb altres aspirants */}
+            <button 
+              onClick={() => {
+                setMostrarRankings(false);
+                setModalForumObert(true);
+                setModalNotificacionsObert(false);
+                setModalAvatarObert(false);
+              }}
+              className="bg-gradient-to-b from-pink-500/10 to-purple-500/10 hover:from-pink-500/20 hover:to-purple-500/20 border border-pink-500/20 hover:border-pink-500/50 rounded-2xl py-2.5 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer"
+            >
+              <div className="relative">
+                <MessageSquare className="w-4 h-4 text-pink-400 group-hover:scale-110 transition-transform" />
+                {/* Indicador de notificació polsant de participació */}
+                <span className="absolute -top-0.5 -right-0.5 flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-pink-500"></span>
+                </span>
+              </div>
+              <span className="text-white font-black italic text-[8px] uppercase tracking-tighter text-center mt-1">
+                Fòrum 💬
+              </span>
+            </button>
+
+            {/* Botó 3: Notificacions actualitzades des del servidor d'OposiCAT */}
+            <button 
+              onClick={() => {
+                setMostrarRankings(false);
+                setModalForumObert(false);
+                setModalNotificacionsObert(true);
+                setModalAvatarObert(false);
+              }}
+              className="bg-gradient-to-b from-[#FFDF00]/5 to-yellow-500/5 hover:from-[#FFDF00]/15 hover:to-yellow-500/15 border border-yellow-500/20 hover:border-yellow-400/50 rounded-2xl py-2.5 flex flex-col items-center justify-center transition-all active:scale-[0.93] group relative cursor-pointer"
+            >
+              <div className="relative">
+                <Bell className={`w-4 h-4 transition-colors ${numNotificacions > 0 ? "text-[#FFDF00] animate-bounce" : "text-white/60 group-hover:text-white"}`} />
+                {numNotificacions > 0 && (
+                  <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-red-600 border border-white/20 rounded-full text-[8.5px] font-black text-white flex items-center justify-center shadow-[0_0_8px_rgba(220,38,38,0.6)] animate-pulse">
+                    {numNotificacions}
+                  </span>
+                )}
+              </div>
+              <span className="text-white font-black italic text-[8px] uppercase tracking-tighter text-center mt-1">
+                Notícies
+              </span>
+            </button>
+
+            {/* Botó 4: Personalitzar l'Avatar i perfil */}
+            <button 
+              onClick={() => {
+                setMostrarRankings(false);
+                setModalForumObert(false);
+                setModalNotificacionsObert(false);
+                setModalAvatarObert(true);
+              }}
+              className="bg-gradient-to-b from-[#2563eb]/10 to-[#3b82f6]/10 hover:from-[#2563eb]/20 hover:to-[#3b82f6]/20 border border-[#2563eb]/20 hover:border-blue-400/50 rounded-2xl py-2.5 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer"
+            >
+              <div className="relative">
+                <span className="text-xs filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] select-none">
+                  {avatarEstil}
+                </span>
+                {/* Centelleig al perfil */}
+                <span className="absolute -top-1.5 -right-1.5 text-[6px] animate-pulse">⭐</span>
+              </div>
+              <span className="text-white font-black italic text-[8px] uppercase tracking-tighter text-center mt-1">
+                Perfil 👮‍♂️
+              </span>
+            </button>
+
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div 
-      className="fixed inset-0 w-full bg-[#00274d] overflow-y-auto flex flex-col items-center px-6 pb-20"
+      className="fixed inset-0 w-full bg-[#00274d] overflow-y-auto flex flex-col items-center px-6 pb-36"
       style={{ WebkitOverflowScrolling: "touch" }}
     >
       
@@ -1179,51 +1361,6 @@ export default function OposiMossosInici({
           <div className="flex-1 h-px bg-white/10" />
         </div>
 
-        {/* FILA INFERIOR: Botons auxiliars de la App del Canal d'Opositor */}
-        <div className="grid grid-cols-3 gap-2 mt-1 md:mt-4">
-          
-          {/* Botó Patrocinadors */}
-          <button className="bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl py-4 flex flex-col items-center justify-center shadow-lg transition-all active:scale-90 group">
-            <span className="text-white font-black italic text-[8px] md:text-[10px] uppercase tracking-tighter text-center px-1">
-              Patrocinadors
-            </span>
-          </button>
-
-          {/* Explicació per a no-programadors: Botó del Fòrum que obre un espai interactiu i de debat, il·luminat amb un gradient rosa suau i ombra brillant/pulsant polida per convidar a fer-hi clic. */}
-          <button 
-            id="boto-instalacio-pwa"
-            onClick={() => setModalForumObert(true)}
-            className="bg-gradient-to-b from-pink-500/10 to-purple-500/10 hover:from-pink-500/20 hover:to-purple-500/20 border border-pink-500/30 hover:border-pink-500/50 rounded-xl py-4 flex flex-col items-center justify-center shadow-[0_0_12px_rgba(236,72,153,0.15)] hover:shadow-[0_0_20px_rgba(236,72,153,0.35)] transition-all active:scale-95 group relative cursor-pointer"
-          >
-            <MessageSquare className="w-4 h-4 mb-1 text-pink-400 group-hover:scale-110 transition-transform" />
-            <span className="text-white font-black italic text-[8px] md:text-[10px] uppercase tracking-tighter text-center px-1">
-              Fòrum 💬
-            </span>
-            {/* Petit indicador polsant que brilla de forma subtil per demanar participació */}
-            <span className="absolute top-1.5 right-1.5 flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-pink-500"></span>
-            </span>
-          </button>
-
-          {/* Explicació per a no-programadors: Botó de notificacions completament operatiu amb comptador real de missatges rebuts per l'equip d'OposiCAT en forma de campana amb un 'badge' o globus vermell polsat amb animació. */}
-          <button 
-            id="boto-notificacions-mobil"
-            onClick={() => setModalNotificacionsObert(true)}
-            className="bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl py-4 flex flex-col items-center justify-center shadow-lg transition-all active:scale-90 group relative"
-          >
-            <Bell className={`w-4 h-4 mb-1 transition-colors ${numNotificacions > 0 ? "text-amber-400 animate-bounce" : "text-white/60 group-hover:text-white"}`} />
-            <span className="text-white font-black italic text-[8px] md:text-[10px] uppercase tracking-tighter text-center px-1">
-              Notificacions
-            </span>
-            {numNotificacions > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 border border-white/20 rounded-full text-[8px] font-black text-white flex items-center justify-center shadow-[0_0_8px_rgba(220,38,38,0.6)] animate-pulse">
-                {numNotificacions}
-              </span>
-            )}
-          </button>
-        </div>
-
         {/* BOTÓ PER TORNAR AL SEL·LECTOR */}
         <button 
           onClick={onTornar}
@@ -1242,6 +1379,104 @@ export default function OposiMossosInici({
           Preparació acadèmica per a oposicions de l'ISPC
         </p>
       </footer>
+
+      {/* Explicació per a no-programadors: Barra flotant inferior permanent (estil iOS/Instagram/Android) de 4 botons adaptada dinàmicament a la mida física i la barra de gestos de qualsevol telèfon, incloent l'iPhone 17 Pro. S'ajusta automàticament mitjançant 'env(safe-area-inset-bottom)' per no tapar els botons de baix. */}
+      <div 
+        className="fixed bottom-0 left-0 right-0 z-40 bg-[#001326]/95 backdrop-blur-md border-t border-white/10 px-4 pt-3 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] flex items-center justify-center transition-all duration-300"
+        style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 12px))" }}
+      >
+        <div className="w-full max-w-md grid grid-cols-4 gap-2">
+          
+          {/* Botó 1: Casa (Tornar a l'inici / Principal de l'APP) */}
+          <button 
+            onClick={() => {
+              setMostrarRankings(false);
+              setModalForumObert(false);
+              setModalNotificacionsObert(false);
+              setModalAvatarObert(false);
+              // Si ja no tenim cap vista oberta i ja estem a la home, cridem onTornar() per retornar al selector
+              if (!mostrarRankings && !modalForumObert && !modalNotificacionsObert && !modalAvatarObert) {
+                onTornar();
+              }
+            }}
+            className="bg-white/5 hover:bg-white/15 border border-white/10 rounded-2xl py-2.5 flex flex-col items-center justify-center transition-all active:scale-95 group cursor-pointer"
+          >
+            <Home className="w-4 h-4 text-slate-300 group-hover:text-white group-hover:scale-110 transition-all" />
+            <span className="text-white/80 font-black italic text-[8px] uppercase tracking-tighter text-center mt-1">
+              Inici
+            </span>
+          </button>
+
+          {/* Botó 2: Fòrum de dubtes i debat amb altres aspirants */}
+          <button 
+            onClick={() => {
+              setMostrarRankings(false);
+              setModalForumObert(true);
+              setModalNotificacionsObert(false);
+              setModalAvatarObert(false);
+            }}
+            className="bg-gradient-to-b from-pink-500/10 to-purple-500/10 hover:from-pink-500/20 hover:to-purple-500/20 border border-pink-500/20 hover:border-pink-500/50 rounded-2xl py-2.5 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer"
+          >
+            <div className="relative">
+              <MessageSquare className="w-4 h-4 text-pink-400 group-hover:scale-110 transition-transform" />
+              {/* Indicador de notificació polsant de participació */}
+              <span className="absolute -top-0.5 -right-0.5 flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-pink-500"></span>
+              </span>
+            </div>
+            <span className="text-white font-black italic text-[8px] uppercase tracking-tighter text-center mt-1">
+              Fòrum 💬
+            </span>
+          </button>
+
+          {/* Botó 3: Notificacions actualitzades des del servidor d'OposiCAT */}
+          <button 
+            onClick={() => {
+              setMostrarRankings(false);
+              setModalForumObert(false);
+              setModalNotificacionsObert(true);
+              setModalAvatarObert(false);
+            }}
+            className="bg-gradient-to-b from-[#FFDF00]/5 to-yellow-500/5 hover:from-[#FFDF00]/15 hover:to-yellow-500/15 border border-yellow-500/20 hover:border-yellow-400/50 rounded-2xl py-2.5 flex flex-col items-center justify-center transition-all active:scale-[0.93] group relative cursor-pointer"
+          >
+            <div className="relative">
+              <Bell className={`w-4 h-4 transition-colors ${numNotificacions > 0 ? "text-[#FFDF00] animate-bounce" : "text-white/60 group-hover:text-white"}`} />
+              {numNotificacions > 0 && (
+                <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-red-600 border border-white/20 rounded-full text-[8.5px] font-black text-white flex items-center justify-center shadow-[0_0_8px_rgba(220,38,38,0.6)] animate-pulse">
+                  {numNotificacions}
+                </span>
+              )}
+            </div>
+            <span className="text-white font-black italic text-[8px] uppercase tracking-tighter text-center mt-1">
+              Notícies
+            </span>
+          </button>
+
+          {/* Botó 4: Personalitzar l'Avatar i perfil */}
+          <button 
+            onClick={() => {
+              setMostrarRankings(false);
+              setModalForumObert(false);
+              setModalNotificacionsObert(false);
+              setModalAvatarObert(true);
+            }}
+            className="bg-gradient-to-b from-[#2563eb]/10 to-[#3b82f6]/10 hover:from-[#2563eb]/20 hover:to-[#3b82f6]/20 border border-[#2563eb]/20 hover:border-blue-400/50 rounded-2xl py-2.5 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer"
+          >
+            <div className="relative">
+              <span className="text-xs filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] select-none">
+                {avatarEstil}
+              </span>
+              {/* Centelleig al perfil */}
+              <span className="absolute -top-1.5 -right-1.5 text-[6px] animate-pulse">⭐</span>
+            </div>
+            <span className="text-white font-black italic text-[8px] uppercase tracking-tighter text-center mt-1">
+              Perfil 👮‍♂️
+            </span>
+          </button>
+
+        </div>
+      </div>
 
       {/* DIÀLEG FLOTANT MODAL DE NOTIFICACIONS OFICIALS (ESTIL SMARTPHONE DIGITAL) */}
       {modalNotificacionsObert && (
@@ -2031,6 +2266,279 @@ export default function OposiMossosInici({
                 className="flex-2 bg-pink-600 hover:bg-pink-500 text-white text-[10px] font-black uppercase py-2.5 px-4 rounded-xl transition-all cursor-pointer shadow-lg tracking-tight w-full"
               >
                 Tancar fòrum 💬
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE L'AVATAR DE MOSSO/A GAMIFICAT (PERSONALITZACIÓ I DESBOCUEIGS) */}
+      {modalAvatarObert && (
+        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-end sm:items-center justify-center px-4 py-6 transition-all duration-300">
+          <div className="bg-[#0b1e36] border border-blue-500/30 w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+            
+            {/* Capçalera del Personalitzador */}
+            <div className="px-5 py-4 border-b border-blue-500/20 flex items-center justify-between shrink-0 bg-black/30">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
+                <h3 className="text-white font-black italic text-sm uppercase tracking-wider">
+                  Configura el teu Avatar 👮‍♂️
+                </h3>
+                <span className="bg-blue-500/20 text-blue-400 text-[9px] px-2 py-0.5 rounded-full font-bold">
+                  Gamificació
+                </span>
+              </div>
+              <button 
+                onClick={() => setModalAvatarObert(false)}
+                className="text-white/60 hover:text-white p-1 hover:bg-white/10 rounded-full transition-all cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Area de contingut scrollable */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-5" style={{ WebkitOverflowScrolling: "touch" }}>
+              
+              {/* VISTA PRÈVIA DE L'AVATAR (Targeta identificativa oficial) */}
+              <div className="flex flex-col items-center">
+                <div className={`w-36 h-36 rounded-full ${avatarFons} relative flex items-center justify-center shadow-[0_0_25px_rgba(59,130,246,0.4)] border-4 border-slate-700/50 transition-all duration-300 overflow-hidden`}>
+                  
+                  {/* Fons interactiu decoratiu d'estrelles d'èxit */}
+                  <span className="absolute top-2 left-3 text-xs opacity-40 select-none">⭐</span>
+                  <span className="absolute bottom-3 right-4 text-xs opacity-30 select-none">⭐</span>
+                  <div className="absolute inset-0 bg-radial-gradient from-transparent to-black/30 pointer-events-none" />
+
+                  {/* Capes dinàmiques de l'Avatar amb Emojis alineats de manera física i realista tipus Lego */}
+                  <div className="relative flex items-center justify-center h-full w-full select-none">
+                    
+                    {/* Capa 1: Cap de l'Estudiant (Base de l'avatar) */}
+                    <span className="text-[5rem] leading-none z-10 transition-transform duration-300 transform scale-110 mt-1">
+                      {avatarEstil}
+                    </span>
+
+                    {/* Capa 2: Gorra o Casquet seleccionat superposat a dalt del cap exactament a sobre del front */}
+                    {avatarGorra !== "❌" && (
+                      <span className="absolute top-2 text-[3rem] leading-none z-30 transition-all duration-300 transform -translate-y-2 select-none filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] animate-pulse">
+                        {avatarGorra}
+                      </span>
+                    )}
+
+                    {/* Capa 3: Uniforme d'opositor a sota tapant la base de la cara per a una transició suau */}
+                    <span className="absolute bottom-1.5 text-[2.8rem] leading-none z-20 transition-all duration-300 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                      {avatarUniforme}
+                    </span>
+
+                    {/* Capa 4: Accessori de servei / recolzament d'estudi a la cantonada inferior dreta */}
+                    {avatarAccessori !== "❌" && (
+                      <span className="absolute bottom-3 right-3 text-[2.2rem] leading-none z-40 transition-all duration-300 animate-bounce text-right filter drop-shadow-[0_4px_5px_rgba(0,0,0,0.5)]">
+                        {avatarAccessori}
+                      </span>
+                    )}
+
+                  </div>
+                </div>
+
+                {/* Subtítol de la targeta */}
+                <p className="text-[10px] text-white/50 font-bold uppercase tracking-widest mt-3 bg-white/5 px-3 py-1 rounded-full border border-white/5">
+                  Fons: <span className="text-blue-300">{avatarFonsNom}</span>
+                </p>
+              </div>
+
+              {/* OPCIONS DE PERSONALITZACIÓ */}
+              <div className="space-y-4 font-sans text-left">
+                
+                {/* 1. SELECCIÓ BASE (MOSSO O MOSSA) O CARA SENCERA NETE */}
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black uppercase text-white/40 tracking-widest block">1. Selecciona el teu Personatge Base (Sense dobles gorres) :</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { emoji: "👨", nom: "Opositor Campió" },
+                      { emoji: "👩", nom: "Opositora Campiona" },
+                      { emoji: "🧑", nom: "Mosso Neutral" },
+                      { emoji: "😎", nom: "Detectiu d'Incògnit" }
+                    ].map((item) => (
+                      <button
+                        key={item.emoji}
+                        onClick={() => {
+                          setAvatarEstil(item.emoji);
+                          localStorage.setItem("avatar_estil", item.emoji);
+                          // Providenciem un guardat a Firestore opcionalment si està autenticat
+                          const user = auth.currentUser;
+                          if (user) {
+                            setDoc(doc(db, "usuari_personalitzacions", user.uid), {
+                              avatarEstil: item.emoji
+                            }, { merge: true }).catch(() => {});
+                          }
+                        }}
+                        className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all text-xs cursor-pointer active:scale-95 ${
+                          avatarEstil === item.emoji 
+                            ? "bg-blue-600/30 border-blue-400 text-white font-extrabold" 
+                            : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+                        }`}
+                      >
+                        <span className="text-xl">{item.emoji}</span>
+                        <span className="truncate">{item.nom}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. GORRES I DETALLS DE CAP */}
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black uppercase text-white/40 tracking-widest block">2. Gorra / Casquet de servei (Superposat dalt):</span>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { emoji: "🧢", nom: "Gorra oficial" },
+                      { emoji: "💂‍♀️", nom: "Boina ARRO" },
+                      { emoji: "⛑️", nom: "Casc Brimo" },
+                      { emoji: "❌", nom: "Sense gorra" }
+                    ].map((item) => (
+                      <button
+                        key={item.emoji}
+                        onClick={() => {
+                          setAvatarGorra(item.emoji);
+                          localStorage.setItem("avatar_gorra", item.emoji);
+                          const user = auth.currentUser;
+                          if (user) {
+                            setDoc(doc(db, "usuari_personalitzacions", user.uid), {
+                              avatarGorra: item.emoji
+                            }, { merge: true }).catch(() => {});
+                          }
+                        }}
+                        className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all text-[10px] cursor-pointer active:scale-95 ${
+                          avatarGorra === item.emoji 
+                            ? "bg-blue-600/30 border-blue-400 text-white font-black" 
+                            : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+                        }`}
+                      >
+                        <span className="text-xl">{item.emoji}</span>
+                        <span className="truncate font-medium text-[8px]">{item.nom}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3. UNIFORME DE COMPROMÍS */}
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black uppercase text-white/40 tracking-widest block">3. Uniformitat Oficial :</span>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { emoji: "👔", nom: "Servei actiu" },
+                      { emoji: "🧥", nom: "Gala policial" },
+                      { emoji: "🦺", nom: "Seguretat" },
+                      { emoji: "🎽", nom: "Esport física" }
+                    ].map((item) => (
+                      <button
+                        key={item.emoji}
+                        onClick={() => {
+                          setAvatarUniforme(item.emoji);
+                          localStorage.setItem("avatar_uniforme", item.emoji);
+                          const user = auth.currentUser;
+                          if (user) {
+                            setDoc(doc(db, "usuari_personalitzacions", user.uid), {
+                              avatarUniforme: item.emoji
+                            }, { merge: true }).catch(() => {});
+                          }
+                        }}
+                        className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all text-[10px] cursor-pointer active:scale-95 ${
+                          avatarUniforme === item.emoji 
+                            ? "bg-blue-600/30 border-blue-400 text-white font-black" 
+                            : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+                        }`}
+                      >
+                        <span className="text-xl">{item.emoji}</span>
+                        <span className="truncate font-medium text-[8px]">{item.nom}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 4. ACCESSORI DIVERTIT */}
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black uppercase text-white/40 tracking-widest block">4. Accessori d'Estudiant o Patrulla :</span>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {[
+                      { emoji: "📢", nom: "Megàfon" },
+                      { emoji: "🍩", nom: "Dònut" },
+                      { emoji: "☕", nom: "Cafè" },
+                      { emoji: "🕶️", nom: "Ulleres" },
+                      { emoji: "❌", nom: "Cap" }
+                    ].map((item) => (
+                      <button
+                        key={item.emoji}
+                        onClick={() => {
+                          setAvatarAccessori(item.emoji);
+                          localStorage.setItem("avatar_accessori", item.emoji);
+                          const user = auth.currentUser;
+                          if (user) {
+                            setDoc(doc(db, "usuari_personalitzacions", user.uid), {
+                              avatarAccessori: item.emoji
+                            }, { merge: true }).catch(() => {});
+                          }
+                        }}
+                        className={`p-1.5 rounded-lg border flex flex-col items-center justify-center gap-1 transition-all text-[8px] cursor-pointer active:scale-95 ${
+                          avatarAccessori === item.emoji 
+                            ? "bg-blue-600/30 border-blue-400 text-white font-black" 
+                            : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
+                        }`}
+                      >
+                        <span className="text-lg">{item.emoji}</span>
+                        <span className="truncate max-w-[45px] text-[7px]">{item.nom}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 5. FONTS DE PROTECCIÓ (AMBIENTS) */}
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black uppercase text-white/40 tracking-widest block">5. Districte de Destí (Fons de la targeta) :</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { bg: "bg-gradient-to-br from-blue-950 via-slate-900 to-indigo-950", nom: "Blau OposiCAT", id: "oposicat" },
+                      { bg: "bg-gradient-to-br from-slate-800 to-slate-900", nom: "Comissaria Local", id: "comissaria" },
+                      { bg: "bg-gradient-to-br from-red-950 to-[#220701]", nom: "Pista de Navette", id: "navette" },
+                      { bg: "bg-gradient-to-br from-[#0c1020] via-blue-950 to-emerald-950", nom: "Patrulla Urbana", id: "urbana" }
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setAvatarFons(item.bg);
+                          setAvatarFonsNom(item.nom);
+                          localStorage.setItem("avatar_fons", item.bg);
+                          localStorage.setItem("avatar_fons_nom", item.nom);
+                          const user = auth.currentUser;
+                          if (user) {
+                            setDoc(doc(db, "usuari_personalitzacions", user.uid), {
+                              avatarFons: item.bg,
+                              avatarFonsNom: item.nom
+                            }, { merge: true }).catch(() => {});
+                          }
+                        }}
+                        className={`p-2.5 rounded-xl border text-left flex items-center gap-2 transition-all text-xs cursor-pointer active:scale-95 ${
+                          avatarFons === item.bg 
+                            ? "bg-blue-600/30 border-blue-400 text-white font-extrabold" 
+                            : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+                        }`}
+                      >
+                        <span className={`w-3.5 h-3.5 rounded-full ${item.bg} border border-white/20 shrink-0`} />
+                        <span className="truncate">{item.nom}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* Acció footer de tancament i celebració del canvi */}
+            <div className="px-5 py-4 border-t border-white/10 bg-black/35 flex">
+              <button
+                onClick={() => setModalAvatarObert(false)}
+                className="w-full bg-[#b3f202] hover:bg-[#a1d902] text-slate-950 text-[10px] font-black uppercase py-3 px-4 rounded-xl transition-all cursor-pointer shadow-lg tracking-tight flex items-center justify-center gap-1.5"
+              >
+                Guarda el teu estil de Mosso 👮‍♂️💼
               </button>
             </div>
 
