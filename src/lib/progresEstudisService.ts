@@ -238,6 +238,15 @@ export async function carregarProgresEstudis(userId: string) {
     }
   };
 
+  // Comentari planer per a no-programadors:
+  // Abans de demanar les dades dels subratllats i de les notes a Firestore (base de dades de Google),
+  // ens hem d'assegurar d'estar 100% connectats i loguejats. Si iniciem la consulta abans de tenir la sessió
+  // apuntada a Firebase, el servidor ens farà fora donant un error de "Missing or insufficient permissions".
+  if (!auth.currentUser || auth.currentUser.uid !== userId) {
+    console.warn(`[Firestore càrrega] Avís: S'ha evitat l'accés a dades perquè la sessió d'usuari encara no està activa al motor de Firebase (UserId demanat: ${userId}, actual: ${auth.currentUser?.uid || 'cap'}). Retornem l'esquelet inicial.`);
+    return r;
+  }
+
   try {
     console.log(`[Firestore càrrega] Començant de manera segura lectura global dels progressos de l'estudiant: ${userId}`);
 
