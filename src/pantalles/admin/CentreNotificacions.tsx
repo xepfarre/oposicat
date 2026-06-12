@@ -143,6 +143,11 @@ export default function CentreNotificacions({ darkMode }: NotificationProps) {
   // Estat del quadre de confirmació d'estàs segur
   const [mostraConfirmaModal, setMostraConfirmaModal] = useState(false);
   
+  // Explicació per a no-programadors: Aquest estat ("enviant") serveix com un "semàfor" de seguretat.
+  // Quan l'administrador prem el botó d'enviar, es posa en "cert" per bloquejar qualsevol clic addicional.
+  // Això evita que si algun botó es prem dues vegades o s'impacienta mentre es fa la connexió, es dupliquin de cop les notificacions.
+  const [enviant, setEnviant] = useState(false);
+  
   // Estat de notificació d'èxit temporal (banner verd superior)
   const [missatgeExit, setMissatgeExit] = useState<string | null>(null);
   // Estat de notificació d'error temporal (banner vermell superior)
@@ -270,6 +275,11 @@ export default function CentreNotificacions({ darkMode }: NotificationProps) {
 
   // Funció d'execució definitiva quan l'usuari diu "Sí, n'estic segur"
   const confirmarIExecutarAccio = async () => {
+    // Explicació per a no-programadors: Si la notificació ja s'està processant o enviant,
+    // aturem de forma immediata l'execució per protegir el sistema i no crear brossa duplicada.
+    if (enviant) return;
+    setEnviant(true);
+
     // Netegem qualsevol error o missatge previ d'intents de dades anteriors
     setMissatgeError(null);
     setMissatgeExit(null);
@@ -278,6 +288,7 @@ export default function CentreNotificacions({ darkMode }: NotificationProps) {
     if (accioFinal === "PROGRAMAR" && (!dataProgramacio || !horaProgramacio)) {
       alert("Atenció: si tries 'Programar' has d'omplir el dia i l'hora de llançament futur.");
       setMostraConfirmaModal(false);
+      setEnviant(false);
       return;
     }
 
@@ -306,6 +317,9 @@ export default function CentreNotificacions({ darkMode }: NotificationProps) {
         setDataProgramacio("");
         setHoraProgramacio("");
         
+        // Explicació per a no-programadors: Alliberem el semàfor de seguretat un cop acabada la feina
+        setEnviant(false);
+
         setTimeout(() => {
           setMissatgeExit(null);
           setPestanyaProgramar("llista");
@@ -370,6 +384,9 @@ export default function CentreNotificacions({ darkMode }: NotificationProps) {
       setCos("");
       setPasActual(1);
       
+      // Explicació per a no-programadors: Alliberem el semàfor abans de reencaminar l'escriptori administratiu
+      setEnviant(false);
+
       // Tanquem el banner verd automàticament als 5 segons
       setTimeout(() => {
         setMissatgeExit(null);
@@ -385,6 +402,7 @@ export default function CentreNotificacions({ darkMode }: NotificationProps) {
 
     } catch (error) {
       setMostraConfirmaModal(false);
+      setEnviant(false);
       handleFirestoreError(error, editantAlertaId ? OperationType.UPDATE : OperationType.CREATE, "notificacions", setMissatgeError);
     }
   };
@@ -1573,11 +1591,16 @@ export default function CentreNotificacions({ darkMode }: NotificationProps) {
                 </p>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/5" id="botons_modal_confirm">
+               <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/5" id="botons_modal_confirm">
                 <button
                   type="button"
-                  onClick={() => setMostraConfirmaModal(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-800 text-xs text-slate-400 font-bold hover:text-white"
+                  onClick={() => !enviant && setMostraConfirmaModal(false)}
+                  disabled={enviant}
+                  className={`px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-bold transition-all ${
+                    enviant 
+                      ? "text-slate-550 opacity-50 cursor-not-allowed" 
+                      : "hover:bg-slate-900 text-slate-400 hover:text-white cursor-pointer"
+                  }`}
                   id="boto_no_modal"
                 >
                   No, cancel·lar
@@ -1585,10 +1608,22 @@ export default function CentreNotificacions({ darkMode }: NotificationProps) {
                 <button
                   type="button"
                   onClick={confirmarIExecutarAccio}
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs text-white font-black uppercase tracking-wider"
+                  disabled={enviant}
+                  className={`px-5 py-2.5 rounded-xl text-xs text-white font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+                    enviant 
+                      ? "bg-blue-800 opacity-60 cursor-not-allowed" 
+                      : "bg-blue-600 hover:bg-blue-700 active:scale-95 cursor-pointer"
+                  }`}
                   id="boto_si_modal_moure"
                 >
-                  Sí, n'estic segur
+                  {enviant ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Processant...
+                    </>
+                  ) : (
+                    "Sí, n'estic segur"
+                  )}
                 </button>
               </div>
             </motion.div>

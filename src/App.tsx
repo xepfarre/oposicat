@@ -312,6 +312,8 @@ export default function App() {
     },
     // Nou magatzem per als textos subratllats (HTML)
     contingutPersonalitzat: {} as Record<string, string>,
+    // Nou magatzem per a resums o notes propis de l'usuari sincronitzats
+    notesEstudiant: {} as Record<string, string>,
     // Progrés específic pel Temari d'Oposimossos (Resums)
     oposimossos: {
       A: Array(7).fill(false),
@@ -331,6 +333,47 @@ export default function App() {
     }
   });
 
+  // Explicació per a no-programadors:
+  // Hook de Sincronització global amb Firestore.
+  // Quan un usuari inicia sessió o es detecta un canvi d'usuari:
+  // - Si no hi ha sessió (null), deixem el progrés buit.
+  // - Si hi ha sessió, descarreguem tot el seu progrés, els subratllats i les seves notes de resum d'estudiant.
+  useEffect(() => {
+    if (!user) {
+      setProgres({
+        A: Array(7).fill(false),
+        B: Array(8).fill(false),
+        C: Array(5).fill(false),
+        detall: {
+          A: { 0: Array(9).fill(false), 1: Array(8).fill(false), 2: Array(5).fill(false), 3: Array(4).fill(false), 4: Array(6).fill(false), 5: Array(5).fill(false), 6: Array(5).fill(false) },
+          B: { 0: Array(5).fill(false), 1: Array(5).fill(false), 2: Array(6).fill(false), 3: Array(8).fill(false), 4: Array(4).fill(false), 5: Array(4).fill(false), 6: Array(7).fill(false), 7: Array(3).fill(false) },
+          C: { 0: Array(2).fill(false), 1: Array(8).fill(false), 2: Array(5).fill(false), 3: Array(3).fill(false), 4: Array(3).fill(false) }
+        },
+        contingutPersonalitzat: {},
+        notesEstudiant: {},
+        oposimossos: {
+          A: Array(7).fill(false),
+          B: Array(8).fill(false),
+          C: Array(5).fill(false),
+          detall: {
+            A: { 0: Array(9).fill(false), 1: Array(8).fill(false), 2: Array(5).fill(false), 3: Array(4).fill(false), 4: Array(6).fill(false), 5: Array(5).fill(false), 6: Array(5).fill(false) },
+            B: { 0: Array(5).fill(false), 1: Array(5).fill(false), 2: Array(6).fill(false), 3: Array(8).fill(false), 4: Array(4).fill(false), 5: Array(4).fill(false), 6: Array(7).fill(false), 7: Array(3).fill(false) },
+            C: { 0: Array(2).fill(false), 1: Array(8).fill(false), 2: Array(5).fill(false), 3: Array(3).fill(false), 4: Array(3).fill(false) }
+          }
+        }
+      });
+      return;
+    }
+
+    import('./lib/progresEstudisService').then(({ carregarProgresEstudis }) => {
+      carregarProgresEstudis(user.uid).then((dadesFirestore) => {
+        if (dadesFirestore) {
+          setProgres(dadesFirestore);
+        }
+      });
+    });
+  }, [user]);
+
   // Funció per guardar el contingut HTML personalitzat d'un subtema
   const guardarContingutPersonalitzat = (ambit: string, temaIdx: number, subtemaIdx: number, html: string) => {
     const clau = `${ambit}-${temaIdx}-${subtemaIdx}`;
@@ -341,14 +384,47 @@ export default function App() {
         [clau]: html
       }
     }));
+
+    if (user) {
+      import('./lib/progresEstudisService').then(({ desarSubratllat }) => {
+        desarSubratllat(user.uid, ambit, temaIdx, subtemaIdx, html);
+      });
+    }
+  };
+
+  // Funció per guardar les anotacions d'estudi personals redactades per l'estudiant
+  const guardarNotesEstudiant = (ambit: 'A' | 'B' | 'C', temaIdx: number, subtemaIdx: number, notes: string) => {
+    const clau = `${ambit}-${temaIdx}-${subtemaIdx}`;
+    setProgres(prev => ({
+      ...prev,
+      notesEstudiant: {
+        ...prev.notesEstudiant,
+        [clau]: notes
+      }
+    }));
+
+    if (user) {
+      import('./lib/progresEstudisService').then(({ desarNotesEstudiant }) => {
+        desarNotesEstudiant(user.uid, ambit, temaIdx, subtemaIdx, notes);
+      });
+    }
   };
 
   // Funció per marcar un subtema com a llegit/no llegit (ARA ADREÇAT A AMBDÓS TEMARIS)
   const toggleSubtemaLlegit = (ambit: 'A' | 'B' | 'C', temaIndex: number, subIndex: number, tipus: 'oficial' | 'oposimossos' = 'oficial') => {
     setProgres(prev => {
+      let nouCompletat = false;
       if (tipus === 'oficial') {
         const nouSub = [...prev.detall[ambit][temaIndex]];
         nouSub[subIndex] = !nouSub[subIndex];
+        nouCompletat = nouSub[subIndex];
+
+        if (user) {
+          import('./lib/progresEstudisService').then(({ desarProgresLectura }) => {
+            desarProgresLectura(user.uid, 'oficial', ambit, temaIndex, subIndex, nouCompletat);
+          });
+        }
+
         return {
           ...prev,
           detall: { ...prev.detall, [ambit]: { ...prev.detall[ambit], [temaIndex]: nouSub } }
@@ -357,6 +433,14 @@ export default function App() {
         // @ts-ignore
         const nouSub = [...prev.oposimossos.detall[ambit][temaIndex]];
         nouSub[subIndex] = !nouSub[subIndex];
+        nouCompletat = nouSub[subIndex];
+
+        if (user) {
+          import('./lib/progresEstudisService').then(({ desarProgresLectura }) => {
+            desarProgresLectura(user.uid, 'oposimossos', ambit, temaIndex, subIndex, nouCompletat);
+          });
+        }
+
         return {
           ...prev,
           oposimossos: {
@@ -377,13 +461,30 @@ export default function App() {
 
   const toggleTemaLlegit = (ambit: 'A' | 'B' | 'C', index: number, tipus: 'oficial' | 'oposimossos' = 'oficial') => {
     setProgres(prev => {
+      let nouCompletat = false;
       if (tipus === 'oficial') {
         const nouAmbit = [...prev[ambit]];
         nouAmbit[index] = !nouAmbit[index];
+        nouCompletat = nouAmbit[index];
+
+        if (user) {
+          import('./lib/progresEstudisService').then(({ desarProgresTemaSencer }) => {
+            desarProgresTemaSencer(user.uid, 'oficial', ambit, index, nouCompletat);
+          });
+        }
+
         return { ...prev, [ambit]: nouAmbit };
       } else {
         const nouAmbit = [...prev.oposimossos[ambit]];
         nouAmbit[index] = !nouAmbit[index];
+        nouCompletat = nouAmbit[index];
+
+        if (user) {
+          import('./lib/progresEstudisService').then(({ desarProgresTemaSencer }) => {
+            desarProgresTemaSencer(user.uid, 'oposimossos', ambit, index, nouCompletat);
+          });
+        }
+
         return {
           ...prev,
           oposimossos: { ...prev.oposimossos, [ambit]: nouAmbit }
@@ -840,6 +941,11 @@ export default function App() {
                   toggleSubtemaLlegit(temaSeleccionat.ambit, temaSeleccionat.index, subtemaSeleccionat, 'oposimossos');
                 }
               }}
+              ambit={temaSeleccionat.ambit}
+              temaIndex={temaSeleccionat.index}
+              subtemaIndex={subtemaSeleccionat}
+              notesDesades={progres.notesEstudiant[`${temaSeleccionat.ambit}-${temaSeleccionat.index}-${subtemaSeleccionat}`] || ""}
+              onGuardarNotes={(notes) => guardarNotesEstudiant(temaSeleccionat.ambit, temaSeleccionat.index, subtemaSeleccionat, notes)}
             />
           )}
 

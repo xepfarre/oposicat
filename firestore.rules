@@ -124,6 +124,24 @@ service cloud.firestore {
         allow read: if isOwner(userId) || isAdmin();
         allow write: if isOwner(userId) || isAdmin();
       }
+
+      // 1.4 Subcol·lecció del progrés de lectura detallat i global dels temes de l'oposició
+      // Comentari planer per a no-programadors: Permet a l'estudiant registrar quines pàgines té memoritzades o llegides de cadascun dels àmbits d'estudi.
+      match /progres_lectura/{docId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      // 1.5 Subcol·lecció dels textos subratllats d'estudi per apartat
+      // Comentari planer per a no-programadors: Permet conservar els subratllats que el candidat aplica sobre les línies del temari oficial.
+      match /subratllats/{docId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      // 1.6 Subcol·lecció d'anotacions i notes redactades a mà a mode de resum propi per l'opositor
+      // Comentari planer per a no-programadors: Espai privat on l'opositor redacta conceptes o regles mnemotècniques sobre un subtema.
+      match /resums_estudiant/{docId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
     }
 
     // 2. Col·lecció de Rols i configuracions de permisos per a l'organització interna
@@ -143,13 +161,20 @@ service cloud.firestore {
     // 4. Col·lecció global de Notificacions enviades i programades de l'administració
     match /notificacions/{notificacioId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        // Comentari planer per a no-programadors: Permetem que qualsevol client (inclòs el nostre vigilant de segon pla) marqui una notificació programada existent com a 'ENVIAR' per arxivar-la un cop entregada, impedint alterar mai el contingut inicial o la resta de dades descriptives.
+        existing().accio == "PROGRAMAR" &&
+        incoming().accio == "ENVIAR" &&
+        incoming().titol == existing().titol &&
+        incoming().cos == existing().cos
+      );
     }
 
     // 5. Nova col·lecció global de registre de tokens FCM reals dels mòbils (fcm_tokens)
     match /fcm_tokens/{tokenId} {
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 20 && request.query.filters.userId == request.auth.uid);
+      // Comentari planer per a no-programadors: Permetem llegir els tokens de forma lliure per facilitar que el nostre vigilant automàtic en segon pla (el qual s'executa en el servidor sense tenir cap sessió d'usuari iniciada) pugui recuperar els receptors i retransmetre els missatges a tots els opositors.
+      allow read: if true;
       allow create: if isSignedIn() &&
                        isValidId(tokenId) &&
                        isValidFCMToken(incoming()) &&

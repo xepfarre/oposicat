@@ -15,7 +15,12 @@ export default function LectorContingut({
   contingutMd,
   contingutOficialHTML,
   completat,
-  onMarcarCompletat
+  onMarcarCompletat,
+  ambit,
+  temaIndex,
+  subtemaIndex,
+  notesDesades,
+  onGuardarNotes
 }: { 
   onTornar: () => void,
   ambitNom: string,
@@ -24,7 +29,12 @@ export default function LectorContingut({
   contingutMd: string,
   contingutOficialHTML?: string,
   completat: boolean,
-  onMarcarCompletat: () => void
+  onMarcarCompletat: () => void,
+  ambit?: 'A' | 'B' | 'C',
+  temaIndex?: number,
+  subtemaIndex?: number,
+  notesDesades?: string,
+  onGuardarNotes?: (notes: string) => void
 }) {
   const [scrollY, setScrollY] = useState(0);
   const [menuObert, setMenuObert] = useState(false);
@@ -35,14 +45,28 @@ export default function LectorContingut({
     preguntes: false
   });
   const [userNotes, setUserNotes] = useState(() => {
+    if (notesDesades !== undefined && notesDesades !== "") return notesDesades;
     return localStorage.getItem(`notes-${temaTitol}-${puntTitol}`) || "";
   });
   const [mostrarResposta, setMostrarResposta] = useState(false);
 
-  // Desar notes automàticament
+  // Sincronitzar les notes desades de Firestore si es carreguen asíncronament més tard
+  useEffect(() => {
+    if (notesDesades !== undefined && notesDesades !== "") {
+      setUserNotes(notesDesades);
+    }
+  }, [notesDesades]);
+
+  // Desar notes automàticament amb un petit retard (debouncing) per no col·lapsar Firestore
   useEffect(() => {
     localStorage.setItem(`notes-${temaTitol}-${puntTitol}`, userNotes);
-  }, [userNotes, temaTitol, puntTitol]);
+    if (onGuardarNotes) {
+      const handler = setTimeout(() => {
+        onGuardarNotes(userNotes);
+      }, 800);
+      return () => clearTimeout(handler);
+    }
+  }, [userNotes, temaTitol, puntTitol, onGuardarNotes]);
 
   // Extreiem els subratllats de l'HTML desat
   const extractHighlights = (html?: string) => {

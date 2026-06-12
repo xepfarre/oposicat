@@ -335,6 +335,49 @@
       },
       "required": ["preguntaId", "encertada", "respostaSeleccionada", "intents", "correctes", "errors", "actualitzatEl"]
     },
+    "ProgresLectura": {
+      "title": "Avenç de Lectura de l'Estudiant",
+      "description": "Marca temporal que registra si un alumne ha completat un capítol oficial o un resum d'OposiMossos.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "tipus": { "type": "string", "enum": ["oficial", "oposimossos"] },
+        "ambit": { "type": "string", "enum": ["A", "B", "C"] },
+        "tema": { "type": "integer" },
+        "subtema": { "type": "integer" },
+        "completat": { "type": "boolean" },
+        "actualitzatEl": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "tipus", "ambit", "tema", "completat"]
+    },
+    "Subratllat": {
+      "title": "Texte Subratllat de l'Estudiant",
+      "description": "Reserva del fragment HTML que demana marcar l'estudi de conceptes rellevants.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "ambit": { "type": "string" },
+        "tema": { "type": "integer" },
+        "subtema": { "type": "integer" },
+        "html": { "type": "string" },
+        "actualitzatEl": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "ambit", "tema", "subtema", "html"]
+    },
+    "ResumEstudiant": {
+      "title": "Notes i Mnemotècnics d'Estudiant",
+      "description": "Text lliure d'apunts que realitza l'estudiant de pròpia mà sobre un subtema concret.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "ambit": { "type": "string" },
+        "tema": { "type": "integer" },
+        "subtema": { "type": "integer" },
+        "notes": { "type": "string" },
+        "actualitzatEl": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "ambit", "tema", "subtema", "notes"]
+    },
     "Comptador": {
       "title": "Comptadors de Temari d'Estudi",
       "description": "Comptadors de volum i estadístiques de preguntes totals d'oposició agrupades per tema.",
@@ -362,6 +405,18 @@
     "usuaris/{userId}/respostes_preguntes/{preguntaId}": {
       "schema": "RespostaPreguntaUsuari",
       "description": "Col·lecció de seguiment d'intents de cada pregunta per l'estudiant"
+    },
+    "usuaris/{userId}/progres_lectura/{docId}": {
+      "schema": "ProgresLectura",
+      "description": "Seguiment detallat del temari que l'alumne ha anat llegint de cada àmbit de l'oposició"
+    },
+    "usuaris/{userId}/subratllats/{docId}": {
+      "schema": "Subratllat",
+      "description": "Texte amb marques cromàtiques de subratllat personal per cada apartat"
+    },
+    "usuaris/{userId}/resums_estudiant/{docId}": {
+      "schema": "ResumEstudiant",
+      "description": "Notes redactades a mode de resum per l'opositor d'un tema/subtema"
     },
     "fcm_tokens/{tokenId}": {
       "schema": "TokensDispositiuGlobal",
