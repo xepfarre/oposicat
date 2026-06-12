@@ -1177,14 +1177,14 @@ export default function OposiMossosInici({
           </main>
         )}
 
-        {/* Explicació per a no-programadors: Barra flotant inferior permanent (estil iOS/Instagram/Android) de 4 botons adaptada dinàmicament a la mida física i la barra de gestos de qualsevol telèfon, incloent l'iPhone 17 Pro. S'ajusta automàticament mitjançant 'env(safe-area-inset-bottom)' per no tapar els botons de baix. */}
+        {/* Comentari planer per a no-programadors: Barra inferior redissenyada amb un to blau policia molt més clar i lluent (bg-[#13355c]) en lloc de gairebé negre per augmentar el contrast, i reduïm l'alçada del seu contenidor utilitzant 'pt-1.5' i adaptant el padding inferior ('calc(5px + ...)') perquè quedi més estreta, moderna i no ocupi tant d'espai a la pantalla. */}
         <div 
-          className="fixed bottom-0 left-0 right-0 z-40 bg-[#001326]/95 backdrop-blur-md border-t border-white/10 px-4 pt-3 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] flex items-center justify-center transition-all duration-300"
-          style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 12px))" }}
+          className="fixed bottom-0 left-0 right-0 z-40 bg-[#13355c]/95 backdrop-blur-md border-t border-white/20 px-4 pt-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.4)] flex items-center justify-center transition-all duration-300"
+          style={{ paddingBottom: "calc(5px + env(safe-area-inset-bottom, 6px))" }}
         >
-          <div className="w-full max-w-md grid grid-cols-4 gap-2">
+          <div className="w-full max-w-md grid grid-cols-4 gap-1">
             
-            {/* Botó 1: Casa (Tornar a l'inici / Principal de l'APP) */}
+            {/* Botó 1: Casa (Inici) */}
             <button 
               onClick={() => {
                 setMostrarRankings(false);
@@ -1192,15 +1192,23 @@ export default function OposiMossosInici({
                 setModalNotificacionsObert(false);
                 setModalAvatarObert(false);
               }}
-              className="bg-white/5 hover:bg-white/15 border border-white/10 rounded-2xl py-2.5 flex flex-col items-center justify-center transition-all active:scale-95 group cursor-pointer"
+              className={`py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group cursor-pointer rounded-xl hover:bg-white/5 ${
+                (!mostrarRankings && !modalForumObert && !modalNotificacionsObert && !modalAvatarObert)
+                  ? "text-blue-200"
+                  : "text-white/50 hover:text-white/80"
+              }`}
             >
-              <Home className="w-4 h-4 text-slate-300 group-hover:text-white group-hover:scale-110 transition-all" />
-              <span className="text-white/80 font-black italic text-[8px] uppercase tracking-tighter text-center mt-1">
+              <Home className={`w-6 h-6 transition-all group-hover:scale-115 ${
+                (!mostrarRankings && !modalForumObert && !modalNotificacionsObert && !modalAvatarObert)
+                  ? "text-blue-300"
+                  : "text-slate-300 group-hover:text-white"
+              }`} />
+              <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
                 Inici
               </span>
             </button>
 
-            {/* Botó 2: Fòrum de dubtes i debat amb altres aspirants */}
+            {/* Botó 2: Fòrum */}
             <button 
               onClick={() => {
                 setMostrarRankings(false);
@@ -1208,22 +1216,28 @@ export default function OposiMossosInici({
                 setModalNotificacionsObert(false);
                 setModalAvatarObert(false);
               }}
-              className="bg-gradient-to-b from-pink-500/10 to-purple-500/10 hover:from-pink-500/20 hover:to-purple-500/20 border border-pink-500/20 hover:border-pink-500/50 rounded-2xl py-2.5 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer"
+              className={`py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer rounded-xl hover:bg-white/5 ${
+                modalForumObert
+                  ? "text-pink-400"
+                  : "text-white/50 hover:text-white/80"
+              }`}
             >
               <div className="relative">
-                <MessageSquare className="w-4 h-4 text-pink-400 group-hover:scale-110 transition-transform" />
-                {/* Indicador de notificació polsant de participació */}
-                <span className="absolute -top-0.5 -right-0.5 flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-pink-500"></span>
+                <MessageSquare className={`w-6 h-6 transition-all group-hover:scale-115 ${
+                  modalForumObert ? "text-pink-400" : "text-pink-400/60 group-hover:text-pink-400"
+                }`} />
+                {/* Indicador de notificació polsant */}
+                <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75 font-bold"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
                 </span>
               </div>
-              <span className="text-white font-black italic text-[8px] uppercase tracking-tighter text-center mt-1">
+              <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
                 Fòrum 💬
               </span>
             </button>
 
-            {/* Botó 3: Notificacions actualitzades des del servidor d'OposiCAT */}
+            {/* Botó 3: Notícies */}
             <button 
               onClick={() => {
                 setMostrarRankings(false);
@@ -1231,22 +1245,30 @@ export default function OposiMossosInici({
                 setModalNotificacionsObert(true);
                 setModalAvatarObert(false);
               }}
-              className="bg-gradient-to-b from-[#FFDF00]/5 to-yellow-500/5 hover:from-[#FFDF00]/15 hover:to-yellow-500/15 border border-yellow-500/20 hover:border-yellow-400/50 rounded-2xl py-2.5 flex flex-col items-center justify-center transition-all active:scale-[0.93] group relative cursor-pointer"
+              className={`py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer rounded-xl hover:bg-white/5 ${
+                modalNotificacionsObert
+                  ? "text-[#FFDF00]"
+                  : "text-white/50 hover:text-white/80"
+              }`}
             >
               <div className="relative">
-                <Bell className={`w-4 h-4 transition-colors ${numNotificacions > 0 ? "text-[#FFDF00] animate-bounce" : "text-white/60 group-hover:text-white"}`} />
+                <Bell className={`w-6 h-6 transition-all group-hover:scale-115 ${
+                  modalNotificacionsObert 
+                    ? "text-[#FFDF00]" 
+                    : (numNotificacions > 0 ? "text-[#FFDF00] animate-bounce" : "text-white/60 group-hover:text-white")
+                }`} />
                 {numNotificacions > 0 && (
-                  <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-red-600 border border-white/20 rounded-full text-[8.5px] font-black text-white flex items-center justify-center shadow-[0_0_8px_rgba(220,38,38,0.6)] animate-pulse">
+                  <span className="absolute -top-1 -right-1.5 w-4 h-4 bg-red-600 border border-white/20 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-[0_0_8px_rgba(220,38,38,0.6)]">
                     {numNotificacions}
                   </span>
                 )}
               </div>
-              <span className="text-white font-black italic text-[8px] uppercase tracking-tighter text-center mt-1">
+              <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
                 Notícies
               </span>
             </button>
 
-            {/* Botó 4: Personalitzar l'Avatar i perfil */}
+            {/* Botó 4: Perfil */}
             <button 
               onClick={() => {
                 setMostrarRankings(false);
@@ -1254,16 +1276,19 @@ export default function OposiMossosInici({
                 setModalNotificacionsObert(false);
                 setModalAvatarObert(true);
               }}
-              className="bg-gradient-to-b from-[#2563eb]/10 to-[#3b82f6]/10 hover:from-[#2563eb]/20 hover:to-[#3b82f6]/20 border border-[#2563eb]/20 hover:border-blue-400/50 rounded-2xl py-2.5 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer"
+              className={`py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer rounded-xl hover:bg-white/5 ${
+                modalAvatarObert
+                  ? "text-blue-300"
+                  : "text-white/50 hover:text-white/80"
+              }`}
             >
               <div className="relative">
-                <span className="text-xs filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] select-none">
+                <span className="text-[20px] filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] select-none">
                   {avatarEstil}
                 </span>
-                {/* Centelleig al perfil */}
-                <span className="absolute -top-1.5 -right-1.5 text-[6px] animate-pulse">⭐</span>
+                <span className="absolute -top-1 -right-1 text-[8px] animate-pulse">⭐</span>
               </div>
-              <span className="text-white font-black italic text-[8px] uppercase tracking-tighter text-center mt-1">
+              <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
                 Perfil 👮‍♂️
               </span>
             </button>
@@ -1277,7 +1302,14 @@ export default function OposiMossosInici({
   return (
     <div 
       className="fixed inset-0 w-full bg-[#00274d] overflow-y-auto flex flex-col items-center px-6 pb-36"
-      style={{ WebkitOverflowScrolling: "touch" }}
+      style={{ 
+        WebkitOverflowScrolling: "touch",
+        // Comentari planer per a no-programadors: Deixem la imatge de fons amb la seva proporció original sencera utilitzant 'cover' per omplir completament la pantalla sense deformacions, i alineada a '20% bottom' perquè mostri l'esquena sencera amb el text de 'POLICIA Mossos d'Esquadra'.
+        backgroundImage: "linear-gradient(to bottom, rgba(0, 39, 77, 0.88), rgba(0, 39, 77, 0.94)), url('/assets/imatges/fons_ispc.png')",
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "20% bottom"
+      }}
     >
       
       {/* CAPÇALERA */}
@@ -1323,13 +1355,14 @@ export default function OposiMossosInici({
           <div className="flex-1 h-px bg-white/10" />
         </div>
 
-        {/* Botons principals en grid en tauletes */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {/* Botons principals en grid en tauletes o llista vertical clàssica */}
+        <div className="flex flex-col gap-3">
           <button 
             onClick={onProvaTeorica}
             className="w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl py-4 md:py-6 flex flex-col items-center justify-center shadow-xl transition-all active:scale-95 group"
           >
             <span className="text-white font-black italic text-lg md:text-xl uppercase tracking-tighter group-hover:scale-105 transition-transform text-center px-4">
+              {/* Comentari planer per a no-programadors: Restaurem el nom original de "Prova Teòrica" per petició de l'usuari */}
               Prova Teòrica
             </span>
             <div className="h-0.5 w-8 bg-red-600 mt-1 rounded-full opacity-50" />
@@ -1340,6 +1373,7 @@ export default function OposiMossosInici({
             className="w-full bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl py-4 md:py-6 flex flex-col items-center justify-center shadow-xl transition-all active:scale-95 group"
           >
             <span className="text-white font-black italic text-lg md:text-xl uppercase tracking-tighter group-hover:scale-105 transition-transform text-center px-4">
+              {/* Comentari planer per a no-programadors: Restaurem "Prova Física" per a la part de preparació física */}
               Prova Física
             </span>
             <div className="h-0.5 w-8 bg-red-600 mt-1 rounded-full opacity-50" />
@@ -1354,11 +1388,6 @@ export default function OposiMossosInici({
             </span>
             <div className="h-0.5 w-8 bg-red-600 mt-1 rounded-full opacity-50" />
           </button>
-        </div>
-
-        {/* Línia de separació */}
-        <div className="flex items-center py-1">
-          <div className="flex-1 h-px bg-white/10" />
         </div>
 
         {/* BOTÓ PER TORNAR AL SEL·LECTOR */}
@@ -1380,14 +1409,14 @@ export default function OposiMossosInici({
         </p>
       </footer>
 
-      {/* Explicació per a no-programadors: Barra flotant inferior permanent (estil iOS/Instagram/Android) de 4 botons adaptada dinàmicament a la mida física i la barra de gestos de qualsevol telèfon, incloent l'iPhone 17 Pro. S'ajusta automàticament mitjançant 'env(safe-area-inset-bottom)' per no tapar els botons de baix. */}
+      {/* Comentari planer per a no-programadors: Barra inferior redissenyada amb un to blau policia molt més clar i lluent (bg-[#13355c]) en lloc de gairebé negre per augmentar el contrast, i reduïm l'alçada del seu contenidor utilitzant 'pt-1.5' i adaptant el padding inferior ('calc(5px + ...)') perquè quedi més estreta, moderna i no ocupi tant d'espai a la pantalla. */}
       <div 
-        className="fixed bottom-0 left-0 right-0 z-40 bg-[#001326]/95 backdrop-blur-md border-t border-white/10 px-4 pt-3 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] flex items-center justify-center transition-all duration-300"
-        style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 12px))" }}
+        className="fixed bottom-0 left-0 right-0 z-40 bg-[#13355c]/95 backdrop-blur-md border-t border-white/20 px-4 pt-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.4)] flex items-center justify-center transition-all duration-300"
+        style={{ paddingBottom: "calc(5px + env(safe-area-inset-bottom, 6px))" }}
       >
-        <div className="w-full max-w-md grid grid-cols-4 gap-2">
+        <div className="w-full max-w-md grid grid-cols-4 gap-1">
           
-          {/* Botó 1: Casa (Tornar a l'inici / Principal de l'APP) */}
+          {/* Botó 1: Casa (Inici) */}
           <button 
             onClick={() => {
               setMostrarRankings(false);
@@ -1399,15 +1428,23 @@ export default function OposiMossosInici({
                 onTornar();
               }
             }}
-            className="bg-white/5 hover:bg-white/15 border border-white/10 rounded-2xl py-2.5 flex flex-col items-center justify-center transition-all active:scale-95 group cursor-pointer"
+            className={`py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group cursor-pointer rounded-xl hover:bg-white/5 ${
+              (!mostrarRankings && !modalForumObert && !modalNotificacionsObert && !modalAvatarObert)
+                ? "text-blue-200"
+                : "text-white/50 hover:text-white/80"
+            }`}
           >
-            <Home className="w-4 h-4 text-slate-300 group-hover:text-white group-hover:scale-110 transition-all" />
-            <span className="text-white/80 font-black italic text-[8px] uppercase tracking-tighter text-center mt-1">
+            <Home className={`w-6 h-6 transition-all group-hover:scale-115 ${
+              (!mostrarRankings && !modalForumObert && !modalNotificacionsObert && !modalAvatarObert)
+                ? "text-blue-300"
+                : "text-slate-300 group-hover:text-white"
+            }`} />
+            <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
               Inici
             </span>
           </button>
 
-          {/* Botó 2: Fòrum de dubtes i debat amb altres aspirants */}
+          {/* Botó 2: Fòrum */}
           <button 
             onClick={() => {
               setMostrarRankings(false);
@@ -1415,22 +1452,28 @@ export default function OposiMossosInici({
               setModalNotificacionsObert(false);
               setModalAvatarObert(false);
             }}
-            className="bg-gradient-to-b from-pink-500/10 to-purple-500/10 hover:from-pink-500/20 hover:to-purple-500/20 border border-pink-500/20 hover:border-pink-500/50 rounded-2xl py-2.5 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer"
+            className={`py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer rounded-xl hover:bg-white/5 ${
+              modalForumObert
+                ? "text-pink-400"
+                : "text-white/50 hover:text-white/80"
+            }`}
           >
             <div className="relative">
-              <MessageSquare className="w-4 h-4 text-pink-400 group-hover:scale-110 transition-transform" />
-              {/* Indicador de notificació polsant de participació */}
-              <span className="absolute -top-0.5 -right-0.5 flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-pink-500"></span>
+              <MessageSquare className={`w-6 h-6 transition-all group-hover:scale-115 ${
+                modalForumObert ? "text-pink-400" : "text-pink-400/60 group-hover:text-pink-400"
+              }`} />
+              {/* Indicador de notificació polsant */}
+              <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75 font-bold"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
               </span>
             </div>
-            <span className="text-white font-black italic text-[8px] uppercase tracking-tighter text-center mt-1">
+            <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
               Fòrum 💬
             </span>
           </button>
 
-          {/* Botó 3: Notificacions actualitzades des del servidor d'OposiCAT */}
+          {/* Botó 3: Notícies */}
           <button 
             onClick={() => {
               setMostrarRankings(false);
@@ -1438,22 +1481,30 @@ export default function OposiMossosInici({
               setModalNotificacionsObert(true);
               setModalAvatarObert(false);
             }}
-            className="bg-gradient-to-b from-[#FFDF00]/5 to-yellow-500/5 hover:from-[#FFDF00]/15 hover:to-yellow-500/15 border border-yellow-500/20 hover:border-yellow-400/50 rounded-2xl py-2.5 flex flex-col items-center justify-center transition-all active:scale-[0.93] group relative cursor-pointer"
+            className={`py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer rounded-xl hover:bg-white/5 ${
+              modalNotificacionsObert
+                ? "text-[#FFDF00]"
+                : "text-white/50 hover:text-white/80"
+            }`}
           >
             <div className="relative">
-              <Bell className={`w-4 h-4 transition-colors ${numNotificacions > 0 ? "text-[#FFDF00] animate-bounce" : "text-white/60 group-hover:text-white"}`} />
+              <Bell className={`w-6 h-6 transition-all group-hover:scale-115 ${
+                modalNotificacionsObert 
+                  ? "text-[#FFDF00]" 
+                  : (numNotificacions > 0 ? "text-[#FFDF00] animate-bounce" : "text-white/60 group-hover:text-white")
+              }`} />
               {numNotificacions > 0 && (
-                <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-red-600 border border-white/20 rounded-full text-[8.5px] font-black text-white flex items-center justify-center shadow-[0_0_8px_rgba(220,38,38,0.6)] animate-pulse">
+                <span className="absolute -top-1 -right-1.5 w-4 h-4 bg-red-600 border border-white/20 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-[0_0_8px_rgba(220,38,38,0.6)]">
                   {numNotificacions}
                 </span>
               )}
             </div>
-            <span className="text-white font-black italic text-[8px] uppercase tracking-tighter text-center mt-1">
+            <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
               Notícies
             </span>
           </button>
 
-          {/* Botó 4: Personalitzar l'Avatar i perfil */}
+          {/* Botó 4: Perfil */}
           <button 
             onClick={() => {
               setMostrarRankings(false);
@@ -1461,16 +1512,19 @@ export default function OposiMossosInici({
               setModalNotificacionsObert(false);
               setModalAvatarObert(true);
             }}
-            className="bg-gradient-to-b from-[#2563eb]/10 to-[#3b82f6]/10 hover:from-[#2563eb]/20 hover:to-[#3b82f6]/20 border border-[#2563eb]/20 hover:border-blue-400/50 rounded-2xl py-2.5 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer"
+            className={`py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer rounded-xl hover:bg-white/5 ${
+              modalAvatarObert
+                ? "text-blue-300"
+                : "text-white/50 hover:text-white/80"
+            }`}
           >
             <div className="relative">
-              <span className="text-xs filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] select-none">
+              <span className="text-[20px] filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] select-none">
                 {avatarEstil}
               </span>
-              {/* Centelleig al perfil */}
-              <span className="absolute -top-1.5 -right-1.5 text-[6px] animate-pulse">⭐</span>
+              <span className="absolute -top-1 -right-1 text-[8px] animate-pulse">⭐</span>
             </div>
-            <span className="text-white font-black italic text-[8px] uppercase tracking-tighter text-center mt-1">
+            <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
               Perfil 👮‍♂️
             </span>
           </button>

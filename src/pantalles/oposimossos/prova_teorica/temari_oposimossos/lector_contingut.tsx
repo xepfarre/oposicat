@@ -1,11 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, BookOpen, Clock, CheckCircle2, ChevronRight, ChevronLeft, LayoutPanelLeft } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  BookOpen, 
+  Clock, 
+  CheckCircle2, 
+  ChevronDown, 
+  ChevronUp, 
+  Highlighter, 
+  HelpCircle, 
+  PenTool, 
+  Save, 
+  Sparkles,
+  FileText
+} from 'lucide-react';
 import Markdown from 'react-markdown';
 
 /**
- * Lector de Contingut per als Resums d'OposiMossos.
- * Optimitzat per a un estudi ràpid i eficient.
+ * Lector de Contingut per als Resums d'OposiMossos (Lògica de "Lego" per al l'estudiant).
+ * Optimitzat per a un estudi ràpid, ordenat i modern, seguint el disseny dels desplegables de l'Àrea d'Estudi.
  */
 export default function LectorContingut({ 
   onTornar, 
@@ -36,19 +49,28 @@ export default function LectorContingut({
   notesDesades?: string,
   onGuardarNotes?: (notes: string) => void
 }) {
+  // Comentari per a no-programadors: Lleigeix la posició del desplaçament vertical (scroll) del dispositiu
   const [scrollY, setScrollY] = useState(0);
-  const [menuObert, setMenuObert] = useState(false);
-  const [opcionsMostra, setOpcionsMostra] = useState({
-    oposi: true,
-    teu: false,
-    subratllat: false,
-    preguntes: false
+
+  // Comentari per a no-programadors: Aquest estat controla quins dels 4 blocs (Resum, Personal, Subratllats, Preguntes) estan expandits o tancats per estudiar
+  const [seccionsObertes, setSeccionsObertes] = useState({
+    oposi: true,        // El resum d'OposiMossos està obert de sortida per defecte
+    teu: false,         // El resum personal de l'estudiant
+    subratllat: false,  // Els fragments subratllats sobre el temari d'origen
+    preguntes: false    // Les preguntes interactives de convocatòries reals
   });
+
+  // Comentari per a no-programadors: Desa temporalment les notes personals de l'usuari amb memòria persistent (local)
   const [userNotes, setUserNotes] = useState(() => {
     if (notesDesades !== undefined && notesDesades !== "") return notesDesades;
     return localStorage.getItem(`notes-${temaTitol}-${puntTitol}`) || "";
   });
+
+  // Comentari per a no-programadors: Controla si la resposta a la pregunta d'examen ja s'està mostrant en color verd/vermell
   const [mostrarResposta, setMostrarResposta] = useState(false);
+
+  // Comentari per a no-programadors: Indica si els canvis al resum personal s'estan desant correctament al núvol/base de dades
+  const [estatDesant, setEstatDesant] = useState<'quiet' | 'desant' | 'desat'>('quiet');
 
   // Sincronitzar les notes desades de Firestore si es carreguen asíncronament més tard
   useEffect(() => {
@@ -61,9 +83,14 @@ export default function LectorContingut({
   useEffect(() => {
     localStorage.setItem(`notes-${temaTitol}-${puntTitol}`, userNotes);
     if (onGuardarNotes) {
+      setEstatDesant('desant');
       const handler = setTimeout(() => {
         onGuardarNotes(userNotes);
-      }, 800);
+        setEstatDesant('desat');
+        // Després d'un moment tornem a l'estat silenciós/quiet
+        const timeoutQuiet = setTimeout(() => setEstatDesant('quiet'), 2000);
+        return () => clearTimeout(timeoutQuiet);
+      }, 1000);
       return () => clearTimeout(handler);
     }
   }, [userNotes, temaTitol, puntTitol, onGuardarNotes]);
@@ -71,16 +98,22 @@ export default function LectorContingut({
   // Extreiem els subratllats de l'HTML desat
   const extractHighlights = (html?: string) => {
     if (!html) return [];
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const spans = doc.querySelectorAll('.highlighter-span');
-    return Array.from(spans).map(span => span.textContent || "");
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const spans = doc.querySelectorAll('.highlighter-span');
+      return Array.from(spans).map(span => span.textContent || "");
+    } catch (e) {
+      console.error(e);
+      return [];
+    }
   };
 
   const highlights = extractHighlights(contingutOficialHTML);
 
-  const toggleOpcio = (opcio: keyof typeof opcionsMostra) => {
-    setOpcionsMostra(prev => ({ ...prev, [opcio]: !prev[opcio] }));
+  // Comentari per a no-programadors: Obrir i tancar de forma animada qualsevol apartat amb un sol clic
+  const toggleSeccio = (seccio: keyof typeof seccionsObertes) => {
+    setSeccionsObertes(prev => ({ ...prev, [seccio]: !prev[seccio] }));
   };
 
   useEffect(() => {
@@ -90,275 +123,411 @@ export default function LectorContingut({
   }, []);
 
   return (
-    <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-12">
+    <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-24">
       
-      {/* CAPÇALERA FLOTANT / FIXA */}
+      {/* CAPÇALERA FLOTANT FIXA */}
       <header className={`fixed top-0 w-full z-50 transition-all duration-300 border-b ${
         scrollY > 20 
-        ? 'bg-[#00274d]/90 backdrop-blur-xl border-white/10 shadow-2xl' 
-        : 'bg-[#00274d] border-transparent'
+        ? 'bg-[#00274d]/95 backdrop-blur-xl border-white/10 shadow-2xl py-3 md:py-4' 
+        : 'bg-[#00274d] border-transparent py-4 md:py-6'
       }`}>
-        <div className="max-w-4xl md:max-w-6xl mx-auto px-6 py-6 md:py-10 flex items-start gap-4 md:gap-8">
+        <div className="max-w-4xl mx-auto px-6 flex items-center gap-4">
           <button 
             onClick={onTornar}
-            className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-white transition-all active:scale-90 mt-1 md:p-4"
+            className="p-2.5 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-white transition-all active:scale-90 cursor-pointer flex items-center justify-center shrink-0"
           >
-            <ArrowLeft size={18} className="md:size-6" />
+            <ArrowLeft size={16} className="md:size-5" />
           </button>
           
-          <div className="flex-1 flex flex-col gap-3 md:gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-0.5 md:mb-1">
-                <span className="text-[9px] md:text-sm font-black uppercase text-emerald-400 tracking-[0.2em] whitespace-nowrap">
-                  {ambitNom}
-                </span>
-                <div className="h-px w-3 md:w-6 bg-white/20" />
-                <span className="text-[9px] md:text-sm font-bold text-white/40 uppercase tracking-widest truncate">
-                  {temaTitol}
-                </span>
-              </div>
-              <h1 className="text-sm md:text-2xl font-black italic uppercase text-white tracking-widest truncate leading-none">
-                {puntTitol}
-              </h1>
+          <div className="flex-1 min-w-0 flex flex-col">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-[8px] md:text-xs font-black uppercase text-[#00f296] tracking-[0.15em] whitespace-nowrap">
+                {ambitNom}
+              </span>
+              <span className="text-white/20">|</span>
+              <span className="text-[8px] md:text-xs font-bold text-white/40 uppercase truncate">
+                {temaTitol}
+              </span>
             </div>
+            <h1 className="text-xs md:text-lg font-black italic uppercase text-white tracking-wider truncate leading-none">
+              {puntTitol}
+            </h1>
+          </div>
 
-            {/* Menú Què vols mostrar? */}
-            <div className="relative self-start">
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMenuObert(!menuObert);
-                }}
-                className={`flex items-center gap-2 px-3 py-1.5 md:px-5 md:py-3 rounded-lg border transition-all text-[10px] md:text-sm font-black uppercase tracking-widest ${
-                  menuObert 
-                  ? 'bg-amber-400 border-amber-400 text-black' 
-                  : 'bg-white/5 border-white/10 text-amber-400 hover:bg-white/10'
-                }`}
-              >
-                Què vols mostrar
-                <LayoutPanelLeft size={14} className="md:size-5" />
-              </button>
-
-              <AnimatePresence>
-                {menuObert && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute left-0 mt-2 w-56 md:w-80 bg-[#001a33] border border-white/10 rounded-xl shadow-2xl p-2 z-[100]"
-                  >
-                    <p className="text-[8px] md:text-xs font-black uppercase text-white/30 px-3 py-2 tracking-[0.2em]">Què vols mostrar?</p>
-                    <div className="flex flex-col gap-1 md:gap-2">
-                      {[
-                        { id: 'oposi', label: 'Resum Oposi', color: 'text-emerald-400' },
-                        { id: 'teu', label: 'El teu resum', color: 'text-blue-400' },
-                        { id: 'subratllat', label: 'El que has Subratllat', color: 'text-amber-400' },
-                        { id: 'preguntes', label: 'Preguntes oficials', color: 'text-purple-400' }
-                      ].map((item) => (
-                        <button 
-                          key={item.id}
-                          onClick={() => toggleOpcio(item.id as keyof typeof opcionsMostra)}
-                          className={`flex items-center gap-3 px-3 py-2.5 md:py-4 rounded-lg transition-all text-left ${
-                            opcionsMostra[item.id as keyof typeof opcionsMostra] 
-                            ? 'bg-white/10 text-white' 
-                            : 'text-white/40 hover:bg-white/5'
-                          }`}
-                        >
-                          <div className={`w-4 h-4 md:w-6 md:h-6 rounded border flex items-center justify-center transition-all ${
-                            opcionsMostra[item.id as keyof typeof opcionsMostra] 
-                            ? 'bg-amber-400 border-amber-400' 
-                            : 'border-white/20'
-                          }`}>
-                            {opcionsMostra[item.id as keyof typeof opcionsMostra] && <CheckCircle2 size={10} className="text-black stroke-[3] md:size-4" />}
-                          </div>
-                          <span className={`text-[11px] md:text-sm font-bold uppercase tracking-tight ${opcionsMostra[item.id as keyof typeof opcionsMostra] ? item.color : ''}`}>
-                            {item.label}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+          {/* Indicador superior de si està estudiat */}
+          <div className="shrink-0 flex items-center gap-2">
+            <span className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${
+              completat 
+              ? 'bg-[#00f296]/15 text-[#00f296] border border-[#00f296]/30' 
+              : 'bg-white/5 text-white/40 border border-white/10'
+            }`}>
+              {completat ? 'Estudiat' : 'Pendent'}
+            </span>
           </div>
         </div>
       </header>
 
-      {/* CONTINGUT DINÀMIC */}
-      <main className="w-full max-w-2xl md:max-w-4xl px-6 pt-40 md:pt-60 pb-32 flex flex-col gap-8 md:gap-14">
+      {/* CONTINGUT PRINCIPAL EN FORMAT CAIXES DESPLEGABLES (ACORDIONS COHERENTS) */}
+      <main className="w-full max-w-4xl px-6 pt-24 md:pt-32 pb-32 flex flex-col gap-5">
         
-        {/* SECTION: RESUM OPOSI */}
-        <AnimatePresence>
-          {opcionsMostra.oposi && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-black/20 backdrop-blur-sm rounded-[2rem] border border-white/10 overflow-hidden shadow-2xl"
-            >
-              <div className="p-4 md:p-8 bg-gradient-to-br from-emerald-500/10 to-transparent border-b border-white/5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-1.5 md:p-3 bg-emerald-500 rounded-lg text-white shadow-lg shadow-emerald-900/40">
-                    <LayoutPanelLeft size={14} className="md:size-6" />
-                  </div>
-                  <span className="text-[10px] md:text-base font-black uppercase tracking-[0.3em] text-emerald-400">Resum d'OposiMossos</span>
-                </div>
-              </div>
-              <div className="p-6 md:p-14 prose prose-invert prose-emerald max-w-none 
-                prose-headings:font-black prose-headings:italic prose-headings:uppercase prose-headings:tracking-widest prose-headings:text-emerald-400
-                prose-p:text-white prose-p:leading-relaxed prose-p:text-base md:prose-p:text-lg
-                prose-strong:text-white prose-strong:font-black
-                prose-li:text-white md:prose-li:text-lg prose-li:marker:text-emerald-500
-                prose-blockquote:border-emerald-500 prose-blockquote:bg-emerald-500/5 prose-blockquote:py-1 prose-blockquote:px-4 md:prose-blockquote:px-8 prose-blockquote:rounded-r-lg
-                [&_*]:text-white 
-                markdown-body
-              ">
-                <Markdown>{contingutMd}</Markdown>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Descripció didàctica adaptada */}
+        <div className="text-center md:text-left mb-2">
+          <p className="text-[10px] md:text-xs text-white/50 tracking-wide font-medium">
+            Entorn de lectura avançat. Fes clic sobre qualsevol secció de sota per anar modificant, prenent notes o posant-te a prova sobre aquest capítol de l'oposició:
+          </p>
+        </div>
 
-        {/* SECTION: EL TEU RESUM */}
-        <AnimatePresence>
-          {opcionsMostra.teu && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-black/20 backdrop-blur-sm rounded-[2rem] border border-blue-500/30 overflow-hidden shadow-2xl"
-            >
-              <div className="p-4 md:p-8 bg-gradient-to-br from-blue-500/10 to-transparent border-b border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="p-1.5 md:p-3 bg-blue-500 rounded-lg text-white shadow-lg shadow-blue-900/40">
-                    <BookOpen size={14} className="md:size-6" />
-                  </div>
-                  <span className="text-[10px] md:text-base font-black uppercase tracking-[0.3em] text-blue-400">El teu resum propi</span>
-                </div>
+        {/* ========================================================================= */}
+        {/* SECCIÓ 1: RESUM OPOSIMOSSOS */}
+        {/* ========================================================================= */}
+        <div className="flex flex-col border border-white/5 rounded-2xl overflow-hidden bg-white/5 shadow-xl transition-all">
+          <button 
+            onClick={() => toggleSeccio('oposi')}
+            className="w-full text-left p-4 md:p-6 flex items-center justify-between hover:bg-white/5 transition-all group cursor-pointer"
+          >
+            <div className="flex items-center gap-4">
+              <div className={`w-9 h-9 md:w-11 md:h-11 rounded-xl flex items-center justify-center transition-colors border ${
+                seccionsObertes.oposi 
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+                : 'bg-white/5 text-white/60 border-white/10 group-hover:bg-white/10'
+              }`}>
+                <FileText size={16} className="md:size-5" />
               </div>
-              <div className="p-6 md:p-10">
-                <textarea 
-                  value={userNotes}
-                  onChange={(e) => setUserNotes(e.target.value)}
-                  placeholder="Escriu aquí les teves pròpies notes o regles mnemotècniques..."
-                  className="w-full min-h-[200px] md:min-h-[400px] bg-white/5 border border-white/10 rounded-xl p-4 md:p-8 text-white text-sm md:text-lg focus:outline-none focus:border-blue-500/50 transition-all resize-none font-medium leading-relaxed"
-                />
-                <p className="mt-4 text-[10px] md:text-sm text-white/30 italic">Aquest espai és exclusiu per a tu. Les teves notes s'emmagatzeman localment.</p>
+              <div>
+                <span className="text-[10px] md:text-sm font-black uppercase tracking-[0.2em] text-emerald-400 block mb-0.5">ESTUDI INTEL·LIGENT</span>
+                <h3 className="text-xs md:text-base font-black italic uppercase text-white tracking-widest">
+                  Resum d'OposiMossos
+                </h3>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[8px] md:text-xs font-black uppercase text-white/30 tracking-widest hidden sm:inline">
+                Sintetitzat
+              </span>
+              <div className="text-white/30 group-hover:text-emerald-400 transition-colors">
+                {seccionsObertes.oposi ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </div>
+            </div>
+          </button>
 
-        {/* SECTION: EL QUE HAS SUBRATLLAT */}
-        <AnimatePresence>
-          {opcionsMostra.subratllat && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-black/20 backdrop-blur-sm rounded-[2rem] border border-amber-500/30 overflow-hidden shadow-2xl"
-            >
-              <div className="p-4 md:p-8 bg-gradient-to-br from-amber-500/10 to-transparent border-b border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="p-1.5 md:p-3 bg-amber-500 rounded-lg text-white shadow-lg shadow-amber-900/40">
-                    <Clock size={14} className="md:size-6" />
-                  </div>
-                  <span className="text-[10px] md:text-base font-black uppercase tracking-[0.3em] text-amber-500">Highlights del Temari Oficial</span>
+          <AnimatePresence>
+            {seccionsObertes.oposi && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden border-t border-white/5 bg-black/30"
+              >
+                <div className="p-6 md:p-10 prose prose-invert prose-emerald max-w-none 
+                  prose-headings:font-black prose-headings:italic prose-headings:uppercase prose-headings:tracking-widest prose-headings:text-emerald-300
+                  prose-p:text-white/90 prose-p:leading-relaxed prose-p:text-xs md:prose-p:text-sm
+                  prose-strong:text-amber-400 prose-strong:font-black
+                  prose-li:text-white/80 md:prose-li:text-sm prose-li:marker:text-emerald-500
+                  prose-blockquote:border-emerald-500 prose-blockquote:bg-emerald-500/5 prose-blockquote:py-1.5 prose-blockquote:px-4 prose-blockquote:rounded-r-lg
+                  [&_*]:text-white/90
+                  markdown-body
+                ">
+                  <Markdown>{contingutMd}</Markdown>
                 </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* SECCIÓ 2: EL TEU RESUM PROPI */}
+        {/* ========================================================================= */}
+        <div className="flex flex-col border border-white/5 rounded-2xl overflow-hidden bg-white/5 shadow-xl transition-all">
+          <button 
+            onClick={() => toggleSeccio('teu')}
+            className="w-full text-left p-4 md:p-6 flex items-center justify-between hover:bg-white/5 transition-all group cursor-pointer"
+          >
+            <div className="flex items-center gap-4">
+              <div className={`w-9 h-9 md:w-11 md:h-11 rounded-xl flex items-center justify-center transition-colors border ${
+                seccionsObertes.teu 
+                ? 'bg-blue-500/20 text-blue-300 border-blue-500/40' 
+                : 'bg-white/5 text-white/60 border-white/10 group-hover:bg-white/10'
+              }`}>
+                <PenTool size={16} className="md:size-5" />
               </div>
-              <div className="p-8 md:p-14">
-                <div className="space-y-4 md:space-y-8">
-                  {highlights.length > 0 ? (
-                    highlights.map((h, i) => (
-                      <div key={i} className="bg-amber-400/10 border-l-4 border-amber-400 p-4 md:p-8 rounded-r-xl">
-                        <p className="text-sm md:text-xl text-white/90 italic">"{h}"</p>
-                        <span className="text-[8px] md:text-xs font-black uppercase text-amber-400 mt-2 md:mt-4 block tracking-widest">— Subratllat al Temari Oficial</span>
+              <div>
+                <span className="text-[10px] md:text-sm font-black uppercase tracking-[0.2em] text-blue-400 block mb-0.5">EL MEU ESPAI</span>
+                <h3 className="text-xs md:text-base font-black italic uppercase text-white tracking-widest">
+                  El teu resum personal
+                </h3>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Comentari per a no-programadors: Petit pilot d'estat de desat automàtic */}
+              {estatDesant === 'desant' && (
+                <span className="text-[8px] md:text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                  Desant...
+                </span>
+              )}
+              {estatDesant === 'desat' && (
+                <span className="text-[8px] md:text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                  <CheckCircle2 size={10} />
+                  Desat
+                </span>
+              )}
+              {estatDesant === 'quiet' && userNotes.length > 0 && (
+                <span className="text-[8px] md:text-xs font-bold text-white/40">
+                  {userNotes.length} caràcters
+                </span>
+              )}
+              <div className="text-white/30 group-hover:text-blue-400 transition-colors">
+                {seccionsObertes.teu ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </div>
+            </div>
+          </button>
+
+          <AnimatePresence>
+            {seccionsObertes.teu && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden border-t border-white/5 bg-black/30"
+              >
+                <div className="p-5 md:p-8 flex flex-col gap-4">
+                  <p className="text-[10px] md:text-xs text-white/50 leading-relaxed italic">
+                    Aquí pots anar escrivint els teus propis esquemes, regles o idees mnemotècniques mentre estudies el resum. S'emmagatzema sol automàticament al teu núvol d'usuari:
+                  </p>
+                  <textarea 
+                    value={userNotes}
+                    onChange={(e) => setUserNotes(e.target.value)}
+                    placeholder="Escriu les teves anotacions o punts clau de la lliçó aquí..."
+                    className="w-full min-h-[160px] md:min-h-[260px] bg-black/40 border border-white/10 rounded-xl p-4 md:p-6 text-white text-xs md:text-sm focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all resize-none font-medium leading-relaxed"
+                  />
+                  <div className="flex items-center justify-between text-[9px] md:text-xs text-white/30 italic">
+                    <span>Configurat amb sincronització asíncrona segura.</span>
+                    <span className="flex items-center gap-1"><Save size={10} /> Model Multicapa</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* SECCIÓ 3: EL QUE HAS SUBRATLLAT */}
+        {/* ========================================================================= */}
+        <div className="flex flex-col border border-white/5 rounded-2xl overflow-hidden bg-white/5 shadow-xl transition-all">
+          <button 
+            onClick={() => toggleSeccio('subratllat')}
+            className="w-full text-left p-4 md:p-6 flex items-center justify-between hover:bg-white/5 transition-all group cursor-pointer"
+          >
+            <div className="flex items-center gap-4">
+              <div className={`w-9 h-9 md:w-11 md:h-11 rounded-xl flex items-center justify-center transition-colors border ${
+                seccionsObertes.subratllat 
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
+                : 'bg-white/5 text-white/60 border-white/10 group-hover:bg-white/10'
+              }`}>
+                <Highlighter size={16} className="md:size-5" />
+              </div>
+              <div>
+                <span className="text-[10px] md:text-sm font-black uppercase tracking-[0.2em] text-amber-400 block mb-0.5">LECTURA FOCALITZADA</span>
+                <h3 className="text-xs md:text-base font-black italic uppercase text-white tracking-widest">
+                  Highlights del Temari Oficial
+                </h3>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`text-[9px] md:text-xs font-bold px-2 py-0.5 rounded-full ${
+                highlights.length > 0 ? 'bg-amber-500/20 text-amber-300' : 'bg-white/5 text-white/30'
+              }`}>
+                {highlights.length} Highlights
+              </span>
+              <div className="text-white/30 group-hover:text-amber-400 transition-colors">
+                {seccionsObertes.subratllat ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </div>
+            </div>
+          </button>
+
+          <AnimatePresence>
+            {seccionsObertes.subratllat && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden border-t border-white/5 bg-black/30"
+              >
+                <div className="p-6 md:p-8 flex flex-col gap-4">
+                  <p className="text-[10px] md:text-xs text-white/50 leading-relaxed italic mb-1">
+                    Aquí s'agrupen tots els fragments que hagis decidit subratllat en groc fluorescent a la lectura del temari oficial d'OposiCAT per poder rellegir-los directament:
+                  </p>
+                  
+                  <div className="space-y-3.5">
+                    {highlights.length > 0 ? (
+                      highlights.map((textFragment, i) => (
+                        <div key={i} className="bg-amber-400/10 border-l-4 border-amber-400 p-3.5 md:p-5 rounded-r-xl">
+                          <p className="text-xs md:text-sm text-white/95 italic leading-relaxed">"{textFragment}"</p>
+                          <span className="text-[8px] md:text-[9px] font-black uppercase text-amber-400 mt-2 block tracking-widest">
+                            — SUBRATLLAT NÚMERO {i + 1}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-8 md:py-12 flex flex-col items-center gap-3 opacity-40 text-center">
+                        <div className="w-10 h-10 rounded-full border border-dashed border-amber-400/30 flex items-center justify-center">
+                          <Highlighter size={16} className="text-amber-400/50" />
+                        </div>
+                        <p className="text-[10px] md:text-xs uppercase font-black tracking-widest text-[#FFDF00] max-w-sm">
+                          Encara no has subratllat cap fragment al text de convocatòria. Comença a pintar i apareixerà aquí dret!
+                        </p>
                       </div>
-                    ))
-                  ) : (
-                    <div className="py-8 md:py-16 flex flex-col items-center gap-4 md:gap-8 opacity-30 text-center">
-                      <div className="w-12 h-12 md:w-20 md:h-20 rounded-full border-2 border-dashed border-amber-400/30" />
-                      <p className="text-[10px] md:text-sm uppercase font-black tracking-widest text-amber-400/50">Encara no has subratllat res en aquest apartat del temari oficial</p>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* SECCIÓ 4: PREGUNTES OFICIALS */}
+        {/* ========================================================================= */}
+        <div className="flex flex-col border border-white/5 rounded-2xl overflow-hidden bg-white/5 shadow-xl transition-all">
+          <button 
+            onClick={() => toggleSeccio('preguntes')}
+            className="w-full text-left p-4 md:p-6 flex items-center justify-between hover:bg-white/5 transition-all group cursor-pointer"
+          >
+            <div className="flex items-center gap-4">
+              <div className={`w-9 h-9 md:w-11 md:h-11 rounded-xl flex items-center justify-center transition-colors border ${
+                seccionsObertes.preguntes 
+                ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' 
+                : 'bg-white/5 text-white/60 border-white/10 group-hover:bg-white/10'
+              }`}>
+                <HelpCircle size={16} className="md:size-5" />
+              </div>
+              <div>
+                <span className="text-[10px] md:text-sm font-black uppercase tracking-[0.2em] text-purple-400 block mb-0.5">AUTOAVALUACIÓ</span>
+                <h3 className="text-xs md:text-base font-black italic uppercase text-white tracking-widest">
+                  Preguntes oficials
+                </h3>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[8px] md:text-xs font-black uppercase text-purple-400/70 tracking-widest hidden sm:inline">
+                Exàmens Reals
+              </span>
+              <div className="text-white/30 group-hover:text-purple-400 transition-colors">
+                {seccionsObertes.preguntes ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </div>
+            </div>
+          </button>
+
+          <AnimatePresence>
+            {seccionsObertes.preguntes && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden border-t border-white/5 bg-black/30"
+              >
+                <div className="p-5 md:p-8 flex flex-col gap-4">
+                  <p className="text-[10px] md:text-xs text-white/50 leading-relaxed italic">
+                    Practica amb preguntes extretes d'oposicions reals anteriors de la Generalitat de Catalunya corresponents a aquest tema d'estudi:
+                  </p>
+
+                  <div className="bg-white/5 border border-white/5 rounded-xl p-5 md:p-7 shadow-xl">
+                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/5">
+                      <span className="text-[9px] md:text-[10px] font-black text-purple-400 uppercase tracking-widest">
+                        CONVOCATÒRIA MOSSOS D'ESQUADRA
+                      </span>
+                      <span className="text-[8px] md:text-[9px] font-bold text-white/30 uppercase">
+                        PREGUNTA D'EXAMEN
+                      </span>
                     </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* SECTION: PREGUNTES OFICIALS */}
-        <AnimatePresence>
-          {opcionsMostra.preguntes && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-black/20 backdrop-blur-sm rounded-[2rem] border border-purple-500/30 overflow-hidden shadow-2xl"
-            >
-              <div className="p-4 md:p-8 bg-gradient-to-br from-purple-500/10 to-transparent border-b border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="p-1.5 md:p-3 bg-purple-500 rounded-lg text-white shadow-lg shadow-purple-900/40">
-                    <CheckCircle2 size={14} className="md:size-6" />
-                  </div>
-                  <span className="text-[10px] md:text-base font-black uppercase tracking-[0.3em] text-purple-400">Exàmens Oficials Anteriors</span>
-                </div>
-              </div>
-              <div className="p-8 md:p-14 flex flex-col gap-6 md:gap-10">
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-10 shadow-xl">
-                  <div className="flex items-center justify-between mb-4 md:mb-8">
-                    <span className="text-[10px] md:text-sm font-black text-purple-400 uppercase tracking-widest">Convocatòria 2025</span>
-                    <span className="text-[9px] md:text-xs font-bold text-white/30 uppercase">Pregunta Oficial</span>
-                  </div>
-                  
-                  <p className="text-base md:text-2xl text-white font-bold leading-tight mb-6 md:mb-10">"Com defineix Vicens i Vives Catalunya?"</p>
-                  
-                  <div className="flex flex-col gap-2.5 md:gap-4">
-                    {[
-                      { id: 'a', t: "Un país meravellós" },
-                      { id: 'b', t: "Passadís i redós" },
-                      { id: 'c', t: "Com part d'Espanya" },
-                      { id: 'd', t: "El país més antic d'Europa" }
-                    ].map((opt) => (
-                      <div 
-                        key={opt.id}
-                        className={`p-3 md:p-6 rounded-xl border text-sm md:text-lg font-bold transition-all px-4 md:px-8 ${
-                          mostrarResposta 
-                          ? opt.id === 'b'
-                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                            : 'bg-red-500/5 border-red-500/20 text-white/20'
-                          : 'bg-white/5 border-white/10 text-white'
-                        }`}
-                      >
-                        <span className="text-[10px] md:text-xs uppercase opacity-40 mr-3">{opt.id} —</span>
-                        {opt.t}
-                      </div>
-                    ))}
-                  </div>
-
-                  {!mostrarResposta && (
-                    <button 
-                      onClick={() => setMostrarResposta(true)}
-                      className="w-full mt-6 md:mt-10 py-3 md:py-6 bg-purple-500 hover:bg-purple-400 text-white rounded-xl font-black uppercase text-[10px] md:text-sm tracking-widest transition-all active:scale-95 shadow-lg shadow-purple-900/40"
-                    >
-                      Mostra la correcta
-                    </button>
-                  )}
-                  
-                  {mostrarResposta && (
-                    <p className="mt-4 md:mt-8 text-[10px] md:text-sm text-emerald-400 font-bold uppercase text-center tracking-widest animate-pulse">
-                      La resposta correcta és la B
+                    
+                    <p className="text-xs md:text-base text-white font-bold leading-relaxed mb-5">
+                      "Segons el material d'estudi oficial analitzat, com es defineix Catalunya per part del conegut historiador Vicens i Vives?"
                     </p>
-                  )}
+                    
+                    <div className="flex flex-col gap-2.5">
+                      {[
+                        { id: 'a', t: "Un país completament obert a l'exterior" },
+                        { id: 'b', t: "Un equilibri basat en redós i passadís" },
+                        { id: 'c', t: "Un territori sense canvis des de l'època carolíngia" },
+                        { id: 'd', t: "El nucli original de tota la civilització mediterrània occidental" }
+                      ].map((opt) => (
+                        <div 
+                          key={opt.id}
+                          className={`p-3 md:p-4 rounded-xl border text-xs md:text-sm font-bold transition-all ${
+                            mostrarResposta 
+                            ? opt.id === 'b'
+                              ? 'bg-[#00f296]/20 border-[#00f296] text-[#00f296] shadow-[0_0_15px_rgba(0,242,150,0.15)] animate-bounce'
+                              : 'bg-red-500/5 border-red-500/20 text-white/25'
+                            : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10 hover:border-white/20'
+                          }`}
+                        >
+                          <span className="text-[9px] font-black uppercase opacity-40 mr-2">{opt.id.toUpperCase()} )</span>
+                          {opt.t}
+                        </div>
+                      ))}
+                    </div>
+
+                    {!mostrarResposta ? (
+                      <button 
+                        onClick={() => setMostrarResposta(true)}
+                        className="w-full mt-5 py-3.5 bg-[#FFDF00] hover:bg-[#fff266] text-slate-950 font-black uppercase text-[10px] tracking-widest rounded-xl transition-all active:scale-95 shadow-lg shadow-yellow-950/20 cursor-pointer text-center"
+                      >
+                        Comprova quina és la correcta
+                      </button>
+                    ) : (
+                      <div className="mt-4 p-3 bg-emerald-500/15 border border-[#00f296]/30 rounded-xl text-center">
+                        <p className="text-[9px] md:text-xs text-[#00f296] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 leading-none">
+                          <Sparkles size={11} className="animate-spin" /> EXCEL·LENT! LA RESPOSTA CORRECTA ÉS LA B
+                        </p>
+                        <p className="text-[9px] text-white/40 mt-1 italic font-medium leading-relaxed">
+                          La combinació de muntanya i costa ens configura des de l'antiguitat sota aquesta definició.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* BOTÓ DE PROGRESS: MARCAR COM A ESTUDIAT AL FINAL DE LA PANTALLA */}
+        {/* ========================================================================= */}
+        <div className="mt-8 pt-8 border-t border-white/5 flex flex-col items-center gap-4">
+          <p className="text-[10px] md:text-xs text-white/40 leading-relaxed max-w-lg text-center font-medium">
+            Una vegada hagis acabat de repassar el resum d'OposiMossos i d'introduir les teves notes claus, recorda marcar la lliçó per visualitzar-la correctament al panell de progrés general:
+          </p>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onMarcarCompletat}
+            className={`px-8 py-4 rounded-xl font-black uppercase text-[10px] md:text-xs tracking-widest flex items-center justify-center gap-3 border shadow-xl cursor-pointer transition-all ${
+              completat 
+              ? 'bg-[#00f296] text-slate-950 border-[#00f296] font-black shadow-[#00f296]/20' 
+              : 'bg-white/5 hover:bg-white/10 text-white/90 border-white/15'
+            }`}
+          >
+            {completat ? (
+              <>
+                <CheckCircle2 size={16} className="stroke-[3]" />
+                TEMA ESTUDIAT CORRECtament
+              </>
+            ) : (
+              <>
+                <div className="w-4 h-4 rounded-full border border-white/40" />
+                Marcar Tema com a EstUDIAT
+              </>
+            )}
+          </motion.button>
+        </div>
 
       </main>
-
     </div>
   );
 }

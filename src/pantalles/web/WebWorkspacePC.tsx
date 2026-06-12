@@ -713,6 +713,7 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
                 id="sidebar-btn-seccio-teorica"
               >
                 <div className="flex items-center gap-2">
+                  {/* Comentari planer per a no-programadors: Restaurem el contingut original "1. PROVA TEÒRICA" segons desitjos de l'usuari */}
                   <span className="text-[11px] font-black uppercase tracking-wider text-slate-205">
                     1. PROVA TEÒRICA
                   </span>
@@ -768,6 +769,7 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
                         </button>
 
                         {/* 2. Temari OposiMossos */}
+                        {/* Comentari planer per a no-programadors: Canviem el text de l'opció del menú per 'Area d'estudi personal' tal com reclama el client */}
                         <button
                           id="opt-teorica-temari-oposimossos"
                           onClick={() => setSeccioActiva('teorica_temari_oposimossos')}
@@ -777,7 +779,7 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
                               : 'hover:bg-slate-900 text-slate-400 border border-transparent'
                           }`}
                         >
-                          <span>- Temari OposiMossos</span>
+                          <span>- Area d'estudi personal</span>
                         </button>
 
                         {/* 3. Classes Premium */}
@@ -945,6 +947,7 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
                 id="sidebar-btn-seccio-fisica"
               >
                 <div className="flex items-center gap-2">
+                  {/* Comentari planer per a no-programadors: Restaurem "2. PROVA FÍSICA" al menú lateral de la web */}
                   <span className="text-[11px] font-black uppercase tracking-wider text-slate-205">
                     2. PROVA FÍSICA
                   </span>
@@ -1494,6 +1497,7 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
                 </span>
               </header>
               <h1 className="text-xl font-black italic uppercase text-white tracking-wide">
+                {/* Comentari planer per a no-programadors: Restaurem el títol mostrat a la capçalera de "Fase 1 - Prova teòrica" segons la comanda per desfer els canvis d'Area d'estudi */}
                 {seccioActiva.startsWith('teorica') && "📋 Fase 1 - Prova teòrica"}
                 {seccioActiva.startsWith('fisica') && "🏃 FASE 2: PREPARACIÓ I PROVES FÍSIQUES"}
                 {seccioActiva.startsWith('psico') && "🧠 FASE 3: AVALUACIÓ PSICOPROFESSIONAL"}
@@ -1548,6 +1552,7 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
                   }}
                   className="group relative w-full bg-[#FFDF00] hover:bg-[#fff066] text-slate-950 font-black italic uppercase tracking-[0.22em] py-5 px-10 rounded-full shadow-2xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] active:translate-y-0 active:scale-98 cursor-pointer text-center text-sm border-2 border-transparent"
                 >
+                  {/* Comentari planer per a no-programadors: Restaurem el contingut original "Prova teòrica" del botó central perquè s'han desfet tots els canvis d'Area d'estudi */}
                   Prova teòrica
                 </button>
 
@@ -1561,6 +1566,7 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
                   }}
                   className="group relative w-full bg-[#FFDF00] hover:bg-[#fff066] text-slate-950 font-black italic uppercase tracking-[0.22em] py-5 px-10 rounded-full shadow-2xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] active:translate-y-0 active:scale-98 cursor-pointer text-center text-sm border-2 border-transparent"
                 >
+                  {/* Comentari planer per a no-programadors: Restaurem "Preova física" per al segon botó d'accés del web */}
                   Preova física
                 </button>
 

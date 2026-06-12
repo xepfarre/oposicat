@@ -40,7 +40,8 @@ export default function ExamenTeoricInici({
       titol: "Temari",
       items: [
         { text: "Temari oficial", action: onTemariOficial },
-        { text: "Temari d'OposiMossos", action: onTemariOposimossos },
+        /* Comentari planer per a no-programadors: Cambiem el nom del botó a 'Area d'estudi personal' tal com ha demanat el client */
+        { text: "Area d'estudi personal", action: onTemariOposimossos },
       ]
     },
     {

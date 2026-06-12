@@ -548,15 +548,19 @@ export default function App() {
 
   const handleTornarDeLector = () => {
     if (pantalla === 'lector_contingut') setPantalla('detall_tema');
-    else setPantalla('detall_tema_oposimossos');
+    else setPantalla('temari_oposimossos');
     setSubtemaSeleccionat(null);
   };
 
   const handleTornarDeDetall = () => {
     const isOposi = pantalla === 'detall_tema_oposimossos';
-    if (temaSeleccionat?.ambit === 'A') setPantalla(isOposi ? 'temari_oposimossos_ambit_a' : 'temari_ambit_a');
-    else if (temaSeleccionat?.ambit === 'B') setPantalla(isOposi ? 'temari_oposimossos_ambit_b' : 'temari_ambit_b');
-    else setPantalla(isOposi ? 'temari_oposimossos_ambit_c' : 'temari_ambit_c');
+    if (isOposi) {
+      setPantalla('temari_oposimossos');
+    } else {
+      if (temaSeleccionat?.ambit === 'A') setPantalla('temari_ambit_a');
+      else if (temaSeleccionat?.ambit === 'B') setPantalla('temari_ambit_b');
+      else setPantalla('temari_ambit_c');
+    }
     setTemaSeleccionat(null);
   };
 
@@ -880,6 +884,12 @@ export default function App() {
               onAmbitA={handleAnarOposiAmbitA}
               onAmbitB={handleAnarOposiAmbitB}
               onAmbitC={handleAnarOposiAmbitC}
+              onSeleccionarTema={(ambit, idx) => handleSeleccionarTema(ambit, idx, 'oposimossos')}
+              onSeleccionarSubtema={(ambit, temaIdx, subtemaIdx) => {
+                setTemaSeleccionat({ ambit, index: temaIdx });
+                setSubtemaSeleccionat(subtemaIdx);
+                setPantalla('lector_contingut_oposimossos');
+              }}
               progres={progres.oposimossos}
             />
           )}
