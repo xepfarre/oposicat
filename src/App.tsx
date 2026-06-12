@@ -184,6 +184,12 @@ export default function App() {
 
     const docRef = doc(db, 'usuaris', user.uid);
 
+    // Variable de control lexical (Explicació planer per a no-programadors):
+    // Ens serveix per saber si ja hem pogut escriure la nostra sessió amb èxit a Firestore.
+    // Així evitem que l'escoltador en viu (onSnapshot) compari abans d'hora el nostre navegador amb
+    // les dades antigues de la base de dades, evitant tancar la sessió de forma errònia durant la càrrega.
+    let sessioRegistradaCorrectament = false;
+
     // 2. Intentem registrar la nostra clau de sessió única a la base de dades (Firestore)
     // Comentari planer per a no-programadors:
     // Aquesta funció s'encarrega de desar a la fitxa de l'estudiant quina és la seva sessió activa del mòbil/tauleta.
@@ -196,6 +202,7 @@ export default function App() {
           idSessioActiva: laMevaSessio,
           ultimAccesEl: new Date()
         });
+        sessioRegistradaCorrectament = true;
       } catch (err: any) {
         const errorText = err?.message || String(err);
         
@@ -213,6 +220,7 @@ export default function App() {
               idSessioActiva: laMevaSessio,
               ultimAccesEl: new Date()
             });
+            sessioRegistradaCorrectament = true;
           } catch (errorCreacio) {
             console.error("No s'ha pogut auto-crear o actualizar la fitxa durant el controlador de sessió única:", errorCreacio);
           }
@@ -224,6 +232,7 @@ export default function App() {
                 idSessioActiva: laMevaSessio,
                 ultimAccesEl: new Date()
               });
+              sessioRegistradaCorrectament = true;
             } catch (e) {
               console.error("No s'ha pogut establir la clau de sessió única simultània al segon intent:", e);
             }
@@ -241,7 +250,9 @@ export default function App() {
         const sessioABBDD = dades.idSessioActiva;
 
         // Comprovació crucial: si a la BBDD hi ha una clau de sessió i no és la nostra, algú més ha entrat!
-        if (sessioABBDD && sessioABBDD !== laMevaSessio) {
+        // Comentari planer per a no-programadors: Només fem aquesta comprovació si el nostre propi dispositiu ja s'ha
+        // registrat amb èxit (sessioRegistradaCorrectament === true), per evitar tancaments per dades antigues.
+        if (sessioRegistradaCorrectament && sessioABBDD && sessioABBDD !== laMevaSessio) {
           console.warn("Doble sessió detectada! Desconnectant aquest dispositiu per evitar l'ús fraudulent de comptes.");
           setErrorSessioDuplicada(true);
           tancarSessio().then(() => {

@@ -55,7 +55,8 @@ service cloud.firestore {
     match /usuaris/{userId} {
       
       // Permetem lectura del perfil si és l'amo de les dades o administrador
-      allow get: if isOwner(userId) || isAdmin();
+      allow get: if isOwner(userId);
+      allow get: if isAdmin();
       
       // Prohibim a estudiants llistar tots els companys per privacitat
       allow list: if isAdmin();
@@ -76,7 +77,7 @@ service cloud.firestore {
       // Comentari planer per a no-programadors:
       // Es permet a l'alumne canviar o actualitzar el seu propi document de dades però protegim completament
       // la immutabilitat dels camps sensibles: el rol d'estudiant, el correu i l'estat del pagament real.
-      allow update: if (isOwner(userId) &&
+      allow update: if isOwner(userId) &&
                        isValidId(userId) &&
                        incoming().uid == existing().uid &&
                        incoming().email == existing().email &&
@@ -86,16 +87,16 @@ service cloud.firestore {
                        incoming().correuVerificat == existing().correuVerificat &&
                        (!("idSessioActiva" in incoming()) || (incoming().idSessioActiva is string && incoming().idSessioActiva.size() <= 128)) &&
                        (!("displayName" in incoming()) || (incoming().displayName is string && incoming().displayName.size() <= 128)) &&
-                       (!("photoURL" in incoming()) || (incoming().photoURL is string && incoming().photoURL.size() <= 512))
-                      ) || 
-                      isAdmin();
+                       (!("photoURL" in incoming()) || (incoming().photoURL is string && incoming().photoURL.size() <= 512));
+      allow update: if isAdmin();
 
       // Només d'esborrat des del Backoffice d'OposiCAT
       allow delete: if isAdmin();
 
       // 1.1 Subcol·lecció de dades de facturació i de privacitat RGPD (dades_privades)
       match /dades_privades/{docId} {
-        allow get: if isOwner(userId) || isAdmin();
+        allow get: if isOwner(userId);
+        allow get: if isAdmin();
         allow list: if isAdmin();
         
         // Permetre crear-se el seu primer calaix de facturació securitzat
@@ -104,43 +105,49 @@ service cloud.firestore {
                          incoming().uid == userId;
 
         // Permetre modificar dades personals lliurement pel propietari
-        allow update: if (isOwner(userId) && 
+        allow update: if isOwner(userId) && 
                          incoming().uid == userId && 
-                         incoming().uid == existing().uid) || 
-                         isAdmin();
+                         incoming().uid == existing().uid;
+        allow update: if isAdmin();
 
         allow delete: if isAdmin();
       }
 
       // 1.2 Subcol·lecció de tokens FCM per a rebre notificacions push al smartphone
       match /tokens_fcm/{tokenId} {
-        allow get, write: if isOwner(userId) || isAdmin();
+        allow get, write: if isOwner(userId);
+        allow get, write: if isAdmin();
         allow list: if isAdmin();
       }
 
       // 1.3 Subcol·lecció de resum d'estadístiques o agrupació prèvia d'estudis de l'usuari (estadistiques)
-      // Comentari planer per a no-programadors: Aquesta col·lecció permet desar la foto resum d'estadístiques i encerts (com el total de respostes i encerts), garantint que la velocitat de càrrega sigui ultra-ràpida directament de forma atòmica sense haver de llegir milers de files. L'estudiant té accés per llegir i modificar el seu propi resum.
+      // Comentari planer per a no-programadors: Aquesta col·lecció permet desar la foto resum d'estadístiques i encerts (com el total de respostes i encerts), garantint que la velocitat de càrrega sigui ultra-ràpida directament de forma atòmica sense haver de llegegir milers de files. L'estudiant té accés per llegegir i modificar el seu propi resum.
       match /estadistiques/{docId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow write: if isOwner(userId) || isAdmin();
+        allow read: if isOwner(userId);
+        allow read: if isAdmin();
+        allow write: if isOwner(userId);
+        allow write: if isAdmin();
       }
 
       // 1.4 Subcol·lecció del progrés de lectura detallat i global dels temes de l'oposició
-      // Comentari planer per a no-programadors: Permet a l'estudiant registrar quines pàgines té memoritzades o llegides de cadascun dels àmbits d'estudi.
+      // Comentari planer per a no-programadors: Permet a l'estudiant registrar quines pàgines té memoritzades o llegides de cadascun dels àmbits d'estudi. Separar la regla de l'estudiant i de l'admin és vital per evitar errors rellevants amb "isAdmin()" en comptes de prova on el perfil encara no està creat completament.
       match /progres_lectura/{docId} {
-        allow read, write: if isOwner(userId) || isAdmin();
+        allow read, write: if isOwner(userId);
+        allow read, write: if isAdmin();
       }
 
       // 1.5 Subcol·lecció dels textos subratllats d'estudi per apartat
-      // Comentari planer per a no-programadors: Permet conservar els subratllats que el candidat aplica sobre les línies del temari oficial.
+      // Comentari planer per a no-programadors: Permet conservar els subratllats que el candidat aplica sobre les línies del temari oficial. També dividim les regles per assolir blindatge absolut i evitar interrupcions durant l'estudi.
       match /subratllats/{docId} {
-        allow read, write: if isOwner(userId) || isAdmin();
+        allow read, write: if isOwner(userId);
+        allow read, write: if isAdmin();
       }
 
       // 1.6 Subcol·lecció d'anotacions i notes redactades a mà a mode de resum propi per l'opositor
       // Comentari planer per a no-programadors: Espai privat on l'opositor redacta conceptes o regles mnemotècniques sobre un subtema.
       match /resums_estudiant/{docId} {
-        allow read, write: if isOwner(userId) || isAdmin();
+        allow read, write: if isOwner(userId);
+        allow read, write: if isAdmin();
       }
     }
 

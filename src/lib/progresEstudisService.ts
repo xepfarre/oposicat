@@ -1,4 +1,4 @@
-import { db } from './firebase';
+import { db, auth } from './firebase';
 import { 
   doc, 
   setDoc, 
@@ -7,6 +7,59 @@ import {
   writeBatch,
   serverTimestamp 
 } from 'firebase/firestore';
+
+// Explicació per a no-programadors:
+// Definim els tipus d'operacions i formats d'error exigits pel mòdul de diagnòstic de seguretat de Google.
+// Això permet indicar amb precisió absoluta on s'ha programat un bloqueig o què ha fallat.
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errMessage = error instanceof Error ? error.message : String(error);
+  
+  const errInfo: FirestoreErrorInfo = {
+    error: errMessage,
+    authInfo: {
+      userId: auth.currentUser?.uid || null,
+      email: auth.currentUser?.email || null,
+      emailVerified: auth.currentUser?.emailVerified || null,
+      isAnonymous: auth.currentUser?.isAnonymous || null,
+      tenantId: auth.currentUser?.tenantId || null,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  
+  console.error('[Firestore Error Detallat]: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 // ============================================================================
 // SERVEI DE SEGUIMENT DE PROGRESSOS I ESTUDIS DE L'OPOSITOR SOTA FIRESTORE
@@ -186,10 +239,17 @@ export async function carregarProgresEstudis(userId: string) {
   };
 
   try {
-    console.log(`[Firestore càrrega] Començant lectura global dels progressos de l'estudiant: ${userId}`);
+    console.log(`[Firestore càrrega] Començant de manera segura lectura global dels progressos de l'estudiant: ${userId}`);
 
-    // Partió 1: Llegim progres de lectura
-    const snapLectura = await getDocs(collection(db, 'usuaris', userId, 'progres_lectura'));
+    // Partió 1: Llegim progres de lectura des de Firestore amb gestió d'errors granular.
+    let snapLectura;
+    try {
+      snapLectura = await getDocs(collection(db, 'usuaris', userId, 'progres_lectura'));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.LIST, `usuaris/${userId}/progres_lectura`);
+      throw e;
+    }
+
     snapLectura.forEach((docSnap) => {
       const d = docSnap.data();
       const id = docSnap.id;
@@ -223,8 +283,15 @@ export async function carregarProgresEstudis(userId: string) {
       }
     });
 
-    // Partió 2: Llegim subratllats (highlights)
-    const snapSubratllats = await getDocs(collection(db, 'usuaris', userId, 'subratllats'));
+    // Partió 2: Llegim subratllats (highlights) des de Firestore de forma adaptativa.
+    let snapSubratllats;
+    try {
+      snapSubratllats = await getDocs(collection(db, 'usuaris', userId, 'subratllats'));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.LIST, `usuaris/${userId}/subratllats`);
+      throw e;
+    }
+
     snapSubratllats.forEach((docSnap) => {
       const d = docSnap.data();
       const id = docSnap.id; // Formato: A_0_4
@@ -233,8 +300,15 @@ export async function carregarProgresEstudis(userId: string) {
       r.contingutPersonalitzat[clauMemoria] = d.html || "";
     });
 
-    // Partió 3: Llegim notes i resums personals redactats
-    const snapNotes = await getDocs(collection(db, 'usuaris', userId, 'resums_estudiant'));
+    // Partió 3: Llegim notes i resums personals redactats des de Firestore.
+    let snapNotes;
+    try {
+      snapNotes = await getDocs(collection(db, 'usuaris', userId, 'resums_estudiant'));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.LIST, `usuaris/${userId}/resums_estudiant`);
+      throw e;
+    }
+
     snapNotes.forEach((docSnap) => {
       const d = docSnap.data();
       const id = docSnap.id; // Formato: A_0_4
@@ -245,6 +319,7 @@ export async function carregarProgresEstudis(userId: string) {
     console.log(`[Firestore càrrega] S'ha carregat i reconstruït el progrés unificat per a l'usuari ${userId} de forma impecable.`);
   } catch (err) {
     console.error(`[Firestore error] Error durant la recuperació integral del progrés d'estudis:`, err);
+    throw err;
   }
 
   return r;
