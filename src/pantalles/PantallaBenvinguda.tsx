@@ -21,10 +21,20 @@ export default function PantallaBenvinguda({
   const [mostrarAuth, setMostrarAuth] = useState(false);
 
   return (
-    <div className="fixed inset-0 w-full bg-[#00274d] overflow-y-auto flex flex-col items-center px-6 pb-12 pt-8" style={{ WebkitOverflowScrolling: "touch" }}>
+    <div 
+      className="fixed inset-0 w-full bg-[#010915] overflow-y-auto flex flex-col items-center px-6 pb-12 pt-8" 
+      style={{ 
+        WebkitOverflowScrolling: "touch",
+        // Explicació per a no-programadors: Deixem la imatge de fons amb un to molt més fosc alineat amb el disseny d'OposiCAT per a màxima consonància estètica a tota l'App en qualsevol dispositiu, i amb posició del 20% bottom igual que a la pantalla d'inici original.
+        backgroundImage: "linear-gradient(to bottom, rgba(1, 9, 21, 0.92), rgba(1, 9, 21, 0.96)), url('/assets/imatges/fons_ispc.png')",
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "20% bottom"
+      }}
+    >
       
       {/* CAPÇALERA IDÈNTICA AL LOGO PRINCIPAL */}
-      <header className="pt-10 w-full flex flex-col items-center gap-6 shrink-0 mb-4">
+      <header className="relative z-10 pt-10 w-full flex flex-col items-center gap-6 shrink-0 mb-4">
         <div className="bg-black/30 backdrop-blur-md px-10 py-4 rounded-3xl shadow-xl border border-white/10">
           <h1 className="text-3xl font-black italic tracking-tighter select-none">
             <span className="text-white">Oposi</span>
@@ -34,7 +44,7 @@ export default function PantallaBenvinguda({
       </header>
 
       {/* TÍTOL DE LA SETMANA (OPOSICAT ALPHA) */}
-      <div className="flex flex-col items-center text-center mt-2 max-w-xs shrink-0 font-sans">
+      <div className="relative z-10 flex flex-col items-center text-center mt-2 max-w-xs shrink-0 font-sans">
         <h2 className="text-white text-2xl font-black italic tracking-tighter uppercase opacity-95 leading-none">
           OPOSICAT
         </h2>
@@ -46,7 +56,7 @@ export default function PantallaBenvinguda({
       </div>
 
       {mostrarAuth ? (
-        <div className="w-full max-w-sm mt-8 animate-fade-in shrink-0">
+        <div className="relative z-10 w-full max-w-sm mt-8 animate-fade-in shrink-0">
           <FormulariAutenticacio 
             onSessioIniciada={onEntrarComUsuari} 
             onTornar={() => setMostrarAuth(false)} 
@@ -54,7 +64,7 @@ export default function PantallaBenvinguda({
         </div>
       ) : (
         /* SECCIÓ CENTRAL: CLONES EXACTES DELS BOTONS D'OPOSIMOSSOS */
-        <main className="w-full max-w-sm flex flex-col gap-6 my-10 px-2 shrink-0">
+        <main className="relative z-10 w-full max-w-sm flex flex-col gap-6 my-10 px-2 shrink-0">
           
           {/* BOTÓ 1: ENTRAR COM USUARI (ACTIU AMB PANTALLA DE LOG IN REAL) */}
           <div className="flex flex-col w-full">
@@ -97,7 +107,7 @@ export default function PantallaBenvinguda({
       )}
 
       {/* PEU DE PÀGINA I VERSIÓ DEMANADA */}
-      <footer className="w-full max-w-xs flex flex-col items-center gap-3 mt-auto shrink-0 pt-4">
+      <footer className="relative z-10 w-full max-w-xs flex flex-col items-center gap-3 mt-auto shrink-0 pt-4">
         <span className="text-white/40 font-black italic text-[10px] uppercase tracking-widest bg-white/5 py-1.5 px-4 rounded-xl border border-white/5">
           Versió 0.0110678
         </span>

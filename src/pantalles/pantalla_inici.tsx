@@ -24,8 +24,8 @@ export default function Pantalla_Inici({
       nom: "Mossos", 
       linia1: "MOSSOS", 
       linia2: "D'ESQUADRA", 
-      color: "bg-[#00274d]", 
-      fons: "https://images.unsplash.com/photo-1513829096999-4978602297f7?q=80&w=1200&auto=format&fit=crop&blur=3",
+      color: "bg-[#010915]", 
+      fons: "/assets/imatges/fons_ispc.png",
       actiu: true 
     },
     { 
@@ -66,16 +66,24 @@ export default function Pantalla_Inici({
   return (
     <div className={`relative flex h-screen w-full flex-col items-center justify-between pb-6 px-10 transition-colors duration-700 overflow-hidden ${cos.color}`}>
       
-      {/* Explicació per a no-programadors: Capa de fons difuminada amb la imatge de l'especialitat de seguretat corresponent barrejat amb degradats de color */}
+      {/* Explicació per a no-programadors: Capa de fons ambientada amb la imatge de l'especialitat de seguretat corresponent. Per a Mossos, apliquem el mateix enquadrament noble (20% bottom), nitidesa i degradat fosc que a la pantalla principal per un disseny 100% cohesionat i sense desajustos a pantalles grans o tauletes. */}
       <div className="absolute inset-0 z-0 pointer-events-none transition-all duration-700 overflow-hidden">
         <img 
           key={cos.fons}
           src={cos.fons} 
           alt=""
           referrerPolicy="no-referrer"
-          className="w-full h-full object-cover scale-110 blur-md opacity-25 transition-all duration-700 ease-in-out select-none"
+          className={`w-full h-full object-cover transition-all duration-700 ease-in-out select-none ${
+            cos.nom === "Mossos" 
+              ? "object-[20%_bottom] opacity-35 scale-100" 
+              : "object-center blur-md opacity-25 scale-110"
+          }`}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60" />
+        <div className={`absolute inset-0 transition-colors duration-700 ${
+          cos.nom === "Mossos"
+            ? "bg-gradient-to-b from-[#010915]/90 via-[#010915]/80 to-[#010915]"
+            : "bg-gradient-to-b from-black/40 via-transparent to-black/60"
+        }`} />
       </div>
       
       {/* CAPÇALERA: Amb contenidor protector suau per garantir contrast permanent del logotip */}
