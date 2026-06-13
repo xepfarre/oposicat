@@ -72,6 +72,8 @@ export default function App() {
     'temari_oposimossos' | 'temari_oposimossos_ambit_a' | 'temari_oposimossos_ambit_b' | 'temari_oposimossos_ambit_c' | 'detall_tema_oposimossos' | 'lector_contingut_oposimossos' |
     'classes_premium' | 'clase_luna' | 'classes_directe' | 'examens_oficials_passats' | 'examen_psicotecnic' | 'actualitat' | 'examens_oposimossos' | 'examens_oposimossos_simulador';
   const [pantalla, setPantalla] = useState<Pantalla>('benvinguda_alpha');
+  // Explicació per a no-programadors: Estat d'escriptori general per recordar quina pestanya s'ha deixat oberta a la barra de botons inferior corporativa.
+  const [mossosInicialSeccio, setMossosInicialSeccio] = useState<'home' | 'forum' | 'noticies' | 'perfil'>('home');
   
   // Estat per a la vista de desenvolupament (comprovació simultània web/app)
   // Explicació per a no-programadors:
@@ -564,7 +566,10 @@ export default function App() {
     setTemaSeleccionat(null);
   };
 
-  const handleTornarMossos = () => setPantalla('mossos');
+  const handleTornarMossos = () => {
+    setMossosInicialSeccio('home');
+    setPantalla('mossos');
+  };
   const handleAnarLaMevaOposicio = () => setPantalla('la_meva_oposicio');
 
   // Gestió Backoffice
@@ -725,6 +730,8 @@ export default function App() {
               onProvaPractica={handleAnarPractica}
               onProvaPsicologica={handleAnarPsicologica}
               onLaMevaOposicio={handleAnarLaMevaOposicio}
+              inicialSeccio={mossosInicialSeccio}
+              onCanviarSeccio={(seccio) => setMossosInicialSeccio(seccio)}
             />
           )}
 
@@ -735,6 +742,10 @@ export default function App() {
               onExamenPsicotecnic={handleAnarExamenPsicotecnic}
               onActualitat={handleAnarActualitat}
               onEmCostaEstudiar={handleAnarEmCostaEstudiar}
+              onAnarSeccio={(seccio) => {
+                setMossosInicialSeccio(seccio);
+                setPantalla('mossos');
+              }}
             />
           )}
 
@@ -745,6 +756,11 @@ export default function App() {
               onAmbitB={handleAnarTemariAmbitB}
               onAmbitC={handleAnarTemariAmbitC}
               progres={progres}
+              onAnarSeccio={(seccio) => {
+                setMossosInicialSeccio(seccio);
+                setPantalla('mossos');
+              }}
+              onAnarInici={() => setPantalla('mossos')}
             />
           )}
 
@@ -755,6 +771,11 @@ export default function App() {
               progres={progres.A}
               progresDetallat={progres.detall.A}
               onToggle={(i) => toggleTemaLlegit('A', i)}
+              onAnarSeccio={(seccio) => {
+                setMossosInicialSeccio(seccio);
+                setPantalla('mossos');
+              }}
+              onAnarInici={() => setPantalla('mossos')}
             />
           )}
 
@@ -765,6 +786,11 @@ export default function App() {
               progres={progres.B}
               progresDetallat={progres.detall.B}
               onToggle={(i) => toggleTemaLlegit('B', i)}
+              onAnarSeccio={(seccio) => {
+                setMossosInicialSeccio(seccio);
+                setPantalla('mossos');
+              }}
+              onAnarInici={() => setPantalla('mossos')}
             />
           )}
 
@@ -775,6 +801,11 @@ export default function App() {
               progres={progres.C}
               progresDetallat={progres.detall.C}
               onToggle={(i) => toggleTemaLlegit('C', i)}
+              onAnarSeccio={(seccio) => {
+                setMossosInicialSeccio(seccio);
+                setPantalla('mossos');
+              }}
+              onAnarInici={() => setPantalla('mossos')}
             />
           )}
 
@@ -787,6 +818,11 @@ export default function App() {
               onTornar={handleTornarDeDetall}
               onToggle={(subIdx) => toggleSubtemaLlegit(temaSeleccionat.ambit, temaSeleccionat.index, subIdx)}
               onSubtemaClick={(subIdx) => handleSeleccionarSubtema(subIdx)}
+              onAnarSeccio={(seccio) => {
+                setMossosInicialSeccio(seccio);
+                setPantalla('mossos');
+              }}
+              onAnarInici={() => setPantalla('mossos')}
             />
           )}
 
@@ -805,6 +841,11 @@ export default function App() {
                   toggleSubtemaLlegit(temaSeleccionat.ambit, temaSeleccionat.index, subtemaSeleccionat);
                 }
               }}
+              onAnarSeccio={(seccio) => {
+                setMossosInicialSeccio(seccio);
+                setPantalla('mossos');
+              }}
+              onAnarInici={() => setPantalla('mossos')}
             />
           )}
 
@@ -817,6 +858,11 @@ export default function App() {
               onClassesDirecte={handleAnarClassesDirecte}
               onExamensOficialsPassats={handleAnarExamensOficialsPassats}
               onExamensOposimossos={handleAnarExamensOposimossos}
+              onAnarSeccio={(seccio) => {
+                setMossosInicialSeccio(seccio);
+                setPantalla('mossos');
+              }}
+              onAnarInici={() => setPantalla('mossos')}
             />
           )}
 

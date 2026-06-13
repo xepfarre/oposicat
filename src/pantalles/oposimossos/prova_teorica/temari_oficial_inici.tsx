@@ -1,117 +1,114 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, BookOpen, Shield, Landmark } from 'lucide-react';
+import { ChevronLeft, BookOpen, Shield, Landmark, Home, MessageSquare, Bell } from 'lucide-react';
+
+// @ts-ignore
+// Explicació per a no-programadors: Importem la fantàstica imatge real de gent estudiant generada específicament per a la prova teòrica del campus d'ordinadors d'OposiCAT.
+import fonsTeorica from '../../../assets/images/fons_teorica_1780343152615.png';
 
 /**
+ * PANTALLA: TemariOficialInici
  * Pantalla del Temari Oficial de Mossos d'Esquadra 2025-2026.
- * Seguint l'arquitectura de "Lego", aquest component és independent.
+ * Seguint les indicacions de l'usuari, s'ha desbloquejat el títol de la part superior
+ * perquè faci scroll natural, s'ha importat la imatge de la web de gent estudiant de fons
+ * i s'han incorporat les mateixes pestanyes corporatives que a les pantalles anteriors.
+ * 
+ * Explicació per a no-programadors: Aquesta pantalla és una peça de "Lego" clarament dividida del backend.
+ * mostrant els tres grans àmbits d'estudi oficials per a Mossos (Coneixements, Institucional, i Seguretat).
+ * Ubicació: /src/pantalles/oposimossos/prova_teorica/temari_oficial_inici.tsx
  */
 export default function TemariOficialInici({ 
   onTornar, 
   onAmbitA,
   onAmbitB,
   onAmbitC,
-  progres
+  progres,
+  onAnarSeccio,
+  onAnarInici
 }: { 
   onTornar: () => void,
   onAmbitA: () => void,
   onAmbitB: () => void,
   onAmbitC: () => void,
-  progres: { A: boolean[], B: boolean[], C: boolean[] }
+  progres: { A: boolean[], B: boolean[], C: boolean[] },
+  onAnarSeccio?: (seccio: 'home' | 'forum' | 'noticies' | 'perfil') => void,
+  onAnarInici?: () => void
 }) {
-  const [scrolled, setScrolled] = useState(false);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Detectem l'scroll del contenidor per a l'efecte de la capçalera
-  const handleContainerScroll = () => {
-    if (scrollContainerRef.current) {
-      setScrolled(scrollContainerRef.current.scrollTop > 40);
+  // Explicació per a no-programadors: Estil d'àvatar obtingut de la memòria local per mostrar la icona a mida triada per l'opositor.
+  const [avatarEstil, setAvatarEstil] = useState<string>("👮‍♂️");
+
+  useEffect(() => {
+    try {
+      const deLocalStorage = localStorage.getItem("avatar_estil");
+      if (deLocalStorage) {
+        setAvatarEstil(deLocalStorage);
+      }
+    } catch {
+      setAvatarEstil("👮‍♂️");
     }
-  };
+  }, []);
 
   return (
     <div 
-      ref={scrollContainerRef}
-      onScroll={handleContainerScroll}
-      className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20"
-      style={{ WebkitOverflowScrolling: "touch" }}
+      className="fixed inset-0 w-full overflow-y-auto flex flex-col items-center px-6 pb-28 bg-[#00274d] select-none"
+      style={{ 
+        WebkitOverflowScrolling: "touch",
+        // Explicació per a no-programadors: El següent fons de degradat utilitza la mateixa imatge real de gent estudiant portada des del campus web.
+        backgroundImage: `linear-gradient(to bottom, rgba(0, 39, 77, 0.88), rgba(0, 39, 77, 0.94)), url('${fonsTeorica}')`,
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center top"
+      }}
     >
       
-      {/* CAPÇALERA DINÀMICA */}
-      <header 
-        style={{ 
-          height: scrolled ? "calc(70px + env(safe-area-inset-top))" : "calc(140px + env(safe-area-inset-top))",
-          backgroundColor: scrolled ? "rgba(0, 39, 77, 0.98)" : "rgba(0, 39, 77, 0.5)",
-          borderBottomColor: scrolled ? "rgba(255, 255, 255, 0.1)" : "transparent",
-          paddingTop: "env(safe-area-inset-top)"
-        }}
-        className="fixed top-0 left-0 right-0 z-[100] flex flex-col items-center justify-center border-b px-6 backdrop-blur-md"
-      >
-        <div className="relative w-full flex items-center justify-center max-w-4xl">
-          {/* Botó de retorn */}
+      {/* CAPÇALERA ESTÀTICA - Completament lliure, el títol es desplaça al compàs de l'estudi de l'usuari */}
+      <header className="pt-14 w-full flex flex-col items-center gap-6 shrink-0 mb-4">
+        <div className="bg-black/30 backdrop-blur-md px-10 py-4 rounded-3xl shadow-xl border border-white/10 relative">
+          {/* Botó de retorn per anar enrere cap a la pantalla de la Prova Teòrica de forma eficient */}
           <button 
-            style={{ transform: scrolled ? "scale(0.95)" : "scale(1)" }}
             onClick={onTornar}
-            className="absolute left-0 p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-90 shadow-lg text-white"
+            className="absolute left-3 top-1/2 -translate-y-1/2 p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl active:scale-90 shadow-lg cursor-pointer"
           >
-            <ChevronLeft size={24} />
+            <ChevronLeft className="w-5 h-5 text-white" />
           </button>
-
-          {/* Logo Temari Oficial */}
-          <div 
-            style={{ transform: scrolled ? "scale(0.85)" : "scale(1)" }}
-            className="bg-black/30 px-6 py-2 rounded-2xl border border-white/10 text-center"
-          >
-            <h1 className="text-2xl font-black italic tracking-tighter select-none whitespace-nowrap leading-none">
-              <span className="text-white">Temari </span>
-              <span className="text-amber-400">Oficial</span>
-            </h1>
-          </div>
+          <h1 className="text-3xl font-black italic tracking-tighter select-none pl-6 pr-2">
+            <span className="text-white">Oposi </span>
+            <span className="text-red-600">Mossos</span>
+          </h1>
         </div>
         
-        {/* Informació Convocatòria: S'amaga instantàniament */}
-        <div 
-          style={{ 
-            opacity: scrolled ? 0 : 1,
-            display: scrolled ? 'none' : 'flex',
-            marginTop: "12px"
-          }}
-          className="flex flex-col items-center gap-1"
-        >
-          <p className="text-[10px] text-white/50 uppercase tracking-[0.2em] italic font-black">
+        <div className="flex flex-col items-center gap-1">
+          <h2 className="text-white text-md font-black italic tracking-tighter uppercase opacity-90">
+            Temari Oficial
+          </h2>
+          <div className="h-0.5 w-10 bg-amber-400 rounded-full mb-1" />
+          <p className="text-white/60 text-[8px] font-bold uppercase tracking-wider">
             Convocatòria 2025-2026
           </p>
-          <div className="h-0.5 w-10 bg-amber-400/50 rounded-full" />
         </div>
       </header>
 
       {/* CONTINGUT PRINCIPAL */}
-      <main 
-        className="w-full md:max-w-6xl flex flex-col gap-6 pb-20 px-6"
-        style={{ 
-          paddingTop: scrolled 
-            ? "calc(90px + env(safe-area-inset-top))" 
-            : "calc(160px + env(safe-area-inset-top))"
-        }}
-      >
+      <main className="w-full md:max-w-4xl flex flex-col gap-6 pb-6 transition-none">
         
-        {/* Label: Text informatiu corregit i ara groc */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl py-3 px-5 shadow-xl md:py-6">
-          <p className="text-amber-400/90 text-xs md:text-lg font-medium leading-relaxed text-center italic">
-            "Et presentem el temari oficial de l'oposició de Mossos d'Esquadra de l'any 2025-2026 prequè en facis ús en qualsevol lloc."
+        {/* Caixa de benvinguda al temari amb to daurat elegant */}
+        <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl py-4 px-6 shadow-xl text-center">
+          <p className="text-amber-300 text-xs md:text-sm font-semibold leading-relaxed italic pr-2 pl-2">
+            "Et presentem el temari oficial de l'oposició de Mossos d'Esquadra de l'any 2025-2026 perquè en facis ús en qualsevol lloc."
           </p>
         </div>
 
-        {/* Llistat d'Àmbits */}
-        <div className="flex flex-col md:grid md:grid-cols-3 gap-6">
+        {/* Llistat actiu de cadascun dels camps d'estudi definits oficialment per l'ISPC */}
+        <div className="flex flex-col md:grid md:grid-cols-3 gap-4">
           
-          {/* Àmbit A */}
+          {/* Àmbit A - Coneixements de l'entorn */}
           <motion.button 
             onClick={onAmbitA}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="w-full bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 rounded-3xl p-5 flex flex-col gap-4 transition-all text-left group"
-            id="ambit-a-btn"
+            className="w-full bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 rounded-3xl p-5 flex flex-col gap-4 transition-all text-left group cursor-pointer"
+            id="ambit-a-btn-app"
           >
             <div className="flex items-center gap-5">
               <div className="p-3 bg-blue-500 rounded-xl shadow-lg shadow-blue-900/50 group-hover:scale-110 transition-transform">
@@ -125,7 +122,7 @@ export default function TemariOficialInici({
               </div>
             </div>
 
-            {/* Milestones Àmbit A */}
+            {/* Marc de progrés d'Àmbit A */}
             <div className="pt-4 border-t border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-[10px] font-black uppercase text-white/40 tracking-[0.2em]">Llegit:</span>
@@ -152,13 +149,13 @@ export default function TemariOficialInici({
             </div>
           </motion.button>
 
-          {/* Àmbit B */}
+          {/* Àmbit B - Àmbit institucional */}
           <motion.button 
             onClick={onAmbitB}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="w-full bg-amber-600/10 hover:bg-amber-600/20 border border-amber-500/20 rounded-3xl p-5 flex flex-col gap-4 transition-all text-left group"
-            id="ambit-b-btn"
+            className="w-full bg-amber-600/10 hover:bg-amber-600/20 border border-amber-500/20 rounded-3xl p-5 flex flex-col gap-4 transition-all text-left group cursor-pointer"
+            id="ambit-b-btn-app"
           >
             <div className="flex items-center gap-5">
               <div className="p-3 bg-amber-500 rounded-xl shadow-lg shadow-amber-900/50 group-hover:scale-110 transition-transform">
@@ -172,7 +169,7 @@ export default function TemariOficialInici({
               </div>
             </div>
 
-            {/* Milestones Àmbit B */}
+            {/* Marc de progrés d'Àmbit B */}
             <div className="pt-4 border-t border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-[10px] font-black uppercase text-white/40 tracking-[0.2em]">Llegit:</span>
@@ -199,13 +196,13 @@ export default function TemariOficialInici({
             </div>
           </motion.button>
 
-          {/* Àmbit C */}
+          {/* Àmbit C - Àmbit de seguretat i policia */}
           <motion.button 
             onClick={onAmbitC}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="w-full bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/20 rounded-3xl p-5 flex flex-col gap-4 transition-all text-left group"
-            id="ambit-c-btn"
+            className="w-full bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/20 rounded-3xl p-5 flex flex-col gap-4 transition-all text-left group cursor-pointer"
+            id="ambit-c-btn-app"
           >
             <div className="flex items-center gap-5">
               <div className="p-3 bg-emerald-500 rounded-xl shadow-lg shadow-emerald-900/50 group-hover:scale-110 transition-transform">
@@ -219,7 +216,7 @@ export default function TemariOficialInici({
               </div>
             </div>
 
-            {/* Milestones Àmbit C */}
+            {/* Marc de progrés d'Àmbit C */}
             <div className="pt-4 border-t border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="text-[10px] font-black uppercase text-white/40 tracking-[0.2em]">Llegit:</span>
@@ -245,13 +242,85 @@ export default function TemariOficialInici({
               </div>
             </div>
           </motion.button>
+
         </div>
       </main>
 
-      {/* PEU DE PÀGINA: Compactat */}
-      <footer className="mt-6 pb-10 text-center text-white/20">
-        <p className="text-[8px] font-black uppercase tracking-[0.2em]">OposiCatalunya • Preparació ISPC</p>
+      {/* PEU DE PÀGINA EN BLANC - Eliminat completament el botó "Tornar al menú" com a petició de l'usuari */}
+      <footer className="w-full max-w-xs flex flex-col items-center gap-4 pb-10 mt-2">
+        <p className="text-[8px] font-black uppercase tracking-wider text-white opacity-40 select-none whitespace-nowrap">
+          OposiCatalunya • Preparació ISPC
+        </p>
       </footer>
+
+      {/* Comentari planer per a no-programadors: Barra inferior corporativa idèntica a l'original amb brillantor blau policia per a una coherència absoluta. */}
+      <div 
+        className="fixed bottom-0 left-0 right-0 z-45 bg-[#13355c]/95 backdrop-blur-md border-t border-white/20 px-4 pt-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.4)] flex items-center justify-center transition-all duration-300"
+        style={{ paddingBottom: "calc(5px + env(safe-area-inset-bottom, 6px))" }}
+      >
+        <div className="w-full max-w-md grid grid-cols-4 gap-1">
+          
+          {/* Botó 1: Casa (retorna a l'inici original de Mossos directament) */}
+          <button 
+            onClick={onAnarInici || onTornar}
+            className="py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group cursor-pointer rounded-xl hover:bg-white/5 text-white/50 hover:text-white/80"
+          >
+            <Home className="w-6 h-6 transition-all group-hover:scale-115 text-slate-300 group-hover:text-white" />
+            <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
+              Inici
+            </span>
+          </button>
+
+          {/* Botó 2: Fòrum */}
+          <button 
+            onClick={() => onAnarSeccio?.('forum')}
+            className="py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer rounded-xl hover:bg-white/5 text-white/50 hover:text-white/80"
+          >
+            <div className="relative">
+              <MessageSquare className="w-6 h-6 transition-all group-hover:scale-115 text-pink-400/60 group-hover:text-pink-400" />
+              {/* Indicador de notificació polsant de color rosa */}
+              <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75 font-bold"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+              </span>
+            </div>
+            <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
+              Fòrum 💬
+            </span>
+          </button>
+
+          {/* Botó 3: Notícies */}
+          <button 
+            onClick={() => onAnarSeccio?.('noticies')}
+            className="py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer rounded-xl hover:bg-white/5 text-white/50 hover:text-white/80"
+          >
+            <div className="relative">
+              <Bell className="w-6 h-6 transition-all group-hover:scale-115 text-white/60 group-hover:text-white" />
+            </div>
+            <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
+              Notícies
+            </span>
+          </button>
+
+          {/* Botó 4: Perfil */}
+          <button 
+            onClick={() => onAnarSeccio?.('perfil')}
+            className="py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer rounded-xl hover:bg-white/5 text-white/50 hover:text-white/80"
+          >
+            <div className="relative">
+              <span className="text-[20px] filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] select-none">
+                {avatarEstil}
+              </span>
+              <span className="absolute -top-1 -right-1 text-[8px] animate-pulse">⭐</span>
+            </div>
+            <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
+              Perfil 👮‍♂️
+            </span>
+          </button>
+
+        </div>
+      </div>
+
     </div>
   );
 }

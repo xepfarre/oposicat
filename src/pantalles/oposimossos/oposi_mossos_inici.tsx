@@ -16,13 +16,17 @@ export default function OposiMossosInici({
   onProvaTeorica,
   onProvaPractica,
   onProvaPsicologica,
-  onLaMevaOposicio
+  onLaMevaOposicio,
+  inicialSeccio = 'home',
+  onCanviarSeccio
 }: { 
   onTornar: () => void, 
   onProvaTeorica: () => void,
   onProvaPractica?: () => void,
   onProvaPsicologica?: () => void,
-  onLaMevaOposicio: () => void
+  onLaMevaOposicio: () => void,
+  inicialSeccio?: 'home' | 'forum' | 'noticies' | 'perfil',
+  onCanviarSeccio?: (seccio: 'home' | 'forum' | 'noticies' | 'perfil') => void
 }) {
 
   // Explicació per a no-programadors: Estats de control per saber si canvia l'usuari identificat o si encara s'està verificant la sessió a Firebase, evitant així llançar consultes sense permís.
@@ -70,7 +74,7 @@ export default function OposiMossosInici({
   const [notificacions, setNotificacions] = useState<any[]>([]);
 
   // Explicació per a no-programadors: Estat d'obertura del diàleg flotant (modal) que mostra el llistat complet de notificacions oficials amb importància detallada per a l'alumne.
-  const [modalNotificacionsObert, setModalNotificacionsObert] = useState<boolean>(false);
+  const [modalNotificacionsObert, setModalNotificacionsObert] = useState<boolean>(inicialSeccio === 'noticies');
 
   const [tokenFCMInput, setTokenFCMInput] = useState<string>("");
   const [guardantToken, setGuardantToken] = useState<boolean>(false);
@@ -84,7 +88,7 @@ export default function OposiMossosInici({
   const [pestanyaDispositiu, setPestanyaDispositiu] = useState<"chrome" | "firefox" | "ios" | "hermit" | "apk">("chrome");
 
   // Explicació per a no-programadors: Estats de control per al Fòrum d'estudiants opositors de Mossos.
-  const [modalForumObert, setModalForumObert] = useState<boolean>(false);
+  const [modalForumObert, setModalForumObert] = useState<boolean>(inicialSeccio === 'forum');
   const [forumChatroomId, setForumChatroomId] = useState<string | null>(null); // per saber quin canal o xat concret del fòrum estem veient
   const [forumPersonalitzatNom, setForumPersonalitzatNom] = useState<string>("");
   const [forumPersonalitzatDesc, setForumPersonalitzatDesc] = useState<string>("");
@@ -93,7 +97,19 @@ export default function OposiMossosInici({
   const [nouMissatgeForumText, setNouMissatgeForumText] = useState<string>("");
 
   // Explicació per a no-programadors: Estat d'obertura del modal per a la personalització gamificada de l'avatar de l'opositor.
-  const [modalAvatarObert, setModalAvatarObert] = useState<boolean>(false);
+  const [modalAvatarObert, setModalAvatarObert] = useState<boolean>(inicialSeccio === 'perfil');
+
+  // Explicació per a no-programadors: Sincronitzador per actualitzar la visualització immediata de la secció quan el pare canvia la prop inicialSeccio (per exemple, si s'hi navega des de la Prova Teòrica).
+  useEffect(() => {
+    setModalForumObert(inicialSeccio === 'forum');
+    setModalNotificacionsObert(inicialSeccio === 'noticies');
+    setModalAvatarObert(inicialSeccio === 'perfil');
+    if (inicialSeccio === 'home') {
+      setMostrarRankings(false);
+    }
+  }, [inicialSeccio]);
+  // Explicació per a no-programadors: Estat per controlar si es mostra el popup que demana a l'estudiant si vol realment sortir al selector d'apps en prémer el botó d'Inici repetidament.
+  const [popupTornarSelectorObert, setPopupTornarSelectorObert] = useState<boolean>(false);
   const [avatarEstil, setAvatarEstil] = useState<string>(() => localStorage.getItem("avatar_estil") || "👮‍♂️"); // Cara base: Mosso / Mossa
   const [avatarGorra, setAvatarGorra] = useState<string>(() => localStorage.getItem("avatar_gorra") || "🧢"); // Gorra de servei / Galea / Altres
   const [avatarFons, setAvatarFons] = useState<string>(() => localStorage.getItem("avatar_fons") || "bg-gradient-to-br from-blue-900 to-slate-900"); // Color de fons de la tarja
@@ -1389,25 +1405,7 @@ export default function OposiMossosInici({
             <div className="h-0.5 w-8 bg-red-600 mt-1 rounded-full opacity-50" />
           </button>
         </div>
-
-        {/* BOTÓ PER TORNAR AL SEL·LECTOR */}
-        <button 
-          onClick={onTornar}
-          className="mt-6 w-full py-2 flex items-center justify-center gap-2 border border-white/10 rounded-xl bg-white/5 hover:bg-white/10 transition-all active:scale-95 group"
-        >
-          <ChevronLeft className="w-4 h-4 text-white/60 group-hover:text-white transition-colors" />
-          <span className="text-white/60 group-hover:text-white font-black italic text-[10px] uppercase tracking-widest transition-colors">
-            Tornar al sel·lector d'APP's
-          </span>
-        </button>
       </main>
-
-      {/* PEU DE PÀGINA */}
-      <footer className="w-full max-w-xs flex flex-col items-center gap-2 mt-4 shrink-0 px-6">
-        <p className="text-[9px] font-black uppercase tracking-wider text-white opacity-80 select-none whitespace-nowrap">
-          Preparació acadèmica per a oposicions de l'ISPC
-        </p>
-      </footer>
 
       {/* Comentari planer per a no-programadors: Barra inferior redissenyada amb un to blau policia molt més clar i lluent (bg-[#13355c]) en lloc de gairebé negre per augmentar el contrast, i reduïm l'alçada del seu contenidor utilitzant 'pt-1.5' i adaptant el padding inferior ('calc(5px + ...)') perquè quedi més estreta, moderna i no ocupi tant d'espai a la pantalla. */}
       <div 
@@ -1419,13 +1417,17 @@ export default function OposiMossosInici({
           {/* Botó 1: Casa (Inici) */}
           <button 
             onClick={() => {
-              setMostrarRankings(false);
-              setModalForumObert(false);
-              setModalNotificacionsObert(false);
-              setModalAvatarObert(false);
-              // Si ja no tenim cap vista oberta i ja estem a la home, cridem onTornar() per retornar al selector
+              onCanviarSeccio?.('home');
+              // Comentari planer per a no-programadors: Si ja estem a la pantalla principal (cap modal ni rànquing obert),
+              // mostrem el popup a l'aspirant preguntant-li si vol realment tornar al selector d'apps.
               if (!mostrarRankings && !modalForumObert && !modalNotificacionsObert && !modalAvatarObert) {
-                onTornar();
+                setPopupTornarSelectorObert(true);
+              } else {
+                // Si s'estava a una altra part, el retorneu a l'inici tancant tots els canals.
+                setMostrarRankings(false);
+                setModalForumObert(false);
+                setModalNotificacionsObert(false);
+                setModalAvatarObert(false);
               }
             }}
             className={`py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group cursor-pointer rounded-xl hover:bg-white/5 ${
@@ -1447,6 +1449,7 @@ export default function OposiMossosInici({
           {/* Botó 2: Fòrum */}
           <button 
             onClick={() => {
+              onCanviarSeccio?.('forum');
               setMostrarRankings(false);
               setModalForumObert(true);
               setModalNotificacionsObert(false);
@@ -1476,6 +1479,7 @@ export default function OposiMossosInici({
           {/* Botó 3: Notícies */}
           <button 
             onClick={() => {
+              onCanviarSeccio?.('noticies');
               setMostrarRankings(false);
               setModalForumObert(false);
               setModalNotificacionsObert(true);
@@ -1507,6 +1511,7 @@ export default function OposiMossosInici({
           {/* Botó 4: Perfil */}
           <button 
             onClick={() => {
+              onCanviarSeccio?.('perfil');
               setMostrarRankings(false);
               setModalForumObert(false);
               setModalNotificacionsObert(false);
@@ -1531,6 +1536,39 @@ export default function OposiMossosInici({
 
         </div>
       </div>
+
+      {/* Comentari planer per a no-programadors: Targeta modal de confirmació d'escriptori i mòbil d'OposiCAT per evitar alertes síncrones del navegador que poden bloquejar-se en un iframe */}
+      {popupTornarSelectorObert && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#00274d] border-2 border-red-600/30 w-full max-w-sm rounded-[24px] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 flex flex-col items-center text-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-red-600/15 flex items-center justify-center border border-red-500/20 text-red-500 text-xl font-bold animate-pulse">
+                👮‍♂️
+              </div>
+              <p className="text-white/95 font-bold text-sm leading-relaxed px-2">
+                Has clicat a INICI estant ja a la pestanya d'inici, vols tornar al sel·lector d'Apps d'Oposicat?
+              </p>
+              <div className="grid grid-cols-2 gap-3 w-full mt-2">
+                <button
+                  onClick={() => {
+                    setPopupTornarSelectorObert(false);
+                    onTornar();
+                  }}
+                  className="bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black italic text-xs uppercase py-3 rounded-xl transition-all shadow-md tracking-wider cursor-pointer"
+                >
+                  Sí, tornar
+                </button>
+                <button
+                  onClick={() => setPopupTornarSelectorObert(false)}
+                  className="bg-white/10 hover:bg-white/15 active:scale-95 text-white/80 hover:text-white font-black italic text-xs uppercase py-2 py-3 rounded-xl transition-all border border-white/10 cursor-pointer"
+                >
+                  No, quedar-me
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* DIÀLEG FLOTANT MODAL DE NOTIFICACIONS OFICIALS (ESTIL SMARTPHONE DIGITAL) */}
       {modalNotificacionsObert && (

@@ -1,10 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, BookOpen, CheckCircle2, Highlighter, Eraser } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Highlighter, Eraser, Home, MessageSquare, Bell } from 'lucide-react';
 
 /**
  * Component per llegir el contingut literal d'un punt del temari.
  * Inclou funcionalitat de subratllat i goma d'esborrar amb persistència.
+ * 
+ * Comentari planer per a no-programadors: Seguint les indicacions de l'usuari,
+ * a la pantalla literal del temari no es toca la part superior, no es posa fons,
+ * però sí que incorporem el llistat dels botons corporatius de la barra inferior per a poder navegar lliurement.
  */
 interface LectorContingutProps {
   titol: string;
@@ -16,6 +20,8 @@ interface LectorContingutProps {
   onTornar: () => void;
   onMarcarCompletat: () => void;
   onGuardarContingut: (html: string) => void;
+  onAnarSeccio?: (seccio: 'home' | 'forum' | 'noticies' | 'perfil') => void;
+  onAnarInici?: () => void;
 }
 
 export default function LectorContingut({ 
@@ -27,10 +33,24 @@ export default function LectorContingut({
   completat,
   onTornar, 
   onMarcarCompletat,
-  onGuardarContingut
+  onGuardarContingut,
+  onAnarSeccio,
+  onAnarInici
 }: LectorContingutProps) {
   const [einaActiva, setEinaActiva] = useState<'highlighter' | 'eraser' | null>(null);
+  const [avatarEstil, setAvatarEstil] = useState<string>("👮‍♂️");
   const articleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try {
+      const deLocalStorage = localStorage.getItem("avatar_estil");
+      if (deLocalStorage) {
+        setAvatarEstil(deLocalStorage);
+      }
+    } catch {
+      setAvatarEstil("👮‍♂️");
+    }
+  }, []);
 
   // Formatem el contingut original a HTML (paràgrafs) si no n'hi ha cap de desat
   const inicialitzarContingut = () => {
@@ -51,7 +71,6 @@ export default function LectorContingut({
 
     const range = selection.getRangeAt(0);
     const span = document.createElement('span');
-    // Afegim una classe identificadora per a la goma d'esborrar
     span.className = 'highlighter-span bg-yellow-400/80 text-black px-1 rounded-sm shadow-[0_0_8px_rgba(250,204,21,0.5)] transition-all cursor-pointer';
     
     try {
@@ -68,7 +87,7 @@ export default function LectorContingut({
   };
 
   /**
-   * Gestiona l'esborrat de subratllats.
+   * Gestiona l'esborrat de subratllat.
    */
   const handleEsborrarFocus = (e: React.MouseEvent | React.TouchEvent) => {
     if (einaActiva !== 'eraser') return;
@@ -77,13 +96,11 @@ export default function LectorContingut({
     if (target.classList.contains('highlighter-span')) {
       const parent = target.parentNode;
       if (parent) {
-        // Tornem el contingut al seu lloc original (unwrap)
         while (target.firstChild) {
           parent.insertBefore(target.firstChild, target);
         }
         parent.removeChild(target);
         
-        // Guardem el nou estat HTML sense el subratllat
         if (articleRef.current) {
           onGuardarContingut(articleRef.current.innerHTML);
         }
@@ -92,12 +109,12 @@ export default function LectorContingut({
   };
 
   return (
-    <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-20 px-6" style={{ WebkitOverflowScrolling: "touch" }}>
-      {/* CAPÇALERA FIXA - MÉS NETA I CENTRADA */}
+    <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto pb-28 px-6" style={{ WebkitOverflowScrolling: "touch" }}>
+      {/* CAPÇALERA FIXA - ES QUEDA IGUAL, SENSE ALTERAR LA PART SUPERIOR */}
       <header className="sticky top-0 z-30 w-full bg-[#00274d]/80 backdrop-blur-md border-b border-white/10 px-6 py-4 flex items-center gap-4">
         <button 
           onClick={onTornar}
-          className="shrink-0 p-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-white active:scale-90"
+          className="shrink-0 p-2 bg-white/5 hover:bg-white/10 rounded-full border border-white/10 text-white active:scale-90 cursor-pointer"
         >
           <ArrowLeft size={18} />
         </button>
@@ -108,16 +125,14 @@ export default function LectorContingut({
           </h1>
         </div>
 
-        {/* Espaiador per mantenir equilibri visual */}
         <div className="w-9 shrink-0 flex justify-center" />
       </header>
 
       <main className="w-full md:max-w-4xl pt-10 md:pt-20">
-        {/* 1. EL TÍTOL GRAN DINS LA PÀGINA */}
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="mb-6 md:mb-10"
+          className="mb-6 md:mb-10 text-left"
         >
           <h2 className="text-2xl md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none">
             {index} - {titol}
@@ -125,22 +140,20 @@ export default function LectorContingut({
           <div className="h-1 md:h-2 w-12 md:w-24 bg-amber-400 mt-2 md:mt-4 rounded-full" />
         </motion.div>
 
-        {/* 2. EL RECORDATORI DE SUBRATLLAT */}
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="p-4 md:p-8 bg-blue-500/10 border border-blue-500/20 rounded-2xl md:rounded-[2rem] flex items-center gap-4 md:gap-8 mb-8 md:mb-12"
+          className="p-4 md:p-8 bg-blue-500/10 border border-blue-500/20 rounded-2xl md:rounded-[2rem] flex items-center gap-4 md:gap-8 mb-8 md:mb-12 text-left"
         >
           <div className="p-2 md:p-4 bg-blue-500/20 rounded-xl md:rounded-2xl text-blue-400">
             <Highlighter size={16} className="md:size-8" />
           </div>
           <p className="text-[11px] md:text-lg text-blue-100/60 font-medium italic leading-relaxed md:max-w-xl">
-            Recorda que pots utilitzar el sistema de <span className="text-amber-400 font-bold">subrallat</span> de l'APP per a remarcar allo que mes important et sembli a tu.
+            Recorda que pots utilitzar el sistema de <span className="text-amber-400 font-bold">subratllat</span> de l'APP per a remarcar allò que més important et sembli a tu.
           </p>
         </motion.div>
 
-        {/* 3. L'ÀREA DE TEXT (EL QUE JA TENÍEM) */}
         <motion.article 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -162,7 +175,6 @@ export default function LectorContingut({
           />
 
           {!contingutOriginal && (
-
             <div className="py-12 md:py-24 flex flex-col items-center gap-4 md:gap-8 opacity-30 text-center">
               <div className="w-12 h-12 md:w-20 md:h-20 rounded-full border-2 border-dashed border-white" />
               <p className="text-xs md:text-lg uppercase font-black tracking-widest">Pendent d'incorporar el contingut oficial</p>
@@ -170,7 +182,6 @@ export default function LectorContingut({
           )}
         </motion.article>
 
-        {/* BOTÓ DE COMPLETAT */}
         {contingutOriginal && (
           <motion.div 
             initial={{ opacity: 0 }}
@@ -183,7 +194,7 @@ export default function LectorContingut({
                 onMarcarCompletat();
                 onTornar();
               }}
-              className={`flex items-center gap-3 px-8 md:px-14 py-4 md:py-6 rounded-2xl md:rounded-3xl font-black uppercase text-xs md:text-lg tracking-widest transition-all shadow-xl active:scale-95 ${
+              className={`flex items-center gap-3 px-8 md:px-14 py-4 md:py-6 rounded-2xl md:rounded-3xl font-black uppercase text-xs md:text-lg tracking-widest transition-all shadow-xl active:scale-95 cursor-pointer ${
                 completat 
                 ? 'bg-emerald-500 text-white shadow-emerald-900/50' 
                 : 'bg-white text-[#00274d] hover:bg-emerald-50 hover:text-emerald-600'
@@ -197,29 +208,27 @@ export default function LectorContingut({
       </main>
 
       {/* BOTONS FLOTANTS (FAB TOOLS) */}
-      <div className="fixed bottom-10 right-6 md:right-12 md:bottom-12 z-50 flex flex-col gap-3 md:gap-6">
-        {/* GOMA D'ESBORRAR */}
+      <div className="fixed bottom-24 right-6 md:right-12 md:bottom-28 z-50 flex flex-col gap-3 md:gap-6">
         <motion.button
           onClick={() => setEinaActiva(einaActiva === 'eraser' ? null : 'eraser')}
-          className={`w-12 h-12 md:w-20 md:h-20 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 border ${
+          className={`w-12 h-12 md:w-20 md:h-20 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 border cursor-pointer ${
             einaActiva === 'eraser' 
             ? 'bg-rose-500 text-white border-rose-400 ring-4 ring-rose-500/20 md:ring-8' 
             : 'bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20'
           }`}
-          title="Esborrar subrallats"
+          title="Esborrar subratllats"
         >
           <Eraser size={20} className="md:size-10" />
         </motion.button>
 
-        {/* SUBRATLLADOR */}
         <motion.button
           onClick={() => setEinaActiva(einaActiva === 'highlighter' ? null : 'highlighter')}
-          className={`w-12 h-12 md:w-20 md:h-20 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 border relative ${
+          className={`w-12 h-12 md:w-20 md:h-20 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 border relative cursor-pointer ${
             einaActiva === 'highlighter' 
             ? 'bg-amber-400 text-[#00274d] border-amber-300 ring-4 ring-amber-400/20 md:ring-8' 
             : 'bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20'
           }`}
-          title="Subrallar text"
+          title="Subratllar text"
         >
           <Highlighter size={20} className={`md:size-10 ${einaActiva === 'highlighter' ? 'animate-pulse' : ''}`} />
           
@@ -233,19 +242,84 @@ export default function LectorContingut({
                   einaActiva === 'highlighter' ? 'bg-amber-400 text-[#00274d]' : 'bg-rose-500 text-white'
                 }`}
               >
-                {einaActiva === 'highlighter' ? 'Mode Subrallat' : 'Mode Esborrar'}
+                {einaActiva === 'highlighter' ? 'Mode Subratllat' : 'Mode Esborrar'}
               </motion.div>
             )}
           </AnimatePresence>
         </motion.button>
       </div>
 
-      {/* FOOTER */}
-      <footer className="mt-12 text-center text-white/10 px-8">
+      <footer className="mt-12 text-center text-white/10 px-8 pb-10">
         <p className="text-[8px] font-black uppercase tracking-[0.4em] mb-2">Copyright Oficial ISPC • OposiCAT</p>
         <p className="text-[7px] italic opacity-50">S'autoritza l'ús literal del temari oficial per a la plataforma OposiCAT sota els permisos establerts.</p>
       </footer>
+
+      {/* Comentari planer per a no-programadors: Barra inferior corporativa idèntica a l'original amb brillantor blau policia. */}
+      <div 
+        className="fixed bottom-0 left-0 right-0 z-45 bg-[#13355c]/95 backdrop-blur-md border-t border-white/20 px-4 pt-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.4)] flex items-center justify-center transition-all duration-300"
+        style={{ paddingBottom: "calc(5px + env(safe-area-inset-bottom, 6px))" }}
+      >
+        <div className="w-full max-w-md grid grid-cols-4 gap-1">
+          
+          {/* Botó 1: Casa (retorna a l'inici original de Mossos directament) */}
+          <button 
+            onClick={onAnarInici || onTornar}
+            className="py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group cursor-pointer rounded-xl hover:bg-white/5 text-white/50 hover:text-white/80"
+          >
+            <Home className="w-6 h-6 transition-all group-hover:scale-115 text-slate-300 group-hover:text-white" />
+            <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
+              Inici
+            </span>
+          </button>
+
+          {/* Botó 2: Fòrum */}
+          <button 
+            onClick={() => onAnarSeccio?.('forum')}
+            className="py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer rounded-xl hover:bg-white/5 text-white/50 hover:text-white/80"
+          >
+            <div className="relative">
+              <MessageSquare className="w-6 h-6 transition-all group-hover:scale-115 text-pink-400/60 group-hover:text-pink-400" />
+              <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75 font-bold"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+              </span>
+            </div>
+            <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
+              Fòrum 💬
+            </span>
+          </button>
+
+          {/* Botó 3: Notícies */}
+          <button 
+            onClick={() => onAnarSeccio?.('noticies')}
+            className="py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer rounded-xl hover:bg-white/5 text-white/50 hover:text-white/80"
+          >
+            <div className="relative">
+              <Bell className="w-6 h-6 transition-all group-hover:scale-115 text-white/60 group-hover:text-white" />
+            </div>
+            <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
+              Notícies
+            </span>
+          </button>
+
+          {/* Botó 4: Perfil */}
+          <button 
+            onClick={() => onAnarSeccio?.('perfil')}
+            className="py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer rounded-xl hover:bg-white/5 text-white/50 hover:text-white/80"
+          >
+            <div className="relative">
+              <span className="text-[20px] filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] select-none">
+                {avatarEstil}
+              </span>
+              <span className="absolute -top-1 -right-1 text-[8px] animate-pulse">⭐</span>
+            </div>
+            <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
+              Perfil 👮‍♂️
+            </span>
+          </button>
+
+        </div>
+      </div>
     </div>
   );
 }
-
