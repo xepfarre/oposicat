@@ -903,6 +903,11 @@ export default function App() {
             <ExamensOposimossosInici 
               onTornar={handleAnarExamenTeoric} 
               onComencar={handleComencarSimulador}
+              onAnarSeccio={(seccio) => {
+                setMossosInicialSeccio(seccio);
+                setPantalla('mossos');
+              }}
+              onAnarInici={() => setPantalla('mossos')}
             />
           )}
 
@@ -926,6 +931,11 @@ export default function App() {
                 setClasseSeleccionada(classeInfo);
                 setPantalla('clase_luna');
               }}
+              onAnarSeccio={(seccio) => {
+                setMossosInicialSeccio(seccio);
+                setPantalla('mossos');
+              }}
+              onAnarInici={() => setPantalla('mossos')}
             />
           )}
 
@@ -939,13 +949,25 @@ export default function App() {
           )}
 
           {pantalla === 'classes_directe' && (
-            <ClassesDirecteInici onTornar={handleAnarExamenTeoric} />
+            <ClassesDirecteInici 
+              onTornar={handleAnarExamenTeoric} 
+              onAnarSeccio={(seccio) => {
+                setMossosInicialSeccio(seccio);
+                setPantalla('mossos');
+              }}
+              onAnarInici={() => setPantalla('mossos')}
+            />
           )}
 
           {pantalla === 'examens_oficials_passats' && (
             <ExamensOficialsPassatsInici 
               onTornar={handleAnarExamenTeoric} 
               onComencar={handleComencarSimulador}
+              onAnarSeccio={(seccio) => {
+                setMossosInicialSeccio(seccio);
+                setPantalla('mossos');
+              }}
+              onAnarInici={() => setPantalla('mossos')}
             />
           )}
 
@@ -970,6 +992,11 @@ export default function App() {
                 setPantalla('lector_contingut_oposimossos');
               }}
               progres={progres.oposimossos}
+              onAnarSeccio={(seccio) => {
+                setMossosInicialSeccio(seccio);
+                setPantalla('mossos');
+              }}
+              onAnarInici={() => setPantalla('mossos')}
             />
           )}
 

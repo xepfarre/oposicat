@@ -1317,11 +1317,11 @@ export default function OposiMossosInici({
 
   return (
     <div 
-      className="fixed inset-0 w-full bg-[#00274d] overflow-y-auto flex flex-col items-center px-6 pb-36"
+      className="fixed inset-0 w-full bg-[#010915] overflow-y-auto flex flex-col items-center px-6 pb-36"
       style={{ 
         WebkitOverflowScrolling: "touch",
-        // Comentari planer per a no-programadors: Deixem la imatge de fons amb la seva proporció original sencera utilitzant 'cover' per omplir completament la pantalla sense deformacions, i alineada a '20% bottom' perquè mostri l'esquena sencera amb el text de 'POLICIA Mossos d'Esquadra'.
-        backgroundImage: "linear-gradient(to bottom, rgba(0, 39, 77, 0.88), rgba(0, 39, 77, 0.94)), url('/assets/imatges/fons_ispc.png')",
+        // Comentari planer per a no-programadors: Deixem la imatge de fons amb un to molt més fosc alineat amb el disseny noble d'OposiCAT per a màxima consonància estètica a tota l'App.
+        backgroundImage: "linear-gradient(to bottom, rgba(1, 9, 21, 0.92), rgba(1, 9, 21, 0.96)), url('/assets/imatges/fons_ispc.png')",
         backgroundSize: "cover",
         backgroundRepeat: "no-repeat",
         backgroundPosition: "20% bottom"
@@ -1407,9 +1407,9 @@ export default function OposiMossosInici({
         </div>
       </main>
 
-      {/* Comentari planer per a no-programadors: Barra inferior redissenyada amb un to blau policia molt més clar i lluent (bg-[#13355c]) en lloc de gairebé negre per augmentar el contrast, i reduïm l'alçada del seu contenidor utilitzant 'pt-1.5' i adaptant el padding inferior ('calc(5px + ...)') perquè quedi més estreta, moderna i no ocupi tant d'espai a la pantalla. */}
+      {/* Comentari planer per a no-programadors: Barra inferior redissenyada amb un to fosc ben elegant (#010915) per estar en màxima sintonia amb el gradient global, mantenint el nostre preciós disseny de botons. */}
       <div 
-        className="fixed bottom-0 left-0 right-0 z-40 bg-[#13355c]/95 backdrop-blur-md border-t border-white/20 px-4 pt-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.4)] flex items-center justify-center transition-all duration-300"
+        className="fixed bottom-0 left-0 right-0 z-40 bg-[#010915]/95 backdrop-blur-md border-t border-white/20 px-4 pt-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.4)] flex items-center justify-center transition-all duration-300"
         style={{ paddingBottom: "calc(5px + env(safe-area-inset-bottom, 6px))" }}
       >
         <div className="w-full max-w-md grid grid-cols-4 gap-1">

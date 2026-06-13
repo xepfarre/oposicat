@@ -73,11 +73,11 @@ export default function ExamenTeoricInici({
 
   return (
     <div 
-      className="fixed inset-0 w-full overflow-y-auto flex flex-col items-center px-6 pb-28 bg-[#00274d] select-none"
+      className="fixed inset-0 w-full overflow-y-auto flex flex-col items-center px-6 pb-28 bg-[#010915] select-none"
       style={{ 
         WebkitOverflowScrolling: "touch",
-        // Comentari planer per a no-programadors: Copiem exactament el mateix fons de pantalla amb degradat i imatge que a la pantalla anterior per coherència visual corporativa.
-        backgroundImage: "linear-gradient(to bottom, rgba(0, 39, 77, 0.88), rgba(0, 39, 77, 0.94)), url('/assets/imatges/fons_ispc.png')",
+        // Comentari planer per a no-programadors: Copiem exactament el mateix fons de pantalla fosc degradat (#010915) i la imatge corporativa per a màxima coherència visual corporativa.
+        backgroundImage: "linear-gradient(to bottom, rgba(1, 9, 21, 0.92), rgba(1, 9, 21, 0.96)), url('/assets/imatges/fons_ispc.png')",
         backgroundSize: "cover",
         backgroundRepeat: "no-repeat",
         backgroundPosition: "20% bottom"
@@ -154,9 +154,9 @@ export default function ExamenTeoricInici({
         </p>
       </footer>
 
-      {/* Comentari planer per a no-programadors: Barra inferior corporativa idèntica a l'original amb brillantor blau policia per a coherència amb el menú principal de l'aplicació mòbil. */}
+      {/* Comentari planer per a no-programadors: Barra inferior corporativa idèntica a l'original, ara amb un to fosc ben elegant (#010915). */}
       <div 
-        className="fixed bottom-0 left-0 right-0 z-45 bg-[#13355c]/95 backdrop-blur-md border-t border-white/20 px-4 pt-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.4)] flex items-center justify-center transition-all duration-300"
+        className="fixed bottom-0 left-0 right-0 z-45 bg-[#010915]/95 backdrop-blur-md border-t border-white/20 px-4 pt-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.4)] flex items-center justify-center transition-all duration-300"
         style={{ paddingBottom: "calc(5px + env(safe-area-inset-bottom, 6px))" }}
       >
         <div className="w-full max-w-md grid grid-cols-4 gap-1">
