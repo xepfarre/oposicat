@@ -440,6 +440,27 @@ export default function OposiMossosInici({
     }
   };
 
+  // Explicació per a no-programadors: Aquesta és la funció d'última generació feta a mida perquè el botó vermell del menú "Instal·lar" provi de forçar un Diàleg Directe d'instal·lació del navegador (com Chrome a Android), obrint la guia en l'acte si no està disponible (dispositius Apple o bloqueig).
+  const executarInstalacioDirecteOposiCAT = async () => {
+    if (pwaInstallPrompt) {
+      try {
+        await pwaInstallPrompt.prompt();
+        const eleccio = await pwaInstallPrompt.userChoice;
+        console.log("[OposiCAT PWA] Execució forcada d'esdeveniment prompt:", eleccio.outcome);
+        if (eleccio.outcome === "accepted") {
+          setPwaInstallPrompt(null);
+        } else {
+          setModalInstallarObert(true);
+        }
+      } catch (err) {
+        console.warn("Error forçant instal·lació directa:", err);
+        setModalInstallarObert(true);
+      }
+    } else {
+      setModalInstallarObert(true);
+    }
+  };
+
   // Explicació per a no-programadors: Efecte per enllaçar de fons de manera transparent cap token si l'usuari ja té prèviament concedit el permís. Així és automàtic des que obre l'App.
   useEffect(() => {
     if (usuariActiu && permisNotificacio === "granted") {
@@ -1366,7 +1387,7 @@ export default function OposiMossosInici({
               </div>
             </div>
             <button 
-              onClick={() => setModalInstallarObert(true)}
+              onClick={executarInstalacioDirecteOposiCAT}
               className="bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold italic text-[10px] uppercase tracking-wider px-3.5 py-2.5 rounded-xl transition-all cursor-pointer shadow-lg shadow-red-900/20 select-none shrink-0"
             >
               Instal·lar
