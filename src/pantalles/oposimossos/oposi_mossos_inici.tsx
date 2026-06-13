@@ -110,6 +110,10 @@ export default function OposiMossosInici({
   }, [inicialSeccio]);
   // Explicació per a no-programadors: Estat per controlar si es mostra el popup que demana a l'estudiant si vol realment sortir al selector d'apps en prémer el botó d'Inici repetidament.
   const [popupTornarSelectorObert, setPopupTornarSelectorObert] = useState<boolean>(false);
+  // Explicació per a no-programadors: Estat per controlar si es mostra el formulari didàctic de com instal·lar la PWA en mòbils iOS o Android
+  const [modalInstallarObert, setModalInstallarObert] = useState<boolean>(false);
+  // Explicació per a no-programadors: Estat per discernir si l'estudiant té un mòbil Apple (iOS) o Android a les instruccions
+  const [pestanyaInstallacio, setPestanyaInstallacio] = useState<'ios' | 'android'>('ios');
   const [avatarEstil, setAvatarEstil] = useState<string>(() => localStorage.getItem("avatar_estil") || "👮‍♂️"); // Cara base: Mosso / Mossa
   const [avatarGorra, setAvatarGorra] = useState<string>(() => localStorage.getItem("avatar_gorra") || "🧢"); // Gorra de servei / Galea / Altres
   const [avatarFons, setAvatarFons] = useState<string>(() => localStorage.getItem("avatar_fons") || "bg-gradient-to-br from-blue-900 to-slate-900"); // Color de fons de la tarja
@@ -1345,6 +1349,31 @@ export default function OposiMossosInici({
       {/* ZONA DELS BOTONS PRINCIPALS */}
       <main className="w-full md:max-w-4xl flex flex-col gap-4">
         
+        {/* Comentari planer per a no-programadors: Targeta/Banner elegant per instar l'usuari a instal·lar l'App a iOS o Android amb instruccions simples i clares. */}
+        <div className="bg-gradient-to-r from-red-600/15 to-indigo-600/15 border border-white/10 rounded-2xl p-4 flex flex-col gap-3 shadow-xl backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-400/20 flex items-center justify-center text-lg shrink-0">
+                📲
+              </div>
+              <div className="flex flex-col">
+                <span className="text-white text-xs font-black italic uppercase tracking-wider">
+                  Vols instal·lar l'App al mòbil?
+                </span>
+                <span className="text-white/60 text-[10px] font-medium leading-tight">
+                  Guarda OposiCAT a la teva pantalla d'inici per estudiar millor a pantalla completa sense anuncis ni barres de cerca!
+                </span>
+              </div>
+            </div>
+            <button 
+              onClick={() => setModalInstallarObert(true)}
+              className="bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold italic text-[10px] uppercase tracking-wider px-3.5 py-2.5 rounded-xl transition-all cursor-pointer shadow-lg shadow-red-900/20 select-none shrink-0"
+            >
+              Instal·lar
+            </button>
+          </div>
+        </div>
+
         {/* Bloc 0: Accés directe (Dividit en 2: 60% Oposició / 40% Web) */}
         <div className="flex w-full gap-4">
           <button 
@@ -2631,6 +2660,146 @@ export default function OposiMossosInici({
                 className="w-full bg-[#b3f202] hover:bg-[#a1d902] text-slate-950 text-[10px] font-black uppercase py-3 px-4 rounded-xl transition-all cursor-pointer shadow-lg tracking-tight flex items-center justify-center gap-1.5"
               >
                 Guarda el teu estil de Mosso 👮‍♂️💼
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Comentari planer per a no-programadors: Pantalla modal que acompanya pas a pas l'aspirant a instal·lar l'aplicació web oficial directament com una aplicació real als seus dispositius iOS o Android */}
+      {modalInstallarObert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#010915]/90 backdrop-blur-md p-4 overflow-y-auto">
+          <div className="bg-[#03122c] border border-white/10 w-full max-w-md rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-h-[90vh] my-auto animate-in fade-in zoom-in duration-200">
+            
+            {/* Capçalera del manual */}
+            <div className="p-6 border-b border-white/10 flex items-center justify-between bg-black/20">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-yellow-400" />
+                <span className="text-white font-black italic text-sm uppercase tracking-wider">
+                  Guia d'Instal·lació
+                </span>
+              </div>
+              <button 
+                onClick={() => setModalInstallarObert(false)}
+                className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/70 hover:bg-white/10 cursor-pointer transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 flex-1 overflow-y-auto space-y-6">
+              
+              {/* Presentació visual tipus targeta de prestigi */}
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-[1.3rem] bg-indigo-500/10 border border-indigo-400/20 flex items-center justify-center text-3xl mx-auto shadow-inner mb-3">
+                  👮‍♀️
+                </div>
+                <h3 className="text-xl font-black italic tracking-tight text-white uppercase">
+                  OposiCAT al teu mòbil
+                </h3>
+                <p className="text-xs text-white/60 leading-relaxed font-sans mt-1">
+                  Gaudeix d'una experiència sense barres de cerca, llançament a l'instant i totalment immersiva com si fos una App nativa.
+                </p>
+              </div>
+
+              {/* Selector de plataforma tipus bento-tabs */}
+              <div className="grid grid-cols-2 gap-2 bg-black/35 p-1 rounded-2xl border border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setPestanyaInstallacio('ios')}
+                  className={`py-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
+                    pestanyaInstallacio === 'ios'
+                      ? "bg-white/10 text-white font-extrabold shadow-md border border-white/10"
+                      : "text-white/60 hover:text-white/80 font-semibold"
+                  }`}
+                >
+                  <Apple className="w-4 h-4" />
+                  <span className="text-xs uppercase tracking-wider italic">Apple iOS</span>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setPestanyaInstallacio('android')}
+                  className={`py-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer select-none ${
+                    pestanyaInstallacio === 'android'
+                      ? "bg-white/10 text-white font-extrabold shadow-md border border-white/10"
+                      : "text-white/60 hover:text-white/80 font-semibold"
+                  }`}
+                >
+                  <Smartphone className="w-4 h-4" />
+                  <span className="text-xs uppercase tracking-wider italic">Android</span>
+                </button>
+              </div>
+
+              {/* Llista ordenada de passes segons la plataforma triada */}
+              {pestanyaInstallacio === 'ios' ? (
+                <div className="space-y-4">
+                  <div className="p-3.5 bg-yellow-400/10 border border-yellow-400/20 rounded-2xl">
+                    <p className="text-[11px] text-yellow-300 font-semibold leading-relaxed">
+                      ⚠️ <strong>Atenció:</strong> A Apple iOS s'ha d'utilitzar obligatòriament el navegador oficial <strong>Safari</strong> de l'iPhone o iPad per poder instal·lar-la.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3.5">
+                    {[
+                      { pas: 1, text: "Obre aquesta web utilitzant el navegador natiu de l'iPhone: <strong>Safari</strong>." },
+                      { pas: 2, text: "Prem el botó de <strong>Compartir</strong> <span class='text-lg'>📤</span> (el quadrat amb la fletxa cap amunt situat a la barra de sota)." },
+                      { pas: 3, text: "Desplaça't cap avall i tria l'opció <strong>\"Afegir a la pantalla d'inici\"</strong> (<em>Add to Home Screen</em>)." },
+                      { pas: 4, text: "Prem <strong>\"Afegir\"</strong> a la part superior dreta." }
+                    ].map((step) => (
+                      <div key={step.pas} className="flex gap-3">
+                        <span className="w-6 h-6 rounded-full bg-red-600/20 text-red-400 text-[10px] font-black flex items-center justify-center shrink-0 border border-red-500/10">
+                          {step.pas}
+                        </span>
+                        <p className="text-xs text-white/80 font-medium font-sans leading-relaxed pt-0.5" dangerouslySetInnerHTML={{ __html: step.text }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-3.5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
+                    <p className="text-[11px] text-indigo-300 font-semibold leading-relaxed">
+                      💡 <strong>Consell:</strong> A Android és millor utilitzar el navegador <strong>Google Chrome</strong> per obrir el lloc web.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3.5">
+                    {[
+                      { pas: 1, text: "Obre aquesta pàgina web mitjançant el navegador <strong>Google Chrome</strong>." },
+                      { pas: 2, text: "Prem la icona de <strong>tres punts verticalls</strong> situats a la cantonada superior dreta de Chrome." },
+                      { pas: 3, text: "Prem a <strong>\"Instal·lar aplicació\"</strong> o en el seu defecte <strong>\"Afegeix a la pantalla d'inici\"</strong>." },
+                      { pas: 4, text: "Accepta la petició compartida. L'escut d'OposiCAT s'instal·larà en segons al teu mòbil!" }
+                    ].map((step) => (
+                      <div key={step.pas} className="flex gap-3">
+                        <span className="w-6 h-6 rounded-full bg-indigo-600/20 text-indigo-400 text-[10px] font-black flex items-center justify-center shrink-0 border border-indigo-500/10">
+                          {step.pas}
+                        </span>
+                        <p className="text-xs text-white/80 font-medium font-sans leading-relaxed pt-0.5" dangerouslySetInnerHTML={{ __html: step.text }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Beneficis detallats */}
+              <div className="p-4 bg-black/25 border border-white/5 rounded-2xl text-[11px] text-white/50 leading-relaxed font-sans space-y-2">
+                <span className="font-bold text-white/70 block uppercase tracking-wider text-[9px]">🎁 Avantatges unificats d'instal·lar l'App:</span>
+                <p>• S'obre a l'instant amb el nostre logotip i l’escut dedicat d’OposiCAT.</p>
+                <p>• Sense pestanyes que es barregin al navegador, proporcionant total immersió per estudiar.</p>
+                <p>• Permet optimitzar al màxim l'ús de la memòria interna del teu dispositiu i estalvia dades mòbils.</p>
+              </div>
+
+            </div>
+
+            {/* Peu del modal amb botó de confirmació tancada */}
+            <div className="p-5 border-t border-white/10 bg-black/35 flex">
+              <button
+                onClick={() => setModalInstallarObert(false)}
+                className="w-full bg-[#b3f202] hover:bg-[#a1d902] active:scale-[0.98] text-slate-950 font-black italic text-[11px] uppercase py-3.5 px-4 rounded-xl transition-all cursor-pointer shadow-lg tracking-tight flex items-center justify-center gap-1"
+              >
+                Comprès, llest per instal·lar! 👮‍♀️🚀
               </button>
             </div>
 
