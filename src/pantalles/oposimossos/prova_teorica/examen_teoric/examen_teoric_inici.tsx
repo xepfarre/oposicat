@@ -163,7 +163,13 @@ export default function ExamenTeoricInici({
           
           {/* Botó 1: Casa (retorna a l'inici original de Mossos directament) */}
           <button 
-            onClick={onAnarInici || onTornar}
+            onClick={() => {
+              if (onAnarInici) {
+                onAnarInici();
+              } else {
+                onTornar();
+              }
+            }}
             className="py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group cursor-pointer rounded-xl hover:bg-white/5 text-white/50 hover:text-white/80"
           >
             <Home className="w-6 h-6 transition-all group-hover:scale-115 text-slate-300 group-hover:text-white" />

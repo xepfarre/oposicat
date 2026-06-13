@@ -45,6 +45,25 @@ import { CONTINGUT_TEMARI_TEXTS } from './constants/contingut_textos';
 // @ts-ignore
 import LaMevaOposicio from './pantalles/oposimossos/la_meva_oposicio';
 
+// Explicació per a no-programadors: Importem els fons d'estudi pesants per poder pre-carregar-los immediatament.
+// @ts-ignore
+import fonsTeoricaImg from './assets/images/fons_teorica_1780343152615.png';
+// @ts-ignore
+import fonsFisicaImg from './assets/images/fons_fisica_1780343173628.png';
+// @ts-ignore
+import fonsPsicologicaImg from './assets/images/fons_psicologica_1780343193032.png';
+
+const IMATGES_A_PRECARREGAR = [
+  fonsTeoricaImg,
+  fonsFisicaImg,
+  fonsPsicologicaImg,
+  '/assets/imatges/fons_ispc.png',
+  '/assets/imatges/carrusel_mossos.png',
+  '/assets/imatges/carrusel_bombers.png',
+  '/assets/imatges/carrusel_agentrural.png',
+  '/assets/imatges/carrusel_proteciocivil.png'
+];
+
 // Nous components Modulars de la part Web i de d’Administració (Backoffice)
 import SelectorDesenvolupament, { VistaDesenvolupament } from './components/SelectorDesenvolupament';
 import WebLandingPC from './pantalles/web/WebLandingPC';
@@ -98,6 +117,16 @@ export default function App() {
   const [mode, setMode] = useState<'app' | 'admin'>('app');
   const [user, setUser] = useState<any>(null);
   const [errorSessioDuplicada, setErrorSessioDuplicada] = useState(false);
+
+  // Explicació per a no-programadors:
+  // Precarreguem actiu-ment totes les imatges de fons pesades quan l'aplicació s'obre per primera vegada.
+  // Així s'assegura que no es vegi cap segon en blau l'estudi o canviador fons en navegar entre les vistes.
+  useEffect(() => {
+    IMATGES_A_PRECARREGAR.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, []);
 
   // Explicació per a no-programadors:
   // Controlarem dinàmicament el comportament del desplaçament (scroll) global del navegador.
@@ -1041,6 +1070,13 @@ export default function App() {
         </div>
       } />
     </Routes>
+
+    {/* Node de precarrega invisible per a forçar el renderitzat i cache de GPU del navegador i evitar qualsevol parpelleig de fons blau */}
+    <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', opacity: 0, pointerEvents: 'none' }}>
+      {IMATGES_A_PRECARREGAR.map((src, idx) => (
+        <div key={idx} style={{ backgroundImage: `url(${src})`, width: 1, height: 1 }} />
+      ))}
+    </div>
     </div>
   );
 }
