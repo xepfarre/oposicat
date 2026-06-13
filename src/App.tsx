@@ -61,7 +61,11 @@ const IMATGES_A_PRECARREGAR = [
   '/assets/imatges/carrusel_mossos.png',
   '/assets/imatges/carrusel_bombers.png',
   '/assets/imatges/carrusel_agentrural.png',
-  '/assets/imatges/carrusel_proteciocivil.png'
+  '/assets/imatges/carrusel_proteciocivil.png',
+  'https://images.unsplash.com/photo-1513829096999-4978602297f7?q=80&w=1200&auto=format&fit=crop&blur=3',
+  'https://images.unsplash.com/photo-1516467508483-a7212febe31a?q=80&w=1200&auto=format&fit=crop&blur=3',
+  'https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=1200&auto=format&fit=crop&blur=3',
+  'https://images.unsplash.com/photo-1620121692029-d088224ddc74?q=80&w=1200&auto=format&fit=crop&blur=3'
 ];
 
 // Nous components Modulars de la part Web i de d’Administració (Backoffice)
@@ -1050,11 +1054,23 @@ export default function App() {
           )}
 
           {pantalla === 'prova_practica' && (
-            <ProvaFisicaInici onTornar={handleTornarMossos} />
+            <ProvaFisicaInici 
+              onTornar={handleTornarMossos} 
+              onAnarSeccio={(seccio) => {
+                setMossosInicialSeccio(seccio);
+                setPantalla('mossos');
+              }}
+            />
           )}
 
           {pantalla === 'prova_psicologica' && (
-            <ProvaPsicologicaInici onTornar={handleTornarMossos} />
+            <ProvaPsicologicaInici 
+              onTornar={handleTornarMossos} 
+              onAnarSeccio={(seccio) => {
+                setMossosInicialSeccio(seccio);
+                setPantalla('mossos');
+              }}
+            />
           )}
 
           {pantalla === 'la_meva_oposicio' && (

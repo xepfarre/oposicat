@@ -25,27 +25,34 @@ export default function Pantalla_Inici({
       linia1: "MOSSOS", 
       linia2: "D'ESQUADRA", 
       color: "bg-[#00274d]", 
+      fons: "https://images.unsplash.com/photo-1513829096999-4978602297f7?q=80&w=1200&auto=format&fit=crop&blur=3",
       actiu: true 
     },
     { 
+      id: 1,
       nom: "Bombers", 
       linia1: "BOMBERS", 
       linia2: "DE CATALUNYA", 
       color: "bg-[#BE1E2D]", 
+      fons: "https://images.unsplash.com/photo-1516467508483-a7212febe31a?q=80&w=1200&auto=format&fit=crop&blur=3",
       actiu: false 
     },
     { 
+      id: 2,
       nom: "Agents Rurals", 
       linia1: "AGENTS", 
       linia2: "RURALS", 
       color: "bg-[#277A44]", 
+      fons: "https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=1200&auto=format&fit=crop&blur=3",
       actiu: false 
     },
     { 
+      id: 3,
       nom: "Protecció Civil", 
       linia1: "PROTECCIÓ", 
       linia2: "CIVIL", 
       color: "bg-[#F37021]", 
+      fons: "https://images.unsplash.com/photo-1620121692029-d088224ddc74?q=80&w=1200&auto=format&fit=crop&blur=3",
       actiu: false, 
       dark: false 
     }
@@ -57,10 +64,22 @@ export default function Pantalla_Inici({
   const anterior = () => setIndex((i) => (i - 1 + dades.length) % dades.length);
 
   return (
-    <div className={`flex h-screen w-full flex-col items-center justify-between pb-6 px-10 transition-colors duration-700 overflow-hidden ${cos.color}`}>
+    <div className={`relative flex h-screen w-full flex-col items-center justify-between pb-6 px-10 transition-colors duration-700 overflow-hidden ${cos.color}`}>
+      
+      {/* Explicació per a no-programadors: Capa de fons difuminada amb la imatge de l'especialitat de seguretat corresponent barrejat amb degradats de color */}
+      <div className="absolute inset-0 z-0 pointer-events-none transition-all duration-700 overflow-hidden">
+        <img 
+          key={cos.fons}
+          src={cos.fons} 
+          alt=""
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover scale-110 blur-md opacity-25 transition-all duration-700 ease-in-out select-none"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60" />
+      </div>
       
       {/* CAPÇALERA: Amb contenidor protector suau per garantir contrast permanent del logotip */}
-      <header className="pt-14 w-full flex flex-col items-center gap-2">
+      <header className="relative z-10 pt-14 w-full flex flex-col items-center gap-2">
         <div className="bg-black/30 backdrop-blur-md px-10 py-4 rounded-3xl shadow-xl border border-white/10 flex flex-col items-center">
           <h1 className="text-4xl font-black italic tracking-tighter select-none">
             <span className="text-white">Oposi</span>
@@ -83,7 +102,7 @@ export default function Pantalla_Inici({
       </header>
 
       {/* CARRUSEL CENTRAL (ESTÀTIC) */}
-      <div className="flex flex-col items-center">
+      <div className="relative z-10 flex flex-col items-center">
         <div className="relative">
           {/* Fletxa Esquerra */}
           <button 
@@ -116,7 +135,7 @@ export default function Pantalla_Inici({
       </div>
 
       {/* ACCIÓ INFERIOR */}
-      <footer className="w-full max-w-xs md:max-w-2xl flex flex-col items-center gap-6">
+      <footer className="relative z-10 w-full max-w-xs md:max-w-2xl flex flex-col items-center gap-6">
         
         {/* INDICADORS DE MINIATURES (PAGINACIÓ) */}
         <div className="flex gap-4 mb-2">

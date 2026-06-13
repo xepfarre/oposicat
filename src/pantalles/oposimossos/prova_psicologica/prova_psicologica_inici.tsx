@@ -1,16 +1,26 @@
-import React, { useState } from 'react';
-import { ChevronLeft, BrainCircuit, Youtube, Calendar as CalendarIcon, Clock } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, BrainCircuit, Youtube, Calendar as CalendarIcon, Clock, Home, MessageSquare, Bell } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isSameMonth } from 'date-fns';
 import { ca } from 'date-fns/locale';
 import { GuiaBiodata } from "./biodata_guia";
 import { CompetenciesClau } from "./competencies_clau";
 import { EntrevistaGuia } from "./entrevista_guia";
 
+// Explicació per a no-programadors: Importem la mateixa imatge que fem servir a la pàgina de la web de les proves psicològiques per mantenir una línia estètica idèntica
+// @ts-ignore
+import fonsPsicologica from "../../../assets/images/fons_psicologica_1780343193032.png";
+
 /**
  * PANTALLA: ProvaPsicologica
  * Preparació per als tests psicotècnics i personalitat.
  */
-export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => void }) {
+export default function ProvaPsicologicaInici({ 
+  onTornar,
+  onAnarSeccio 
+}: { 
+  onTornar: () => void;
+  onAnarSeccio?: (seccio: 'home' | 'forum' | 'noticies' | 'perfil') => void;
+}) {
   const [seccio, setSeccio] = useState<'principal' | 'biodata' | 'competencies' | 'menu_entrevista' | 'entrevista' | 'cita'>('principal');
   const [seccioBiodata, setSeccioBiodata] = useState<'menu' | 'personals' | 'laborals' | 'pgme' | 'test'>('menu');
   // Estat per a controlar la subsecció activa de la guia del test de biodata (evitant salts dobles d'enrere)
@@ -21,6 +31,20 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [torn, setTorn] = useState<'mati' | 'tarda'>('mati');
   const [hora, setHora] = useState<string>('');
+
+  // Explicació per a no-programadors: Estat d'àvatar obtingut dinàmicament per a mostrar el mateix dibuix d'avatar personalitzat escollit des del perfil de l'alumne.
+  const [avatarEstil, setAvatarEstil] = useState<string>("👮‍♂️");
+
+  useEffect(() => {
+    try {
+      const deLocalStorage = localStorage.getItem("avatar_estil");
+      if (deLocalStorage) {
+        setAvatarEstil(deLocalStorage);
+      }
+    } catch {
+      setAvatarEstil("👮‍♂️");
+    }
+  }, []);
 
   /* 
     Capçalera idèntica a la prova teòrica
@@ -53,13 +77,106 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
     </div>
   );
 
+  // Explicació per a no-programadors: Helper (empaquetador) creat per unificar el mateix fons de la web amb l'imatge del psicòleg, el degradat blau fosc policia consistent i la barra inferior de navegació a cada subpantalla del test i entrevistes de forma completament modular.
+  const WrapperPsicologica = ({ children }: { children: React.ReactNode }) => {
+    return (
+      <div className="fixed inset-0 w-full flex flex-col items-center bg-[#010915] overflow-y-auto px-6 pb-32" style={{ WebkitOverflowScrolling: "touch" }}>
+        
+        {/* Explicació per a no-programadors: Imatge oficial de fons de la prova de psicologia amb l'opacitat adequada (35%) i un degradat que es mescla bonicament amb el color fosc #010915 que usa la web des d'ordinador */}
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden min-h-full">
+          <img 
+            src={fonsPsicologica} 
+            alt=""
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover opacity-35 transition-all duration-700"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#010915]/90 via-[#010915]/85 to-[#010915]" />
+        </div>
+
+        {/* Explicació per a no-programadors: Contingut real de la secció del mòbil centrat a la pantalla per damunt de la imatge de fons */}
+        <div className="relative z-10 w-full max-w-md md:max-w-4xl flex flex-col items-center min-h-full">
+          {children}
+        </div>
+
+        {/* Comentari planer per a no-programadors: Barra inferior de botons del menú corporatiu adaptada visualment amb el color oficial fosquíssim de les proves de la web (#010915) per obtenir una integració estètica sublim. */}
+        {onAnarSeccio && (
+          <div 
+            className="fixed bottom-0 left-0 right-0 z-45 bg-[#010915]/95 backdrop-blur-md border-t border-white/10 px-4 pt-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.6)] flex items-center justify-center transition-all duration-300"
+            style={{ paddingBottom: "calc(5px + env(safe-area-inset-bottom, 6px))" }}
+          >
+            <div className="w-full max-w-md grid grid-cols-4 gap-1">
+              
+              {/* Botó 1: Casa (retorna a l'inici de Mossos) */}
+              <button 
+                onClick={onTornar}
+                className="py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group cursor-pointer rounded-xl hover:bg-white/5 text-white/50 hover:text-white/80"
+              >
+                <Home className="w-6 h-6 transition-all group-hover:scale-115 text-slate-300 group-hover:text-white" />
+                <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
+                  Inici
+                </span>
+              </button>
+
+              {/* Botó 2: Fòrum */}
+              <button 
+                onClick={() => onAnarSeccio('forum')}
+                className="py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer rounded-xl hover:bg-white/5 text-white/50 hover:text-white/80"
+              >
+                <div className="relative">
+                  <MessageSquare className="w-6 h-6 transition-all group-hover:scale-115 text-pink-400/60 group-hover:text-pink-400" />
+                  {/* Indicador de notificació polsant */}
+                  <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75 font-bold"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+                  </span>
+                </div>
+                <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
+                  Fòrum 💬
+                </span>
+              </button>
+
+              {/* Botó 3: Notícies */}
+              <button 
+                onClick={() => onAnarSeccio('noticies')}
+                className="py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer rounded-xl hover:bg-white/5 text-white/50 hover:text-white/80"
+              >
+                <div className="relative">
+                  <Bell className="w-6 h-6 transition-all group-hover:scale-115 text-white/60 group-hover:text-white" />
+                </div>
+                <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
+                  Notícies
+                </span>
+              </button>
+
+              {/* Botó 4: Perfil */}
+              <button 
+                onClick={() => onAnarSeccio('perfil')}
+                className="py-2 px-1 flex flex-col items-center justify-center transition-all active:scale-95 group relative cursor-pointer rounded-xl hover:bg-white/5 text-white/50 hover:text-white/80"
+              >
+                <div className="relative">
+                  <span className="text-[20px] filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] select-none">
+                    {avatarEstil}
+                  </span>
+                </div>
+                <span className="font-extrabold italic text-[11px] uppercase tracking-wider text-center mt-1">
+                  Perfil
+                </span>
+              </button>
+
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (seccio === 'cita') {
     const start = startOfMonth(currentMonth);
     const end = endOfMonth(currentMonth);
     const days = eachDayOfInterval({ start, end });
 
     return (
-      <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20">
+      <WrapperPsicologica>
         <header className="pt-8 w-full flex flex-col items-center shrink-0">
           <HeaderTeorica onBackClick={() => setSeccio('menu_entrevista')} />
           <div className="flex flex-col items-center -mt-4 mb-6">
@@ -196,13 +313,13 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
             Preparació acadèmica per a oposicions de l'ISPC
           </p>
         </footer>
-      </div>
+      </WrapperPsicologica>
     );
   }
 
   if (seccio === 'menu_entrevista') {
     return (
-      <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20">
+      <WrapperPsicologica>
         <header className="pt-8 w-full flex flex-col items-center shrink-0">
           <HeaderTeorica onBackClick={() => setSeccio('principal')} />
         </header>
@@ -236,7 +353,7 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
                 Practica amb psicolegs d'oposicions
               </span>
               <p className="text-white/40 text-[10px] font-medium text-center leading-relaxed max-w-[300px] italic">
-                Posa en pràctica un cop hagis vist les preguntes de l'apartat anterior, a més a més de haver fet el test del biodata per a conèixer-te millor, amb els nostres psicòlegs especialitzats en oposicions!
+                Posa en pràctica un cop hagis vist les preguntes de l'apartat anterior, a amés a més de haver fet el test del biodata per a conèixer-te millor, amb els nostres psicòlegs especialitzats en oposicions!
               </p>
             </div>
             <button 
@@ -251,13 +368,13 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
 
         <footer className="w-full max-w-xs flex flex-col items-center gap-4 pb-10 mt-12 shrink-0 px-6">
         </footer>
-      </div>
+      </WrapperPsicologica>
     );
   }
 
   if (seccio === 'entrevista') {
     return (
-      <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20" style={{ WebkitOverflowScrolling: "touch" }}>
+      <WrapperPsicologica>
         <header className="pt-8 w-full flex flex-col items-center shrink-0">
           <HeaderTeorica onBackClick={() => setSeccio('menu_entrevista')} />
           
@@ -271,13 +388,13 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
         <main className="w-full max-w-md md:max-w-3xl flex flex-col items-center">
           <EntrevistaGuia onBack={() => setSeccio('menu_entrevista')} />
         </main>
-      </div>
+      </WrapperPsicologica>
     );
   }
 
   if (seccio === 'biodata') {
     return (
-      <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20" style={{ WebkitOverflowScrolling: "touch" }}>
+      <WrapperPsicologica>
         <header className="pt-8 w-full flex flex-col items-center shrink-0">
           <HeaderTeorica onBackClick={() => {
               // Si estem dins d'un apartat secundari del test (ex: teoria/pràctica), primer tornem al menú d'aquest test (la foto de l'usuari)
@@ -314,13 +431,13 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
             Preparació acadèmica per a oposicions de l'ISPC
           </p>
         </footer>
-      </div>
+      </WrapperPsicologica>
     );
   }
 
   if (seccio === 'competencies') {
     return (
-      <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20" style={{ WebkitOverflowScrolling: "touch" }}>
+      <WrapperPsicologica>
         <header className="pt-8 w-full flex flex-col items-center shrink-0">
           <HeaderTeorica onBackClick={() => setSeccio('principal')} />
           
@@ -340,12 +457,12 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
             Preparació acadèmica per a oposicions de l'ISPC
           </p>
         </footer>
-      </div>
+      </WrapperPsicologica>
     );
   }
 
   return (
-    <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20" style={{ WebkitOverflowScrolling: "touch" }}>
+    <WrapperPsicologica>
       <header className="pt-8 w-full flex flex-col items-center shrink-0">
         <HeaderTeorica onBackClick={onTornar} />
         
@@ -407,7 +524,7 @@ export default function ProvaPsicologicaInici({ onTornar }: { onTornar: () => vo
           Preparació acadèmica per a oposicions de l'ISPC
         </p>
       </footer>
-    </div>
+    </WrapperPsicologica>
   );
 }
 
