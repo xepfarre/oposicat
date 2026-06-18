@@ -183,6 +183,18 @@ export default function WebLoginPC({ onSessioIniciada, onTornar }: WebLoginPCPro
       {/* RECEPTACLE CONTENIDOR DE MOSSOS - DE DOS COSTATS COM AL DIBUIX */}
       <div className="relative z-10 w-full max-w-5xl bg-slate-950/70 border border-blue-900/40 rounded-[32px] p-6 sm:p-10 md:p-12 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
         
+        {/* NOU BLOC D'AVÍS OFICIAL SOBRE L'ESTAT DEL DESENVOLUPAMENT (FASE ALPHA) 
+            Explicació per a no-programadors:
+            Aquest és el bloc transparent amb vora de color ambre/daurat que hem mogut a la part de dalt de tot de la caixa d'entrada per assegurar la màxima visió de l'alumne. Compta amb un bonic parpalleig continuat d'advertència. */}
+        <div className="border border-amber-500/20 bg-amber-500/5 p-4 rounded-xl mb-6 animate-pulse [animation-duration:2.5s]">
+          <h4 className="text-xs sm:text-sm font-bold tracking-wider text-amber-400 uppercase mb-1">
+            ESTAT DEL DESENVOLUPAMENT
+          </h4>
+          <p className="text-[11px] sm:text-xs text-white leading-relaxed font-semibold">
+            La versió actual de la web és ALPHA. En breus obrirem la fase BETA, on tot el contingut serà visitable i es podran donar d'alta els usuaris corresponents.
+          </p>
+        </div>
+
         {/* BOTÓ TORNAR CAP AL WEB PÚBLIC */}
         <button
           onClick={onTornar}
@@ -207,7 +219,7 @@ export default function WebLoginPC({ onSessioIniciada, onTornar }: WebLoginPCPro
                 <div className="bg-black/45 px-6 py-2 rounded-2xl border border-white/10">
                   <h1 className="text-xl font-black italic tracking-tighter select-none">
                     <span className="text-white">Oposi</span>
-                    <span className="text-red-600">Mossos</span>
+                    <span className="text-[#FFDF00]">CAT</span>
                   </h1>
                 </div>
               </header>
@@ -223,7 +235,7 @@ export default function WebLoginPC({ onSessioIniciada, onTornar }: WebLoginPCPro
                 disabled={carregant}
                 className={`py-2 text-[10px] font-black italic uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
                   mode === 'login' 
-                    ? 'bg-[#00274d] text-[#FFDF00] border border-white/10 shadow-md' 
+                    ? 'bg-[#00274d] text-amber-400 border border-white/10 shadow-md' 
                     : 'text-white/60 hover:text-white'
                 }`}
               >
@@ -234,7 +246,7 @@ export default function WebLoginPC({ onSessioIniciada, onTornar }: WebLoginPCPro
                 disabled={carregant}
                 className={`py-2 text-[10px] font-black italic uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
                   mode === 'registre' 
-                    ? 'bg-[#00274d] text-[#FFDF00] border border-white/10 shadow-md' 
+                    ? 'bg-[#00274d] text-amber-400 border border-white/10 shadow-md' 
                     : 'text-white/60 hover:text-white'
                 }`}
               >
@@ -353,21 +365,22 @@ export default function WebLoginPC({ onSessioIniciada, onTornar }: WebLoginPCPro
                   type="button"
                   onClick={handleRecuperarContrasenya}
                   disabled={carregant}
-                  className="text-[9px] text-[#00f296] font-extrabold uppercase hover:underline cursor-pointer bg-transparent border-none p-0 disabled:opacity-50"
+                  className="text-[10px] text-slate-400 font-extrabold uppercase hover:underline cursor-pointer bg-transparent border-none p-0 disabled:opacity-50"
                 >
                   Recuperar dades
                 </button>
               </div>
 
               {/* BOTÓ D'ACCÉS PRINCIPAL */}
+              {/* Explicació per a no-programadors: Restablim el color de fons del botó al seu degradat original ambre i daurat d'alta gamma, retornant-li el caràcter vibrant i visible de l'acadèmia. */}
               <button
                 type="submit"
                 disabled={carregant}
-                className="w-full mt-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-650 active:scale-95 text-white font-black italic text-xs uppercase tracking-wider py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full mt-2 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 active:scale-95 text-black font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-[0_0_15px_rgba(251,191,36,0.25)] hover:shadow-[0_0_22px_rgba(251,191,36,0.40)] relative overflow-hidden"
               >
                 {carregant ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <Loader2 className="w-4 h-4 animate-spin text-black" />
                     <span>Establir connexió cloud...</span>
                   </>
                 ) : mode === 'login' ? (
@@ -388,12 +401,13 @@ export default function WebLoginPC({ onSessioIniciada, onTornar }: WebLoginPCPro
             </div>
 
             {/* GOOGLE ACCÉS DE 1 CLICK */}
+            {/* Explicació per a no-programadors: Canviem el fons d'aquest botó a color blanc estàtic i el text en negre pur per destacar clarament l'entrada ràpida a Google d'una forma completament elegant. */}
             <button
               onClick={handleGoogleAccasRapit}
               disabled={carregant}
-              className="w-full bg-[#0a2038] hover:bg-[#0f2845] border border-white/5 active:scale-95 text-slate-100 font-black italic text-[11px] uppercase tracking-wider py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-45"
+              className="w-full bg-white hover:bg-slate-100 border border-transparent active:scale-95 text-black font-bold text-[11px] uppercase tracking-wider py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-45"
             >
-              <Chrome className="w-4 h-4 text-red-500" />
+              <Chrome className="w-4 h-4 text-black" />
               <span>Entrada ràpida amb Google</span>
             </button>
           </div>
@@ -403,11 +417,14 @@ export default function WebLoginPC({ onSessioIniciada, onTornar }: WebLoginPCPro
           {/* ========================================================= */}
           <div className="flex flex-col justify-between py-2 text-left">
             <div>
-              {/* Alerta de Seguretat de color corporatiu d'OposiCAT */}
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl p-4 flex items-start gap-3 mb-6">
-                <ShieldAlert className="w-5 h-5 shrink-0 text-red-500" />
+              {/* Explicació per a no-programadors:
+                  Aquest requadre superior manté informat l'alumne del funcionament tècnic d'estudiants 
+                  per evitar confusions amb l'ús simultani del mòbil i de l'ordinador.
+                  Ara, per indicació, s'ha configurat amb l'estètica verda professional corporativa. */}
+              <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl p-4 flex items-start gap-3 mb-4">
+                <ShieldAlert className="w-5 h-5 shrink-0 text-emerald-500" />
                 <div className="space-y-1">
-                  <span className="text-[10px] font-black uppercase tracking-wider block">
+                  <span className="text-[10px] font-black uppercase tracking-wider block text-emerald-400">
                     ⚠️ RECORDATORI IMPORTANT: DISPOSITIU ÚNIC
                   </span>
                   <p className="text-[11px] font-semibold text-slate-200 leading-relaxed italic">
@@ -416,28 +433,26 @@ export default function WebLoginPC({ onSessioIniciada, onTornar }: WebLoginPCPro
                 </div>
               </div>
 
-              {/* Informació d'ajuda d'alta comoditat d'accés */}
-              <div className="space-y-4">
-                <h3 className="text-base font-black italic uppercase text-[#FFDF00] tracking-wider">
-                  Estudia amb la ment tranquil·la
-                </h3>
+              {/* BLOC DE SINCRONITZACIÓ EN TEMPS REAL 
+                  Explicació per a no-programadors:
+                  Un directori amb el compromís de guardat automàtic per potenciar la ment tranquil·la. */}
+              <div className="space-y-1.5 mt-5">
+                <h4 className="text-sm font-bold tracking-wider text-white uppercase">
+                  SINCRO EN TEMPS REAL
+                </h4>
                 <p className="text-xs text-slate-300 leading-relaxed font-semibold">
-                  Entrar és molt fàcil i només amb 1 click, així que no et preocupis! No perdràs gens de temps havent de logejar-te a cada sessió de repàs, i tot el teu progrés, targetes de test i anotacions es mantenen guardades sota clau de seguretat al núvol oficial d'estudiants.
+                  El teu progrés, simulacres realitzats i estadístiques es guarden de forma encriptada i es sincronitzen a l'instant entre l'aplicació mòbil i el web oficial.
                 </p>
               </div>
             </div>
 
-            {/* Agraïment del tribunal de preparadors d'OposiMossos */}
-            <div className="mt-8 border-t border-white/10 pt-5 flex items-center gap-3">
-              <div className="w-1.5 h-10 bg-red-600 rounded-full" />
-              <div>
-                <p className="text-xs text-white font-black italic uppercase">
-                  Moltes gràcies per confiar en nosaltres!
-                </p>
-                <span className="text-[9px] text-[#00f296] font-bold uppercase tracking-wider block mt-0.5">
-                  L'equip d'OposiCAT & Mossos d'Esquadra de Catalunya
-                </span>
-              </div>
+            {/* REQUADRE INFERIOR DE SUPORT TÈCNIC 
+                Explicació per a no-programadors:
+                Una línia inferior de suport tècnic per si algun alumne de l'acadèmia té problemes per entrar-hi. */}
+            <div className="mt-8 border-t border-slate-800/80 pt-5">
+              <span className="text-[10px] text-slate-500 tracking-wide font-medium block">
+                Necessites ajuda amb el teu compte? Contacta amb el nostre servei de suport tècnic.
+              </span>
             </div>
 
           </div>

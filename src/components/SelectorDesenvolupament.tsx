@@ -18,7 +18,8 @@ export type VistaDesenvolupament =
   | 'web_pc_workspace'        // WEB - PC - Workspace (zona d'estudiats web)
   | 'web_pc_backoffice'       // WEB - PC - Backoffice (gestió d'alumnes)
   | 'web_mobil_website'       // WEB - Mòbil - Website (landing adaptada)
-  | 'web_mobil_redireccio';   // WEB - Mòbil - Redirecció/Descàrrega de l'APP
+  | 'web_mobil_redireccio'    // WEB - Mòbil - Redirecció/Descàrrega de l'APP
+  | 'web_pc_mossos';          // WEB - PC - Mossos (pàgina d'aterratge de mossos)
 
 interface PropsSelector {
   vistaActual: VistaDesenvolupament;
@@ -42,6 +43,12 @@ export default function SelectorDesenvolupament({ vistaActual, onChangeVista }: 
       titol: '🖥️ WEB - PC - Website',
       descripcio: 'Pàgina corporativa d’OposiMossos per a ordinadors de casa.',
       color: 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+    },
+    {
+      valor: 'web_pc_mossos',
+      titol: '👮 WEB - PC - MOSSOS',
+      descripcio: 'Pàgina corporativa específica d’accés al Cos de Mossos d’Esquadra.',
+      color: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20'
     },
     {
       valor: 'web_pc_login',

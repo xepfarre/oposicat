@@ -15,7 +15,7 @@ import {
 
 // Explicació per a no-programadors: Importem els fons temàtics generats per IA per a cadascuna de les 3 fases
 // @ts-ignore
-import fonsTeorica from '../../assets/images/fons_teorica_1780343152615.png';
+import fonsTeorica from '../../assets/images/Teorica.png';
 // @ts-ignore
 import fonsFisica from '../../assets/images/fons_fisica_1780343173628.png';
 // @ts-ignore

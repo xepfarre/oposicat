@@ -4,6 +4,7 @@ import {
   signInWithEmailAndPassword, 
   signInWithPopup, 
   GoogleAuthProvider, 
+  signInWithCredential,
   sendEmailVerification, 
   signOut,
   updateProfile,
@@ -247,17 +248,29 @@ export async function iniciarSessioAmbCorreu(email: string, contrasenya: string)
  * 3. ENTRADA AMB GOOGLE (Inici de sessió ràpid d'un sol clic)
  * Solució de gran comoditat per a l'estudiant. S'encarrega d'enllaçar o iniciar sessió
  * sense risc de demanar pagar dos cops si el correu és idèntic.
+ * 
+ * Explicació planer per a no-programadors:
+ * - Afegeix un paràmetre opcional 'capacitorIdToken'. Si l'aplicació s'està executant com a APK a Android o tauleta
+ * i fem servir el sistema natiu (Capacitor), li passem el tiquet de seguretat de Google natiu. 
+ * - Si no es passa aquest tiquet, l'App entén que som a la web i obre la pestanya clàssica emergent (popup).
  */
-export async function iniciarSessioAmbGoogle(): Promise<{ user: FirebaseUser, perfil: PerfilUsuari }> {
-  const proveidor = new GoogleAuthProvider();
-  
-  // Forcem a que ens mostri l'elecció de comptes en arribar
-  proveidor.setCustomParameters({
-    prompt: 'select_account'
-  });
-  
-  const resultat = await signInWithPopup(auth, proveidor);
-  const firebaseUser = resultat.user;
+export async function iniciarSessioAmbGoogle(capacitorIdToken?: string): Promise<{ user: FirebaseUser, perfil: PerfilUsuari }> {
+  let firebaseUser: FirebaseUser;
+
+  if (capacitorIdToken) {
+    // Explicació per a no-programadors: Iniciem la sessió nactiva combinant el tiquet de seguretat de Google obtingut pel mòbil
+    const credencial = GoogleAuthProvider.credential(capacitorIdToken);
+    const resultat = await signInWithCredential(auth, credencial);
+    firebaseUser = resultat.user;
+  } else {
+    // Explicació per a no-programadors: Flux web estàndard usant la finestra emergent
+    const proveidor = new GoogleAuthProvider();
+    proveidor.setCustomParameters({
+      prompt: 'select_account'
+    });
+    const resultat = await signInWithPopup(auth, proveidor);
+    firebaseUser = resultat.user;
+  }
   
   // BLINDATGE ASÍNCRON: El mateix que amb correu tradicional, garantim que se li crea el perfil si no existia
   const perfil = await garantirFitxaPerfilFirestore(firebaseUser);

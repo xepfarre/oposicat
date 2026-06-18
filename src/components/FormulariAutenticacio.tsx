@@ -126,7 +126,33 @@ export default function FormulariAutenticacio({
     setCarregant(true);
 
     try {
-      const resultat = await iniciarSessioAmbGoogle();
+      let tokenNatiu: string | undefined = undefined;
+
+      // Explicació per a no-programadors: Comprovem si el dispositiu utilitza Capacitor (una tauleta o mòbil amb l'APK)
+      const win = window as any;
+      const isCapacitor = typeof window !== 'undefined' && win.Capacitor;
+
+      if (isCapacitor) {
+        // Explicació per a no-programadors: Intentem carregar de forma transparent el mòdul de Google natiu ja instal·lat al seu dispositiu mòbil tal com s'exposa al Capacitor global
+        try {
+          const capAuthPlugin = win.Capacitor.Plugins?.GoogleAuth;
+          if (capAuthPlugin) {
+            const fitxaNativa = await capAuthPlugin.signIn();
+            tokenNatiu = fitxaNativa.authentication.idToken;
+          } else {
+            console.warn("Capacitor detectat, però el plugin de GoogleAuth no sembla estar enllaçat encara.");
+          }
+        } catch (capErr) {
+          console.error("Inconvenient en connectar amb el Google Auth natiu de la tauleta:", capErr);
+          // Donem un missatge més descriptiu si ens trobem en entorn natiu i s'ha cancel·lat o no troba la signatura SHA-1
+          throw {
+            code: 'auth/unauthorized-domain',
+            message: "La signatura de l'APK (SHA-1) podria no estar enllaçada al projecte de Firebase, o l'alumne ha cancel·lat l'accés natiu."
+          };
+        }
+      }
+
+      const resultat = await iniciarSessioAmbGoogle(tokenNatiu);
       setExitString(`Accés correcte amb Google! Hola, ${resultat.perfil.displayName}.`);
       setTimeout(() => {
         onSessioIniciada(resultat.perfil);

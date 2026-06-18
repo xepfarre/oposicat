@@ -47,7 +47,7 @@ import LaMevaOposicio from './pantalles/oposimossos/la_meva_oposicio';
 
 // Explicació per a no-programadors: Importem els fons d'estudi pesants per poder pre-carregar-los immediatament.
 // @ts-ignore
-import fonsTeoricaImg from './assets/images/fons_teorica_1780343152615.png';
+import fonsTeoricaImg from './assets/images/Teorica.png';
 // @ts-ignore
 import fonsFisicaImg from './assets/images/fons_fisica_1780343173628.png';
 // @ts-ignore
@@ -76,6 +76,58 @@ import WebWorkspacePC from './pantalles/web/WebWorkspacePC';
 import WebBackofficePC from './pantalles/web/WebBackofficePC';
 import WebLandingMobil from './pantalles/web/WebLandingMobil';
 import WebRedireccioMobil from './pantalles/web/WebRedireccioMobil';
+import PaginaMossos from './pages/PaginaMossos';
+
+// Component unificat de Properament
+// Explicació per a no-programadors: Mostra una pantalla amb l'estètica premium de l'acadèmia per a les rutes de bombers, agents rurals i protecció civil temporalment pendents de rebre temari complet.
+function PlantaProperament({ títol }: { títol: string }) {
+  return (
+    <div style={{ backgroundColor: '#050b14', minHeight: '100vh' }} className="min-h-screen text-slate-100 font-sans flex flex-col justify-between selection:bg-[#FFDF00] selection:text-slate-900">
+      <header className="border-b border-[#111e36] bg-[#050b14]/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Link to="/" className="no-underline">
+            <span style={{ fontSize: '22px', fontWeight: '900', letterSpacing: '1px', userSelect: 'none' }} className="text-white hover:opacity-90 transition-opacity">
+              OPOSICIONS{' '}
+              <span className="italic">
+                <span className="text-[#FFDF00]">C</span>
+                <span className="text-[#e10613]">A</span>
+                <span className="text-[#FFDF00]">T</span>
+                <span className="text-[#e10613]">A</span>
+                <span className="text-[#FFDF00]">L</span>
+                <span className="text-[#e10613]">U</span>
+                <span className="text-[#FFDF00]">N</span>
+                <span className="text-[#e10613]">Y</span>
+                <span className="text-[#FFDF00]">A</span>
+              </span>
+            </span>
+          </Link>
+          <Link to="/" className="text-xs font-black italic uppercase tracking-wider text-slate-400 hover:text-white transition-colors">
+            ← Tornar a l'inici
+          </Link>
+        </div>
+      </header>
+      <main className="flex-grow max-w-5xl mx-auto px-6 py-12 flex flex-col justify-center items-center text-center">
+        <span className="inline-block bg-[#FFDF00]/10 text-[#FFDF00] border border-[#FFDF00]/20 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest animate-pulse mb-6">
+          🔒 ACCÉS TANCAT TEMPORALMENT
+        </span>
+        <h1 className="text-3xl sm:text-5xl font-black italic uppercase tracking-wider text-white mb-4">
+          Preparem el Cos de <span className="text-[#FFDF00]">{títol}</span>
+        </h1>
+        <p className="text-slate-400 font-medium text-xs sm:text-sm max-w-lg mx-auto mb-8 leading-relaxed">
+          Els nostres experts i docents estan enllestint la càrrega dels temaris resumits oficials d'OposiCAT per a aquesta secció. Estarà disponible molt aviat de manera 100% digitalitzada.
+        </p>
+        <Link to="/" className="px-6 py-3 bg-[#111e36] hover:bg-[#1e293b] text-[#FFDF00] rounded-xl font-black italic uppercase tracking-wider text-xs transition-all border border-[#FFDF00]/20">
+          Explorar Mossos d'Esquadra (Activa)
+        </Link>
+      </main>
+      <footer className="border-t border-[#111e36] bg-[#050b14]/80 py-6 text-center text-[11px] text-slate-500 font-sans">
+        © {new Date().getFullYear()} OposicionsCatalunya.
+      </footer>
+    </div>
+  );
+}
+
+import { Link } from 'react-router-dom';
 
 /**
  * COMPONENT PRINCIPAL: App
@@ -624,6 +676,28 @@ export default function App() {
         {/* RUTA DE GESTIÓ: Backoffice Web (Bypass temporal segons petició) */}
         <Route path="/admin/*" element={<AdminPanel onExit={handleSortirBackoffice} />} />
 
+        {/* RUTES REALS DE CADA COS CORRESPONENT D'OPOSICIONS CATALUNYA */}
+        {/* Explicació per a no-programadors: 
+            Enllacem cada petició externa a la seva sub-landing corresponent de l'acadèmia. */}
+        <Route path="/mossos" element={<PaginaMossos 
+          onTornar={() => {
+            setVistaDev('web_pc_website');
+            navigate('/');
+          }} 
+          onEntrarCampus={() => {
+            if (user) {
+              setVistaDev('web_pc_workspace');
+              navigate('/');
+            } else {
+              setVistaDev('web_pc_login');
+              navigate('/');
+            }
+          }}
+        />} />
+        <Route path="/bombers" element={<PlantaProperament títol="Bombers de Catalunya" />} />
+        <Route path="/agents-rurals" element={<PlantaProperament títol="Agents Rurals" />} />
+        <Route path="/proteccio-civil" element={<PlantaProperament títol="Protecció Civil" />} />
+
         {/* RUTA DE L'APP: Experiència d'usuari (actual) */}
         <Route path="*" element={
           <div className="relative min-h-screen">
@@ -677,6 +751,20 @@ export default function App() {
               }} 
               onEntrarBackoffice={() => setVistaDev('web_pc_backoffice')}
               onSimularEntrarMovil={() => setVistaDev('web_mobil_website')}
+              onAnarMossos={() => setVistaDev('web_pc_mossos')}
+            />
+          )}
+
+          {vistaDev === 'web_pc_mossos' && (
+            <PaginaMossos 
+              onTornar={() => setVistaDev('web_pc_website')}
+              onEntrarCampus={() => {
+                if (user) {
+                  setVistaDev('web_pc_workspace');
+                } else {
+                  setVistaDev('web_pc_login');
+                }
+              }}
             />
           )}
 
