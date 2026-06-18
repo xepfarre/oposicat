@@ -152,22 +152,40 @@ export default function App() {
   
   // Estat per a la vista de desenvolupament (comprovació simultània web/app)
   // Explicació per a no-programadors:
-  // Si aquest estat està en 'app_mobil' (que és el valor per defecte),
-  // l'aplicació mòbil inicial es carrega al 100% igual que abans.
-  // Podem canviar aquest canviador mitjançant el nostre selector flotant de desenvolupament.
-  // També comprovem si tenim el paràmetre "?marketing" o "?compartit" a la URL per iniciar directament al web de PC.
+  // Si aquest estat està en 'app_mobil', es carrega la versió de mòbil. Incorporat per a producció:
+  // Si l'usuari entra des d'un ordinador (pantalla gran), li iniciarem la web de PC per defecte de manera totalment transparent,
+  // mentre que si entra des de mòbil li mostrarem la landing/adreçat mòbil directament.
   const [vistaDev, setVistaDev] = useState<VistaDesenvolupament>(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has('marketing') || params.has('compartit')) {
       return 'web_pc_workspace';
     }
+    // Si estem en un navegador real, comprovem l'amplada de la pantalla
+    if (typeof window !== 'undefined') {
+      if (window.innerWidth >= 1024) {
+        return 'web_pc_website'; // Inici de PC per defecte
+      } else {
+        return 'web_mobil_website'; // Inici de Mòbil per defecte
+      }
+    }
     return 'app_mobil';
   });
 
   // Explicació per a no-programadors:
-  // Si l'enllaç porta el paràmetre especial "?marketing", amaguem els botons de control de disseny
-  // per poder fer la presentació neta d'estudi de PC de cara al llançament o a reunions amb l'equip.
+  // Definim si el selector engranatge "flotant" de canvi de vista s'ha de mostrar o no d'acord amb el teu desig.
+  // Es manté actiu en entorn de proves o local, o si afegeixes '?dev=true' o '?debug=true' a l'enllaç de manera privada per a tu.
+  // Per als alumnes del carrer al teu domini oficial de producció, aquest botó estarà 105% amagat i neta de fons!
   const esVistaMarketing = new URLSearchParams(window.location.search).has('marketing') || new URLSearchParams(window.location.search).has('compartit');
+  
+  const esDevMode = (() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    const teParamsDev = params.has('dev') || params.has('debug');
+    const esEntornLocal = window.location.hostname.includes('localhost') || 
+                          window.location.hostname.includes('127.0.0.1') || 
+                          window.location.hostname.includes('run.app'); // AI Studio Dev env
+    return teParamsDev || esEntornLocal;
+  })();
   
   // Estats per al Backoffice
   const [mode, setMode] = useState<'app' | 'admin'>('app');
@@ -667,8 +685,8 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen">
-      {/* EL SELECTOR FLOTANT SEMPRE ESTARÀ VISIBLE A UN COSTÓ, EXCEPTE EN LA VISTA ESPECIAL DE PRESENTACIÓ O MÀRKETING (?marketing=true) */}
-      {!esVistaMarketing && (
+      {/* EL SELECTOR FLOTANT NOMÉS ESTARÀ VISIBLE SI S'ACTIVA EL LOG DE DEPURACIÓ PRIVAT (?dev=true) O ESTEM A L'ENTORN DE DESENVOLUPAMENT (run.app o localhost) */}
+      {!esVistaMarketing && esDevMode && (
         <SelectorDesenvolupament vistaActual={vistaDev} onChangeVista={setVistaDev} />
       )}
 
