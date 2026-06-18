@@ -1633,15 +1633,13 @@ export default function PaginaMossos({ onTornar, onEntrarCampus }: PropsPaginaMo
         id="detall-prova-fisica" 
         className="w-full py-20 px-4 sm:px-6 md:px-8 border-b border-[#111e36] bg-[#020813] relative z-20 select-none overflow-hidden"
       >
-        {/* Explicació per a no-programadors: Aquest bloc afegeix la imatge PF.png sota el contingut (z-0) amb un efecte de desenfocament o blur del 3% (equivalent a 3px en resolució de pantalla), suavitzant de forma bonica els contorns perquè contrasti genial amb el text blanc o groc. */}
+        {/* Explicació per a no-programadors: Es mostra la imatge de fons amb un desenfocament (blur) del 5% (5px), oferint un fons integrat de manera elegant i suau, mantenint un lleuger escalat (scale-105) per evitar vores buides als costats. */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
           <img 
             src={FonsPFImage} 
             alt="Fons de pantalla decoratiu de la Prova Física" 
-            className="w-full h-full object-cover opacity-15 blur-[3px] scale-105"
+            className="w-full h-full object-cover opacity-25 blur-[5px] scale-105"
           />
-          {/* Explicació per a no-programadors: Capa fosca de degradat que atenua la brillantor de la imatge de fondo perquè els colors grocs de la prova física destaquin molt més d'acord amb els requisits. */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#020813]/60 via-[#020813]/30 to-[#020813]/60" />
         </div>
 
         <div className="relative max-w-7xl mx-auto w-full z-10">
@@ -1919,17 +1917,17 @@ export default function PaginaMossos({ onTornar, onEntrarCampus }: PropsPaginaMo
       {/* Explicació per a no-programadors:
           Aquesta secció representa el bloc de Comunitat i Motivació amb un disseny interactiu i adaptatiu.
           Canvia de mòdul quan es clica cadascun dels botons inferiors o fletxes de navegació.
-          Per demanat de l'usuari, s'inclou com a fons de pantalla la imatge XP1.png amb un filter blur de 3%. */}
+          Per demanat de l'usuari, s'inclou com a fons de pantalla la imatge XP1.png amb un filter blur del 5% (5px). */}
       <section 
         id="detall-comunitat-motivacio" 
         className="w-full py-20 px-4 sm:px-6 md:px-8 border-b border-[#111e36] bg-[#020813] relative z-20 select-none overflow-hidden"
       >
-        {/* Capa de fons de pantalla amb l'imatge XP1.png i blur del 3% (3px) */}
+        {/* Explicació per a no-programadors: Es mostra la imatge de fons amb un elegant desenfocament del 5% (5px) especificat, oferint una integració visual súper neta i d'alta gamma. */}
         <div 
-          className="absolute inset-0 z-0 bg-cover bg-center opacity-30 mix-blend-color-dodge pointer-events-none"
+          className="absolute inset-0 z-0 bg-cover bg-center opacity-25 pointer-events-none scale-105"
           style={{ 
             backgroundImage: `url(${XPImage})`,
-            filter: 'blur(3px)'
+            filter: 'blur(5px)'
           }}
         />
 
@@ -2391,7 +2389,7 @@ export default function PaginaMossos({ onTornar, onEntrarCampus }: PropsPaginaMo
                 title="Següent (Fletxa Dreta)"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
