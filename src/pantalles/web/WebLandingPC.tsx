@@ -524,9 +524,20 @@ export default function WebLandingPC({
           
           {oposicioSeleccionada === 'quisom' ? (
             <>
-              {/* Explicació per a no-programadors: Ometem la línia superior per al Qui Som i mostrem el títol elegit pel disseny d'impacte exactament com s'ha demanat en majúscules. */}
-              <h1 className="text-4xl md:text-6xl font-black italic uppercase tracking-tight text-white leading-none max-w-5xl mx-auto">
-                PREPARA LA TEVA OPOSICIÓ AMB <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-[#FFDF00] bg-clip-text text-transparent">GENT QUE JA HO HA ACONSEGUIT</span>
+              {/* Explicació per a no-programadors:
+                  Aquest és el títol d'impacte principal del bloc "Qui Som". 
+                  L'hem actualitzat segons les teves instruccions per destacar el nom d'OposiCAT amb una gradació elegant de colors corporatius 
+                  i hem col·locat a sota (en una segona línia de capçalera) la frase que recorda el nostre passat com a professionals del cos formats a l'ISPC. */}
+              <h1 className="text-4xl md:text-6xl font-black italic uppercase tracking-tight text-white leading-tight max-w-5xl mx-auto flex flex-col gap-3">
+                <span>
+                  PREPARA'T L'OPOSICIÓ AMB{' '}
+                  <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-[#FFDF00] bg-clip-text text-transparent">
+                    OPOSICAT
+                  </span>
+                </span>
+                <span className="text-lg md:text-2xl font-bold tracking-normal text-slate-300 block normal-case font-sans">
+                  Som professionals que ja hem passat per l'ISPC
+                </span>
               </h1>
 
               <p className="text-slate-200 text-sm md:text-base max-w-4xl mx-auto leading-relaxed font-sans font-medium">
