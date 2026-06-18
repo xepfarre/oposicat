@@ -525,15 +525,14 @@ export default function WebLandingPC({
           {oposicioSeleccionada === 'quisom' ? (
             <>
               {/* Explicació per a no-programadors:
-                  Aquest és el títol d'impacte principal del bloc "Qui Som". 
-                  L'hem actualitzat segons les teves instruccions per destacar el nom d'OposiCAT amb una gradació elegant de colors corporatius 
-                  i hem col·locat a sota (en una segona línia de capçalera) la frase que recorda el nostre passat com a professionals del cos formats a l'ISPC. */}
+                  Aquest és el títol d'impacte principal del bloc "Qui Som".
+                  Ara hem separat la paraula "OPOSICAT" de manera que "OPOSI" es vegi en un elegant color blanc reflexiu corporatiu,
+                  mentre que les sigles "CAT" agafen el vibrant color groc de combat característic de l'acadèmia. */}
               <h1 className="text-4xl md:text-6xl font-black italic uppercase tracking-tight text-white leading-tight max-w-5xl mx-auto flex flex-col gap-3">
                 <span>
                   PREPARA'T L'OPOSICIÓ AMB{' '}
-                  <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-[#FFDF00] bg-clip-text text-transparent">
-                    OPOSICAT
-                  </span>
+                  <span className="text-white">OPOSI</span>
+                  <span className="text-[#FFDF00]">CAT</span>
                 </span>
                 <span className="text-lg md:text-2xl font-bold tracking-normal text-slate-300 block normal-case font-sans">
                   Som professionals que ja hem passat per l'ISPC
