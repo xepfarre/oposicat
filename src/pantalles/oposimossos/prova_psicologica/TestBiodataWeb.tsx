@@ -103,12 +103,14 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
   const [resultatsTest, setResultatsTest] = useState<number[] | null>(null);
   const [esResultatExemple, setEsResultatExemple] = useState<boolean>(false);
 
-  // Carregar el darrer test desat (per localStorage o Firestore) en entrar a la pantalla
+  // Carregar el darrer test desat (per Firestore o localStorage vinculat a l'usuari actual)
   useEffect(() => {
     const carregarDarrerTest = async () => {
+      // Explicació per a no-programadors: 
+      // Comprovem si l'usuari actual té un test de Biodata desat a la base de dades Firestore.
       if (auth.currentUser) {
+        const userId = auth.currentUser.uid;
         try {
-          const userId = auth.currentUser.uid;
           const q = query(
             collection(db, `usuaris/${userId}/resultats_biodata`),
             orderBy('creatEl', 'desc'),
@@ -126,28 +128,26 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
         } catch (e) {
           console.error("Error carregant darrer test des de Firestore", e);
         }
-      }
 
-      // Si no hi ha sessió remota o falla, provem la memòria local del navegador
-      try {
-        const local = localStorage.getItem('oposicat_biodata_ultim_test');
-        if (local) {
-          const parsed = JSON.parse(local);
-          if (Array.isArray(parsed) && parsed.length === 10) {
-            setResultatsTest(parsed);
-            setEsResultatExemple(false);
-            return;
+        // Si falla Firestore, comprovem el localStorage del navegador privat per a aquest usuari concret
+        try {
+          const local = localStorage.getItem(`oposicat_biodata_test_${userId}`);
+          if (local) {
+            const parsed = JSON.parse(local);
+            if (Array.isArray(parsed) && parsed.length === 10) {
+              setResultatsTest(parsed);
+              setEsResultatExemple(false);
+              return;
+            }
           }
+        } catch (e) {
+          console.error("Error carregant darrer test des de local", e);
         }
-      } catch (e) {
-        console.error("Error carregant darrer test des de local", e);
       }
 
-      // Si mai s'ha fet un test, inicialitzem un perfil d'orientació amb notes realistes
-      if (!resultatsTest) {
-        setResultatsTest([8.5, 7.0, 9.0, 7.5, 8.0, 7.0, 9.5, 8.0, 7.5, 6.5]);
-        setEsResultatExemple(true);
-      }
+      // Si l'usuari no ha fet cap test encara, deixem els resultats a null per mostrar-ho a 0 per defecte
+      setResultatsTest(null);
+      setEsResultatExemple(false);
     };
 
     carregarDarrerTest();
@@ -237,16 +237,16 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
     setResultatsTest(puntuacions);
     setEsResultatExemple(false);
 
-    // Guardem a localStorage
-    try {
-      localStorage.setItem('oposicat_biodata_ultim_test', JSON.stringify(puntuacions));
-    } catch (e) {
-      console.error("Error desant resultats a localStorage", e);
-    }
-
-    // Guardem a Firestore si l'usuari està logat
+    // Guardem a localStorage privat de l'usuari actual
     if (auth.currentUser) {
       const userId = auth.currentUser.uid;
+      try {
+        localStorage.setItem(`oposicat_biodata_test_${userId}`, JSON.stringify(puntuacions));
+      } catch (e) {
+        console.error("Error desant resultats a localStorage", e);
+      }
+
+      // Guardem a Firestore
       addDoc(collection(db, `usuaris/${userId}/resultats_biodata`), {
         userId,
         resultats: puntuacions,
@@ -656,28 +656,41 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
   // =========================================================================
   // RENDERITZAT 3: EL MEU PERFIL PSICOPROFESSIONAL ('perfil')
   // =========================================================================
-  if (estatActual === 'perfil' && resultatsTest) {
-    // Càlcul de mètriques d'idoneïtat de Mossos d'Esquadra:
+  if (estatActual === 'perfil') {
+    const haRealitzatTest = resultatsTest !== null && Array.isArray(resultatsTest) && resultatsTest.length === 10;
+
+    // Càlcul de mètriques d'idoneïtat de Mossos d'Esquadra si ha fet el test:
     // 1. Si qualsevol competència és < 5.0 -> NO APTE (Línia vermella)
     // 2. Si hi ha > 6 desenes de 10.0 -> INCOHERENT (Detector de mentides / Desitjabilitat social)
-    const competenciesSotaPerfil = MAP_COMPETENCIES.filter((comp, idx) => (resultatsTest[idx] || 0) < 5.0);
-    const perfectesDe10 = MAP_COMPETENCIES.filter((comp, idx) => (resultatsTest[idx] || 0) === 10.0);
+    const competenciesSotaPerfil = haRealitzatTest 
+      ? MAP_COMPETENCIES.filter((comp, idx) => (resultatsTest[idx] || 0) < 5.0) 
+      : [];
+    const perfectesDe10 = haRealitzatTest 
+      ? MAP_COMPETENCIES.filter((comp, idx) => (resultatsTest[idx] || 0) === 10.0) 
+      : [];
 
-    let veredicteTipus: 'APTE' | 'NO_APTE' | 'INCOHERENT' = 'APTE';
-    let veredicteTitol = "APTE AMB BON PERFIL POLICIAL";
-    let veredicteDescripcio = "El teu patró competencial és òptim, sòlid i equilibrat. Complir amb el perfil de caràcter policial de Mossos d'Esquadra. Et recomanem entrenar la defensa d'aquests resultats de cara a l'entrevista personal.";
-    let veredicteEstil = "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
+    let veredicteTipus: 'APTE' | 'NO_APTE' | 'INCOHERENT' | 'PENDENT' = 'PENDENT';
+    let veredicteTitol = "SENSE PROVES REALITZADES";
+    let veredicteDescripcio = "Encara no has realitzat cap simulacre del Test Biodata. Fes el teu primer test interactiu de 80 preguntes oficials per mesurar les 10 competències clau, verificar les teves línies vermelles i obtenir el teu perfil psicoprofessional complet.";
+    let veredicteEstil = "border-blue-500/30 bg-blue-500/10 text-cyan-300";
 
-    if (competenciesSotaPerfil.length > 0) {
-      veredicteTipus = 'NO_APTE';
-      veredicteTitol = "NO APTE AUTOMÀTIC (LÍNIES VERMELLES)";
-      veredicteDescripcio = `Has obtingut una puntuació inferior a 5.0 en competències crítiques (${competenciesSotaPerfil.map(c => c.nom).join(', ')}). Aquest perfil resulta excloent de forma directa a la fase d'oposició.`;
-      veredicteEstil = "border-red-500/30 bg-red-500/10 text-red-400";
-    } else if (perfectesDe10.length > 6) {
-      veredicteTipus = 'INCOHERENT';
-      veredicteTitol = "TEST INCOHERENT (DETECTOR DE MENTIDES)";
-      veredicteDescripcio = "S'han identificat més de 6 competències amb un 10.0 perfecte simultani. El sistema detecta desitjabilitat social excessiva o manca de sinceritat. Un perfil humà real té matisos; evita fingir perfecció absoluta.";
-      veredicteEstil = "border-amber-500/30 bg-amber-500/10 text-amber-400";
+    if (haRealitzatTest) {
+      if (competenciesSotaPerfil.length > 0) {
+        veredicteTipus = 'NO_APTE';
+        veredicteTitol = "NO APTE AUTOMÀTIC (LÍNIES VERMELLES)";
+        veredicteDescripcio = `Has obtingut una puntuació inferior a 5.0 en competències crítiques (${competenciesSotaPerfil.map(c => c.nom).join(', ')}). Aquest perfil resulta excloent de forma directa a la fase d'oposició.`;
+        veredicteEstil = "border-red-500/30 bg-red-500/10 text-red-400";
+      } else if (perfectesDe10.length > 6) {
+        veredicteTipus = 'INCOHERENT';
+        veredicteTitol = "TEST INCOHERENT (DETECTOR DE MENTIDES)";
+        veredicteDescripcio = "S'han identificat més de 6 competències amb un 10.0 perfecte simultani. El sistema detecta desitjabilitat social excessiva o manca de sinceritat. Un perfil humà real té matisos; evita fingir perfecció absoluta.";
+        veredicteEstil = "border-amber-500/30 bg-amber-500/10 text-amber-400";
+      } else {
+        veredicteTipus = 'APTE';
+        veredicteTitol = "APTE AMB BON PERFIL POLICIAL";
+        veredicteDescripcio = "El teu patró competencial és òptim, sòlid i equilibrat. Complir amb el perfil de caràcter policial de Mossos d'Esquadra. Et recomanem entrenar la defensa d'aquests resultats de cara a l'entrevista personal.";
+        veredicteEstil = "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
+      }
     }
 
     return (
@@ -699,15 +712,19 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
             className="text-[11px] font-bold text-[#FFDF00] hover:text-amber-300 transition-colors uppercase tracking-wider flex items-center gap-1.5 cursor-pointer py-1 px-2 rounded-lg hover:bg-amber-400/10"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Fer un nou test</span>
+            <span>{haRealitzatTest ? 'Fer un nou test' : 'Iniciar primer test'}</span>
           </button>
         </div>
 
         {/* Capçalera del Perfil */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-            <span className="text-[10px] text-emerald-400 font-black uppercase tracking-[0.2em] font-mono">
+            <span className={`w-2.5 h-2.5 rounded-full shrink-0 shadow-[0_0_8px] ${
+              haRealitzatTest ? 'bg-emerald-400 shadow-emerald-400/80' : 'bg-cyan-400 shadow-cyan-400/80'
+            }`} />
+            <span className={`text-[10px] font-black uppercase tracking-[0.2em] font-mono ${
+              haRealitzatTest ? 'text-emerald-400' : 'text-cyan-400'
+            }`}>
               DIAGNÒSTIC DE RENDIMENT PERSONAL
             </span>
           </div>
@@ -737,18 +754,28 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
           </p>
         </div>
 
-        {/* Avís si és resultat de mostra per defecte */}
-        {esResultatExemple && (
-          <div className="bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-2xl p-4 flex items-start gap-3">
-            <span className="text-base shrink-0">⚠️</span>
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-black uppercase tracking-wider block">
-                RESULTAT D'EXEMPLE ORIENTATIU
-              </span>
+        {/* BANNER D'AVÍS / CRIDA A L'ACCIÓ SI ENCARA NO S'HA FET CAP TEST */}
+        {!haRealitzatTest && (
+          <div className="bg-[#0c1424]/90 border border-[#FFDF00]/30 rounded-3xl p-6 sm:p-7 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-5 backdrop-blur-md">
+            <div className="space-y-1.5 text-left">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#FFDF00]" />
+                <span className="text-xs font-black uppercase tracking-wider text-[#FFDF00]">
+                  Comença el teu diagnòstic competencial
+                </span>
+              </div>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Estàs visualitzant un perfil d'orientació de mostra. Fes el teu test interactiu de 80 preguntes per obtenir el teu diagnòstic personalitzat.
+                Totes les teves competències estan actualment a <strong>0.0 / 10</strong>. Respon les 80 preguntes situacionals (25 minuts) per generar el teu mapa real.
               </p>
             </div>
+            <button
+              onClick={() => setEstatActual('intro_practica')}
+              className="w-full sm:w-auto py-3.5 px-6 bg-[#FFDF00] hover:bg-[#fff066] text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2 shrink-0"
+              id="btn-comencar-primer-biodata"
+            >
+              <Play className="w-4 h-4 fill-slate-950" />
+              <span>Començar el Test Biodata</span>
+            </button>
           </div>
         )}
 
@@ -764,23 +791,32 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {MAP_COMPETENCIES.map((comp, idx) => {
-              const valor = resultatsTest[idx] !== undefined ? resultatsTest[idx] : 5.0;
+              const valor = haRealitzatTest && resultatsTest[idx] !== undefined 
+                ? resultatsTest[idx] 
+                : 0.0;
 
-              let colorText = "text-emerald-400";
-              let colorBarra = "bg-emerald-400";
-              let badgeBg = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
-              let etiquetaRang = "Apte / Excel·lent";
+              let colorText = "text-slate-400";
+              let colorBarra = "bg-slate-700";
+              let badgeBg = "bg-slate-800 text-slate-400 border-slate-700";
+              let etiquetaRang = "Pendent d'avaluar";
 
-              if (valor < 5.0) {
-                colorText = "text-red-400";
-                colorBarra = "bg-red-500";
-                badgeBg = "bg-red-500/10 text-red-400 border-red-500/20";
-                etiquetaRang = "Sota perfil / Línia vermella";
-              } else if (valor < 7.0) {
-                colorText = "text-amber-400";
-                colorBarra = "bg-amber-400";
-                badgeBg = "bg-amber-500/10 text-amber-400 border-amber-500/20";
-                etiquetaRang = "Correcte / Millorable";
+              if (haRealitzatTest) {
+                if (valor < 5.0) {
+                  colorText = "text-red-400";
+                  colorBarra = "bg-red-500";
+                  badgeBg = "bg-red-500/10 text-red-400 border-red-500/20";
+                  etiquetaRang = "Sota perfil / Línia vermella";
+                } else if (valor < 7.0) {
+                  colorText = "text-amber-400";
+                  colorBarra = "bg-amber-400";
+                  badgeBg = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+                  etiquetaRang = "Correcte / Millorable";
+                } else {
+                  colorText = "text-emerald-400";
+                  colorBarra = "bg-emerald-400";
+                  badgeBg = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                  etiquetaRang = "Apte / Excel·lent";
+                }
               }
 
               return (
@@ -832,10 +868,14 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
         <div className="bg-[#0c1424]/90 rounded-3xl border border-blue-900/40 p-6 sm:p-8 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
             <h4 className="text-sm font-black text-white uppercase tracking-wide">
-              Vols repetir el test per millorar les teves competències?
+              {haRealitzatTest 
+                ? "Vols repetir el test per millorar les teves competències?" 
+                : "Vols realitzar el teu primer simulacre ara mateix?"}
             </h4>
             <p className="text-xs text-slate-400 mt-0.5">
-              Pots realitzar tants simulacres com necessitis abans de la prova real.
+              {haRealitzatTest 
+                ? "Pots realitzar tants simulacres com necessitis abans de la prova real." 
+                : "Tindràs 25 minuts per respondre 80 preguntes oficials de caràcter situacional."}
             </p>
           </div>
 
@@ -844,8 +884,8 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
               onClick={() => setEstatActual('intro_practica')}
               className="w-full sm:w-auto py-3.5 px-6 bg-[#FFDF00] hover:bg-[#fff066] text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
             >
-              <RotateCcw className="w-4 h-4" />
-              <span>Repetir el Test</span>
+              {haRealitzatTest ? <RotateCcw className="w-4 h-4" /> : <Play className="w-4 h-4 fill-slate-950" />}
+              <span>{haRealitzatTest ? 'Repetir el Test' : 'Començar el Test'}</span>
             </button>
 
             <button
