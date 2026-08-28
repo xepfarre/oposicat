@@ -177,13 +177,13 @@ export const ConsisteixProvaPsicologica: React.FC<ConsisteixProvaPsicologicaProp
           </div>
         </div>
 
-        {/* Caixa 2: ENTREVISTA PERSONAL */}
+        {/* Caixa 2: PROVA 2 - ENTREVISTA PERSONAL */}
         <div className="bg-[#020f22]/80 backdrop-blur-md border border-white/10 rounded-2xl p-6 sm:p-7 shadow-lg flex flex-col space-y-4">
           <div className="space-y-4">
             <div className="flex items-center gap-2.5 border-b border-white/10 pb-3">
               <Users className="w-4 h-4 text-[#FFDF00] shrink-0" />
               <h3 className="text-sm font-bold uppercase tracking-wider text-white">
-                ENTREVISTA PERSONAL
+                PROVA 2 - ENTREVISTA PERSONAL
               </h3>
             </div>
 

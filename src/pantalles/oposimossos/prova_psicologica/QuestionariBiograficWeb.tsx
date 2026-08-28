@@ -422,7 +422,7 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
               GUIA RÀPIDA DEL QÜESTIONARI BIOGRÀFIC
             </h2>
             <p className="text-slate-400 text-xs mt-0.5">
-              Tot el que necessites saber sobre el format, temps, estructura i avaluació oficial.
+              Tot el que necessites saber per la 1 prova de l'examen psicoprofessional en 6 ràpides targetes.
             </p>
           </div>
         </div>
@@ -452,11 +452,11 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
             </p>
           </div>
 
-          {/* FAQ 3: Com s'estructura cada bloc */}
+          {/* FAQ 3: Què trobaré a l'examen */}
           <div className="bg-[#020b18] border border-slate-800/80 rounded-xl p-4 space-y-1.5 flex flex-col justify-between">
             <span className="text-[11px] text-blue-400 font-black uppercase tracking-wider block font-mono flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-blue-400 inline-block shadow-[0_0_6px_rgba(96,165,250,0.7)]" />
-              COM S'ESTRUCTURA CADA BLOC?
+              QUÈ TROBARÉ A L'EXAMEN?
             </span>
             <p className="text-slate-200 text-xs sm:text-[13px] leading-relaxed font-semibold">
               L'examen conté 4 planes. Cada plana conté preguntes relacionades amb cada bloc.
@@ -741,31 +741,20 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
                     </div>
                   )}
 
-                  {/* Competències clau relacionades */}
-                  {item.competenciesAvaluades && item.competenciesAvaluades.length > 0 && (
-                    <div className="space-y-1.5 pt-1">
-                      <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider block font-mono">
-                        {item.bloc === 'dades_personals'
-                          ? "OBSERVACIÓ DEL TRIBUNAL :"
-                          : "COMPETÈNCIES CLAU QUE AVALUA EL TRIBUNAL AMB AQUESTA PREGUNTA :"}
-                      </span>
-                      <div className="flex flex-wrap gap-2">
-                        {item.competenciesAvaluades.map((comp, cIdx) => (
-                          <span
-                            key={cIdx}
-                            className={`border text-[10px] font-bold px-3 py-1 rounded-lg font-mono flex items-center gap-1.5 ${
-                              item.bloc === 'dades_personals'
-                                ? 'bg-purple-500/10 border-purple-400/20 text-purple-300'
-                                : 'bg-cyan-500/10 border-cyan-400/20 text-cyan-300'
-                            }`}
-                          >
-                            <CheckCircle2 className={`w-3 h-3 ${item.bloc === 'dades_personals' ? 'text-purple-400' : 'text-emerald-400'}`} />
-                            {comp}
-                          </span>
-                        ))}
-                      </div>
+                  {/* Competències clau relacionades / Avís de desbloqueig */}
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider block font-mono">
+                      {item.bloc === 'dades_personals'
+                        ? "OBSERVACIÓ DEL TRIBUNAL :"
+                        : "COMPETÈNCIES CLAU QUE AVALUA EL TRIBUNAL AMB AQUESTA PREGUNTA :"}
+                    </span>
+                    <div className="bg-[#020b18] border border-blue-500/20 rounded-xl p-3 text-slate-300 text-xs leading-relaxed flex items-center gap-2">
+                      <span className="text-cyan-400 text-sm shrink-0">🔒</span>
+                      <p className="font-medium text-slate-200">
+                        Desbloquejarem quines competències clau estan involucrades en breus posterior a les primeres classes d'entrevista.
+                      </p>
                     </div>
-                  )}
+                  </div>
 
                 </div>
               )}

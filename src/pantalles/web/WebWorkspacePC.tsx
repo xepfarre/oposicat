@@ -3453,9 +3453,10 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
         {seccioActiva === 'psico_consisteix_biodata' && (
           <ConsisteixBiodata
             onTornar={() => {
+              // Comentari planer per a no-programadors: Retorna directament al menú dels 4 blocs de la Prova Biodata (En què consisteix, Com es puntua, Qüestionari biogràfic i Test competencial)
               setSeccioActiva('avui');
-              setMostrantSubTestCompetencial(true);
-              setMostrantSubBiodata(false);
+              setMostrantSubBiodata(true);
+              setMostrantSubTestCompetencial(false);
               setMostrantSubPsicologica(false);
             }}
             onTornarMenuPrincipal={() => {
