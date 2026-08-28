@@ -812,7 +812,7 @@ export default function App() {
           {vistaDev === 'web_pc_workspace' && (
             <WebWorkspacePC 
               progresOriginal={progres} 
-              onTornarLanding={() => setVistaDev('web_pc_website')}
+              onTornarLanding={() => setVistaDev('web_pc_login')}
               onObrirAppMobilSimulacre={() => setVistaDev('app_mobil')}
             />
           )}

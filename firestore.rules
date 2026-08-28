@@ -197,6 +197,13 @@ service cloud.firestore {
         allow read, write: if isOwner(userId);
         allow read, write: if isAdmin();
       }
+
+      // 1.8 Subcol·lecció dels resultats i diagnòstics del Test Biodata de l'opositor
+      // Comentari planer per a no-programadors: Permet a cada aspirant desar la nota del seu simulacre de Biodata (i el diagnòstic de les 10 competències) de forma 100% privada i recuperar-lo quan entri des de qualsevol ordinador o mòbil.
+      match /resultats_biodata/{docId} {
+        allow read, write: if isOwner(userId);
+        allow read: if isAdmin();
+      }
     }
 
     // 2. Col·lecció de Rols i configuracions de permisos per a l'organització interna

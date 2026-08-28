@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { auth, db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { determinarRolSegonsEmail } from '../../lib/authService';
+import { determinarRolSegonsEmail, tancarSessio } from '../../lib/authService';
 import { TEMARI_DETALL } from '../../constants/temari';
 import { CONTINGUT_TEMARI_TEXTS } from '../../constants/contingut_textos';
 import WebWorkspacePCEstudiPersonal from './WebWorkspacePCEstudiPersonal';
@@ -2121,8 +2121,14 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
                   <button
                     type="button"
                     className="w-full text-left py-2.5 px-3.5 text-[11px] font-black uppercase italic tracking-wider text-red-400 hover:bg-red-950/20 border border-transparent hover:border-red-900/30 rounded-xl transition-all cursor-pointer flex items-center justify-between group"
-                    onClick={() => {
+                    onClick={async () => {
+                      // Comentari planer per a no-programadors: Quan l'estudiant clica a Tancar Sessió, tanquem la seva sessió de Firebase de forma segura i el redirigim a la pantalla de Login
                       setDesplegablePerfilObert(false);
+                      try {
+                        await tancarSessio();
+                      } catch (err) {
+                        console.error("Error tancant sessió:", err);
+                      }
                       onTornarLanding();
                     }}
                   >
