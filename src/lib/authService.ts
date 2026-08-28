@@ -63,10 +63,10 @@ export async function inicialitzarDadesSensiblesSilenciós(uid: string): Promise
  * Aquesta eina analitza l'estudiant que vol entrar i l'equip d'estudi:
  * - xepfarre@gmail.com serà Admin Master (el rol amb més permisos).
  * - xepfarre7@gmail.com, o qualsevol amb el correu que comenci o contingui sergi o eudald seran Administradors normals.
- * - Qualsevol altre entra per defecte com a "usuari_free_trial" (compte de 3 dies de prova).
+ * - Qualsevol altre usuari o tester entra per defecte com a "usuari_alpha" (accés limitat de tester).
  */
 export function determinarRolSegonsEmail(email: string | null | undefined, rolActual?: string): string {
-  if (!email) return rolActual || 'usuari_free_trial';
+  if (!email) return rolActual || 'usuari_alpha';
   const emailLower = email.toLowerCase();
   
   if (emailLower === 'xepfarre@gmail.com') {
@@ -80,7 +80,7 @@ export function determinarRolSegonsEmail(email: string | null | undefined, rolAc
     return 'admin';
   }
   
-  return rolActual || 'usuari_free_trial';
+  return rolActual || 'usuari_alpha';
 }
 
 /**
@@ -111,14 +111,14 @@ export async function garantirFitxaPerfilFirestore(firebaseUser: FirebaseUser, n
       // SI NO EXISTEIX: El creem a l'instant! Evitem que l'opositor tingui un perfil incomplet ("dessincronització")
       console.warn(`L'estudiant ${firebaseUser.uid} no tenia fitxa de perfil. L'estem autocreant silenciósament.`);
       
-      const rolInicial = determinarRolSegonsEmail(firebaseUser.email, 'usuari_free_trial');
+      const rolInicial = determinarRolSegonsEmail(firebaseUser.email, 'usuari_alpha');
       
       const nouPerfil: PerfilUsuari = {
         uid: firebaseUser.uid,
         email: firebaseUser.email || '',
-        displayName: nomDefault || firebaseUser.displayName || 'Nou Opositor',
+        displayName: nomDefault || firebaseUser.displayName || 'Nou Opositor Alpha',
         photoURL: firebaseUser.photoURL || '',
-        rol: rolInicial, // Per defecte tothom qui entra comença amb aquest rol decidit
+        rol: rolInicial, // Per defecte tothom qui entra comença amb aquest rol decidit (usuari_alpha)
         haPagat: false,  // Per seguretat, comença sempre com a pendent fins que comprovem el pagament
         estatSubscripcio: 'pendent_de_pagament',
         creatEl: serverTimestamp(),
@@ -142,7 +142,7 @@ export async function garantirFitxaPerfilFirestore(firebaseUser: FirebaseUser, n
       uid: firebaseUser.uid,
       email: firebaseUser.email || '',
       displayName: nomDefault || firebaseUser.displayName || 'Estudiant en mode desconectat',
-      rol: 'usuari_free_trial', // Per defecte és Free Trial
+      rol: 'usuari_alpha', // Per defecte és usuari_alpha per als testers
       haPagat: false,
       estatSubscripcio: 'pendent_de_pagament',
       creatEl: new Date(),
@@ -164,12 +164,13 @@ export async function crearCompteAmbCorreu(email: string, contrasenya: string, n
   await updateProfile(firebaseUser, { displayName: nomEstudiant });
   
   // Pas 2: Creació de la fitxa de perfil a Firestore de forma neta
+  const rolAssignat = determinarRolSegonsEmail(email, 'usuari_alpha');
   const referencaDocument = doc(db, 'usuaris', firebaseUser.uid);
   const perfilInicial: PerfilUsuari = {
     uid: firebaseUser.uid,
     email: email,
     displayName: nomEstudiant,
-    rol: 'usuari_free_trial', // Per defecte a OposiCAT el registre atorga un compte de Prova gratuït (Free Trial admès de 3 dies)
+    rol: rolAssignat, // Assignat automàticament com a usuari_alpha per a testers
     haPagat: false, // Per defecte és gratuït (no té el pagament registrat)
     estatSubscripcio: 'pendent_de_pagament',
     creatEl: serverTimestamp(),

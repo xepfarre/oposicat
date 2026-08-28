@@ -8,6 +8,10 @@ import {
 } from '../../lib/authService';
 import { Mail, Lock, User, AlertCircle, CheckCircle2, ArrowLeft, Chrome, Loader2, ShieldAlert } from 'lucide-react';
 
+// Explicació per a no-programadors: Importem la imatge web_app_inici.png per posar-la com a fons de pantalla principal del Login
+// @ts-ignore
+import fonsWebAppInici from '../../assets/images/web_app_inici.png';
+
 /**
  * PROPS PER AL COMPONENT WEB LOGIN PC
  * Defineix les dependències que necessita rebre del component pare (App) per enllaçar les accions.
@@ -175,10 +179,11 @@ export default function WebLoginPC({ onSessioIniciada, onTornar }: WebLoginPCPro
   return (
     <div 
       className="relative min-h-screen w-full bg-cover bg-center flex items-center justify-center p-4 sm:p-8"
-      style={{ backgroundImage: "url('/assets/imatges/fons_ispc.png')" }}
+      style={{ backgroundImage: `url(${fonsWebAppInici})` }}
     >
       {/* CAPA PROFESSIONAL DE DEGRADAT FOSC SOTA LA IMATGE PER A EXCEL·LENT VISUALITZACIÓ */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#021329]/95 via-[#021329]/90 to-[#010c1c]/95 z-0" />
+      {/* Explicació per a no-programadors: Aquesta capa semi-transparent enfosqueix lleugerament la foto de fons per garantir que tot el formulari i les lletres es llegeixin amb total claredat. */}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#021329]/85 via-[#021329]/75 to-[#010c1c]/85 z-0" />
 
       {/* RECEPTACLE CONTENIDOR DE MOSSOS - DE DOS COSTATS COM AL DIBUIX */}
       <div className="relative z-10 w-full max-w-5xl bg-slate-950/70 border border-blue-900/40 rounded-[32px] p-6 sm:p-10 md:p-12 backdrop-blur-xl shadow-2xl flex flex-col justify-between">
@@ -195,14 +200,16 @@ export default function WebLoginPC({ onSessioIniciada, onTornar }: WebLoginPCPro
           </p>
         </div>
 
-        {/* BOTÓ TORNAR CAP AL WEB PÚBLIC */}
+        {/* BOTÓ TORNAR CAP AL WEB PÚBLIC (DESACTIVAT TEMPORALMENT PER A LA FASE DE PROVES) */}
+        {/* Comentari planer per a no-programadors:
+            Hem deshabilitat aquest botó perquè els testers no puguin sortir de la zona de Login/Campus cap a la web pública mentre aquesta s'està preparant. */}
         <button
-          onClick={onTornar}
-          disabled={carregant}
-          className="self-start flex items-center gap-2 text-slate-400 hover:text-white text-xs font-bold uppercase tracking-wider mb-8 cursor-pointer disabled:opacity-45 transition-colors"
+          disabled={true}
+          title="El web públic està en manteniment durant la fase ALPHA"
+          className="self-start flex items-center gap-2 text-slate-600 text-xs font-bold uppercase tracking-wider mb-8 cursor-not-allowed opacity-50 select-none"
         >
-          <ArrowLeft className="w-4 h-4 text-red-500" />
-          <span>Tornar al Web públic</span>
+          <ArrowLeft className="w-4 h-4 text-slate-600" />
+          <span>Tornar al Web públic (Properament)</span>
         </button>
 
         {/* REPARTIMENT DE COSTATS EN GRID ESPACIAT */}

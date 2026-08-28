@@ -37,7 +37,10 @@ service cloud.firestore {
         request.auth.token.email == "sergivinu@gmail.com" ||
         (exists(/databases/$(database)/documents/usuaris/$(request.auth.uid)) && 
          (get(/databases/$(database)/documents/usuaris/$(request.auth.uid)).data.rol == "admin" ||
-          get(/databases/$(database)/documents/usuaris/$(request.auth.uid)).data.rol == "admin_master"))
+          get(/databases/$(database)/documents/usuaris/$(request.auth.uid)).data.rol == "admin_master" ||
+          get(/databases/$(database)/documents/usuaris/$(request.auth.uid)).data.rol == "treballador_nivell_1" ||
+          get(/databases/$(database)/documents/usuaris/$(request.auth.uid)).data.rol == "treballador_nivell_2" ||
+          get(/databases/$(database)/documents/usuaris/$(request.auth.uid)).data.rol == "treballador_nivell_3"))
       );
     }
 
@@ -49,6 +52,44 @@ service cloud.firestore {
              data.email is string && data.email.size() <= 128 &&
              data.token is string && data.token.size() <= 512 &&
              data.plataforma is string && (data.plataforma == "android" || data.plataforma == "ios" || data.plataforma == "web_pc");
+    }
+
+    // Validador robust per al feedback de dieta enviat pels usuaris d'OposiCAT
+    function isValidDietaFeedback(data) {
+      return data.keys().hasAll(['usuariId', 'usuariNom', 'usuariEmail', 'tipus', 'alimentNom', 'missatge', 'llegit', 'estat']) &&
+             data.usuariId is string && data.usuariId.size() <= 128 &&
+             data.usuariNom is string && data.usuariNom.size() <= 128 &&
+             data.usuariEmail is string && data.usuariEmail.size() <= 128 &&
+             data.alimentNom is string && data.alimentNom.size() <= 128 &&
+             data.missatge is string && data.missatge.size() <= 2000 &&
+             data.llegit is bool &&
+             data.estat is string && (data.estat == "pendent" || data.estat == "resolt" || data.estat == "tramitat") &&
+             data.tipus is string && (data.tipus == "suggeriment" || data.tipus == "aliment_erroni" || data.tipus == "aliment_duplicat" || data.tipus == "dubte_general" || data.tipus == "alta_aliment") &&
+             (!("respostaAdmin" in data) || (data.respostaAdmin is string && data.respostaAdmin.size() <= 2000)) &&
+             (!("kcal" in data) || data.kcal is number) &&
+             (!("carbs" in data) || data.carbs is number) &&
+             (!("protes" in data) || data.protes is number) &&
+             (!("greixos" in data) || data.greixos is number);
+    }
+
+    // Validador de propostes de gimnasos enviades pels usuaris o propietaris d'OposiCAT
+    function isValidPropostaGimnas(data) {
+      return data.keys().hasAll(['usuariId', 'tipusProposta', 'nomSollicitant', 'emailContacte', 'nomGimnas', 'provincia', 'comarca', 'municipi', 'adreca', 'proves', 'estat', 'creatEl']) &&
+             data.usuariId is string && data.usuariId.size() <= 128 &&
+             data.tipusProposta is string && (data.tipusProposta == "usuari" || data.tipusProposta == "propietari") &&
+             data.nomSollicitant is string && data.nomSollicitant.size() <= 256 &&
+             data.emailContacte is string && data.emailContacte.size() <= 256 &&
+             data.nomGimnas is string && data.nomGimnas.size() <= 256 &&
+             data.provincia is string && data.provincia.size() <= 128 &&
+             data.comarca is string && data.comarca.size() <= 128 &&
+             data.municipi is string && data.municipi.size() <= 128 &&
+             data.adreca is string && data.adreca.size() <= 512 &&
+             data.proves is list && data.proves.size() <= 10 &&
+             data.estat is string && (data.estat == "pendent" || data.estat == "aprovat" || data.estat == "rebutjat" || data.estat == "acceptada" || data.estat == "denegada") &&
+             (!("telefonContacte" in data) || (data.telefonContacte is string && data.telefonContacte.size() <= 32)) &&
+             (!("comentari" in data) || (data.comentari is string && data.comentari.size() <= 2000)) &&
+             (!("tarifes" in data) || (data.tarifes is string && data.tarifes.size() <= 2000)) &&
+             (!("descripcio" in data) || (data.descripcio is string && data.descripcio.size() <= 2000));
     }
 
     // 1. Col·lecció principal dels usuaris autenticats a OposiCAT (en català)
@@ -143,9 +184,16 @@ service cloud.firestore {
         allow read, write: if isAdmin();
       }
 
-      // 1.6 Subcol·lecció d'anotacions i notes redactades a mà a mode de resum propi per l'opositor
+      // 1.6 Subcol·lecció d'anotacions i notes redactades a mano a mode de resum propi per l'opositor
       // Comentari planer per a no-programadors: Espai privat on l'opositor redacta conceptes o regles mnemotècniques sobre un subtema.
       match /resums_estudiant/{docId} {
+        allow read, write: if isOwner(userId);
+        allow read, write: if isAdmin();
+      }
+
+      // 1.7 Subcol·lecció de dades de dietes i paràmetres nutricionals individuals de l'usuari
+      // Comentari planer per a no-programadors: Permet a cada opositor desar les seves preferències, dades de diari, respostes de qüestionari i calories diàries desitjades, evitant que altres usuaris puguin llegir o alterar la seva informació personal.
+      match /dades_dietes/{docId} {
         allow read, write: if isOwner(userId);
         allow read, write: if isAdmin();
       }
@@ -273,10 +321,18 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+    match /mossos_prova_fisica_exercicis/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
 
     // 16. Plans d'entrenament programats setmana a setmana
     // Comentari planer per a no-programadors: Taules guiades d'entrenaments esportius setmanals adaptables per als alumnes de l'acadèmia.
     match /plans_entrenament/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /mossos_plans_entrenament/{documentId} {
       allow read: if true;
       allow write: if isAdmin();
     }
@@ -328,6 +384,61 @@ service cloud.firestore {
     // 21. Comptadors globals de preguntes i temes (comptadors)
     // Comentari planer per a no-programadors: Permet que qualsevol alumne llegeixi lliurement els totals de preguntes dels diferents temes per així determinar correctament i de forma automàtica els seus percentatges de superació o estadístiques des del primer minut sense bloquejos d'antiga d'autenticació. Els canvis d'escriptura queden reservats només per als administradors d'OposiCAT.
     match /comptadors/{comptadorId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 22. Preguntes de biodata oficial
+    // Comentari planer per a no-programadors: Preguntes oficials del test de biodata, accessibles per a tots els alumnes per poder fer el test, i administrades pels administradors del backoffice.
+    match /preguntes_biodata_oficial/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 23. Resultats del test de biodata desats a la base de dades
+    // Comentari planer per a no-programadors: Desat i llegit per l'alumne, o per l'administrador/psicòleg.
+    match /usuaris/{userId}/resultats_biodata/{resultatId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // 24. Banc d'Aliments d'OposiCAT
+    // Comentari planer per a no-programadors: Permet a qualsevol persona de l'aplicació llegeir la llista d'aliments saludables que formen part de la dieta oficial, però només els administradors podran afegir aliments nous, editar els macronutrients o esborrar-los de la base de dades.
+    match /aliments/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 25. Diaris i Taules de Dietes d'OposiCAT
+    // Comentari planer per a no-programadors: Permet a qualsevol estudiant o usuari llegir les dietes oficials creades i publicades per l'acadèmia. Únicament el personal d'administració autoritzat pot donar-les d'alta o esborrar-les.
+    match /dietes/{documentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 26. Feedback de Dieta dels Usuaris
+    // Comentari planer per a no-programadors: Permet a qualsevol estudiant o opositor registrar la seva incidència o dubte respecte d'aliments o dietes d'OposiCAT, de manera segura, i restringeix l'escriptura (resposta) i esborrat exclusivament al personal d'administració autoritzat d'OposiCAT.
+    match /notificacions_dietes/{docId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.usuariId == request.auth.uid);
+      allow create: if (isSignedIn() && isValidId(docId) && isValidDietaFeedback(incoming()) && incoming().usuariId == request.auth.uid) || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // 27. Propostes de gimnasos enviades pels usuaris o propietaris
+    // Comentari planer per a no-programadors: Permet que qualsevol persona pugui enviar una nova proposta (creació) si les dades són totalment vàlides i estructurades. Si l'usuari té la sessió iniciada, enllacem la proposta amb el seu compte per a que la pugui consultar. Si és un usuari extern o no-autenticat, la desarà amb l'identificador 'anonim'. Els administradors del web d'OposiCAT sempre tindran dret a gestionar i validar les propostes.
+    match /propostes_gimnasos/{docId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.usuariId == request.auth.uid);
+      allow create: if (
+        isValidId(docId) && 
+        isValidPropostaGimnas(incoming()) && 
+        (!isSignedIn() ? incoming().usuariId == "anonim" : incoming().usuariId == request.auth.uid)
+      ) || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // 28. Gimnasos o Centres d'Entrenament Oficials d'OposiCAT
+    // Comentari planer per a no-programadors: Permet a qualsevol persona llegir la llista de gimnasos homologats i col·laboradors oficials per a les proves físiques de Mossos. Només el personal d'administració autoritzat pot donar d'alta, editar dades o esborrar els gimnasos.
+    match /gimnasos/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }

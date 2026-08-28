@@ -71,6 +71,7 @@ const IMATGES_A_PRECARREGAR = [
 // Nous components Modulars de la part Web i de d’Administració (Backoffice)
 import SelectorDesenvolupament, { VistaDesenvolupament } from './components/SelectorDesenvolupament';
 import WebLandingPC from './pantalles/web/WebLandingPC';
+import WebLandingSmartphone from './pantalles/web/WebLandingSmartphone';
 import WebLoginPC from './pantalles/web/WebLoginPC';
 import WebWorkspacePC from './pantalles/web/WebWorkspacePC';
 import WebBackofficePC from './pantalles/web/WebBackofficePC';
@@ -150,32 +151,8 @@ export default function App() {
   // Explicació per a no-programadors: Estat d'escriptori general per recordar quina pestanya s'ha deixat oberta a la barra de botons inferior corporativa.
   const [mossosInicialSeccio, setMossosInicialSeccio] = useState<'home' | 'forum' | 'noticies' | 'perfil'>('home');
   
-  // Estat per a la vista de desenvolupament (comprovació simultània web/app)
-  // Explicació per a no-programadors:
-  // Si aquest estat està en 'app_mobil', es carrega la versió de mòbil. Incorporat per a producció:
-  // Si l'usuari entra des d'un ordinador (pantalla gran), li iniciarem la web de PC per defecte de manera totalment transparent,
-  // mentre que si entra des de mòbil li mostrarem la landing/adreçat mòbil directament.
-  const [vistaDev, setVistaDev] = useState<VistaDesenvolupament>(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.has('marketing') || params.has('compartit')) {
-      return 'web_pc_workspace';
-    }
-    // Si estem en un navegador real, comprovem l'amplada de la pantalla
-    if (typeof window !== 'undefined') {
-      if (window.innerWidth >= 1024) {
-        return 'web_pc_website'; // Inici de PC per defecte
-      } else {
-        return 'web_mobil_website'; // Inici de Mòbil per defecte
-      }
-    }
-    return 'app_mobil';
-  });
-
-  // Explicació per a no-programadors:
-  // Definim si el selector engranatge "flotant" de canvi de vista s'ha de mostrar o no d'acord amb el teu desig.
-  // Es manté actiu en entorn de proves o local, o si afegeixes '?dev=true' o '?debug=true' a l'enllaç de manera privada per a tu.
-  // Per als alumnes del carrer al teu domini oficial de producció, aquest botó estarà 105% amagat i neta de fons!
-  const esVistaMarketing = new URLSearchParams(window.location.search).has('marketing') || new URLSearchParams(window.location.search).has('compartit');
+  // Explicació per a no-programadors: Aquest estat permet recordar d'on venia l'usuari abans d'obrir la pàgina de Mossos d'Esquadra (ja sigui d'ordinador o del mòbil) per tal que, en prémer el botó enrere, torni al lloc corresponent.
+  const [origenMossos, setOrigenMossos] = useState<VistaDesenvolupament>('web_pc_website');
   
   const esDevMode = (() => {
     if (typeof window === 'undefined') return false;
@@ -186,6 +163,37 @@ export default function App() {
                           window.location.hostname.includes('run.app'); // AI Studio Dev env
     return teParamsDev || esEntornLocal;
   })();
+
+  // Explicació per a no-programadors:
+  // Definim si el selector engranatge "flotant" de canvi de vista s'ha de mostrar o no d'acord amb el teu desig.
+  // Es manté actiu en entorn de proves o local, o si afegeixes '?dev=true' o '?debug=true' a l'enllaç de manera privada per a tu.
+  // Per als alumnes del carrer al teu domini oficial de producció, aquest botó estarà 105% amagat i neta de fons!
+  const esVistaMarketing = typeof window !== 'undefined' && (new URLSearchParams(window.location.search).has('marketing') || new URLSearchParams(window.location.search).has('compartit'));
+
+  // Estat per a la vista de desenvolupament (comprovació simultània web/app)
+  // Explicació per a no-programadors:
+  // Si aquest estat està en 'app_mobil', es carrega la versió de mòbil. Incorporat per a producció:
+  // Si l'usuari entra des d'un ordinador (pantalla gran), li iniciarem la web de PC per defecte de manera totalment transparent,
+  // mentre que si entra des de mòbil li mostrarem la landing/adreçat mòbil directament.
+  // MODIFICACIÓ PER A PROVES: Si estem a l'entorn de desenvolupament o de proves d'AI Studio, arranquem directament en 'app_mobil' per facilitar el testatge ràpid.
+  const [vistaDev, setVistaDev] = useState<VistaDesenvolupament>(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('marketing') || params.has('compartit')) {
+      return 'web_pc_workspace';
+    }
+    
+    // Comentari planer per a no-programadors:
+    // Quan treballem a l'entorn d'AI Studio o local, arranquem directament a 'web_pc_workspace' (WEB-PC-WORKSPACE)
+    // per tal que l'aplicació s'obri d'immediat a la zona d'estudi de la web sense haver de fer clics extres.
+    if (esDevMode) {
+      return 'web_pc_workspace';
+    }
+
+    // Comentari planer per a no-programadors:
+    // Per a la fase de proves amb testers a producció, enviem directament a la pantalla de Login del Campus ('web_pc_login')
+    // per tal que es creïn un compte o iniciïn sessió i accedeixin a "Què vols fer avui?".
+    return 'web_pc_login';
+  });
   
   // Estats per al Backoffice
   const [mode, setMode] = useState<'app' | 'admin'>('app');
@@ -262,9 +270,12 @@ export default function App() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
+      if (u && vistaDev === 'web_pc_login') {
+        setVistaDev('web_pc_workspace');
+      }
     });
     return () => unsub();
-  }, []);
+  }, [vistaDev]);
 
   // --------------------------------------------------------------------------
   // CONTROLADOR DE SESSIÓ ÚNICA SIMULTÀNIA (EVITA COMPTES COMPARTITS - RGPD)
@@ -769,13 +780,16 @@ export default function App() {
               }} 
               onEntrarBackoffice={() => setVistaDev('web_pc_backoffice')}
               onSimularEntrarMovil={() => setVistaDev('web_mobil_website')}
-              onAnarMossos={() => setVistaDev('web_pc_mossos')}
+              onAnarMossos={() => {
+                setOrigenMossos('web_pc_website');
+                setVistaDev('web_pc_mossos');
+              }}
             />
           )}
 
           {vistaDev === 'web_pc_mossos' && (
             <PaginaMossos 
-              onTornar={() => setVistaDev('web_pc_website')}
+              onTornar={() => setVistaDev(origenMossos)}
               onEntrarCampus={() => {
                 if (user) {
                   setVistaDev('web_pc_workspace');
@@ -813,6 +827,24 @@ export default function App() {
             <WebLandingMobil 
               onTornarLandingGral={() => setVistaDev('web_pc_website')} 
               onAnarA_Redireccio={() => setVistaDev('web_mobil_redireccio')}
+            />
+          )}
+
+          {vistaDev === 'web_smartphone_website' && (
+            <WebLandingSmartphone 
+              onEntrarWorkspace={() => {
+                if (user) {
+                  setVistaDev('web_pc_workspace');
+                } else {
+                  setVistaDev('web_pc_login');
+                }
+              }}
+              onEntrarBackoffice={() => setVistaDev('web_pc_backoffice')}
+              onSimularEntrarMovil={() => setVistaDev('web_mobil_website')}
+              onAnarMossos={() => {
+                setOrigenMossos('web_smartphone_website');
+                setVistaDev('web_pc_mossos');
+              }}
             />
           )}
 

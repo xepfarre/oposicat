@@ -18,6 +18,7 @@ export type VistaDesenvolupament =
   | 'web_pc_workspace'        // WEB - PC - Workspace (zona d'estudiats web)
   | 'web_pc_backoffice'       // WEB - PC - Backoffice (gestió d'alumnes)
   | 'web_mobil_website'       // WEB - Mòbil - Website (landing adaptada)
+  | 'web_smartphone_website'  // WEB - Smartphone - Website (Landing de PC copiada literal per a Smartphone)
   | 'web_mobil_redireccio'    // WEB - Mòbil - Redirecció/Descàrrega de l'APP
   | 'web_pc_mossos';          // WEB - PC - Mossos (pàgina d'aterratge de mossos)
 
@@ -73,6 +74,12 @@ export default function SelectorDesenvolupament({ vistaActual, onChangeVista }: 
       titol: '📱 WEB - Mòbil - Website',
       descripcio: 'Pàgina corporativa d’aterratge adaptada a pantalles de mòbils.',
       color: 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+    },
+    {
+      valor: 'web_smartphone_website',
+      titol: '📱 WEB - Smartphone - Website',
+      descripcio: 'Landing de PC original duplicada per a Smartphone per ensenyar als clients.',
+      color: 'bg-amber-500/10 text-amber-300 border-amber-500/20'
     },
     {
       valor: 'web_mobil_redireccio',

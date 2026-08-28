@@ -1370,31 +1370,6 @@ export default function OposiMossosInici({
       {/* ZONA DELS BOTONS PRINCIPALS */}
       <main className="w-full md:max-w-4xl flex flex-col gap-4">
         
-        {/* Comentari planer per a no-programadors: Targeta/Banner elegant per instar l'usuari a instal·lar l'App a iOS o Android amb instruccions simples i clares. */}
-        <div className="bg-gradient-to-r from-red-600/15 to-indigo-600/15 border border-white/10 rounded-2xl p-4 flex flex-col gap-3 shadow-xl backdrop-blur-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-400/20 flex items-center justify-center text-lg shrink-0">
-                📲
-              </div>
-              <div className="flex flex-col">
-                <span className="text-white text-xs font-black italic uppercase tracking-wider">
-                  Vols instal·lar l'App al mòbil?
-                </span>
-                <span className="text-white/60 text-[10px] font-medium leading-tight">
-                  Guarda OposiCAT a la teva pantalla d'inici per estudiar millor a pantalla completa sense anuncis ni barres de cerca!
-                </span>
-              </div>
-            </div>
-            <button 
-              onClick={executarInstalacioDirecteOposiCAT}
-              className="bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold italic text-[10px] uppercase tracking-wider px-3.5 py-2.5 rounded-xl transition-all cursor-pointer shadow-lg shadow-red-900/20 select-none shrink-0"
-            >
-              Instal·lar
-            </button>
-          </div>
-        </div>
-
         {/* Bloc 0: Accés directe (Dividit en 2: 60% Oposició / 40% Web) */}
         <div className="flex w-full gap-4">
           <button 

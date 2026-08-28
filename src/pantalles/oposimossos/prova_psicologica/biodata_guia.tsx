@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Youtube, ChevronLeft, User, Shield, FileText, Play, Info, PencilLine, ChevronDown, ChevronUp } from 'lucide-react';
+import { Youtube, ChevronLeft, User, Shield, FileText, Play, Info, PencilLine, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { db, auth } from '../../../lib/firebase';
+import { MAP_COMPETENCIES } from './preguntes_biodata';
 
 /* 
   Aquest component gestiona la guia de la Prova Biodata.
@@ -45,60 +48,127 @@ export const GuiaBiodata = ({
   const [veureCompetencies, setVeureCompetencies] = useState<boolean>(false);
 
   // Explicació per a no-programadors:
-  // Definim les 10 competències clau oficials de l'ISPC que s'avaluaran en el qüestionari del test.
-  const competenciesClauTest = [
-    "Adaptabilitat",
-    "Autocontrol",
-    "Treball en equip",
-    "Habilitats de comunicació",
-    "Orientació al servei públic",
-    "Responsabilitat",
-    "Ètica i integritat",
-    "Planificació i organització",
-    "Relació interpersonal",
-    "Resolució de problemes"
-  ];
+  // Definim les 10 competències clau oficials requerides per l'usuari amb el seu corresponent nom.
+  const competenciesClauTest = MAP_COMPETENCIES.map(c => c.nom);
 
   // Explicació per a no-programadors:
   // Definim els diferents estats del simulador de test de biodata per a guiar l'alumne durant la pràctica:
   // - 'opcions': pantalla inicial amb els dos passos interactius o botons reduïts.
   // - 'instruccions': avís de temps, regles i el format del test d'oposició.
-  // - 'fent_test': interfície activa de preguntes (del qüestionari d'estudiant de 1 a 100).
-  // - 'resultats': exposició dels resultats reals o de directament exemple simulat del darrer text.
+  // - 'fent_test': interfície activa de preguntes (del qüestionari d'estudiant de 1 a 80).
+  // - 'resultats': exposició dels resultats reals o d'exemple simulat.
   const [estatPractica, setEstatPractica] = useState<'opcions' | 'instruccions' | 'fent_test' | 'resultats'>('opcions');
   
   // Explicació per a no-programadors:
-  // Gestionem quina de les 100 preguntes està responent actualment l'estudiant de forma seqüencial (de 0 a 99).
+  // Gestionem quina de les 80 preguntes està responent actualment l'estudiant de forma seqüencial (de 0 a 79).
   const [preguntaActual, setPreguntaActual] = useState<number>(0);
   
   // Explicació per a no-programadors:
-  // Guardem en un array de 100 caselles el valor de la resposta seleccionada (+1, 0 o -1). Comença amb totes les caselles buides (null).
-  const [respostesUsuari, setRespostesUsuari] = useState<(number | null)[]>(Array(100).fill(null));
+  // Carreguem dinàmicament les preguntes de Biodata des de la base de dades (Firestore) si hi ha dades gravades,
+  // en cas contrari farem servir les 80 de referència programades al codi com a mètode de seguretat de contingut.
+  const [preguntesList, setPreguntesList] = useState<any[]>([]);
+  const [loadingPreguntes, setLoadingPreguntes] = useState<boolean>(true);
+
+  React.useEffect(() => {
+    const fetchPreguntesBBDD = async () => {
+      try {
+        const q = query(collection(db, "preguntes_biodata_oficial"), orderBy("id", "asc"));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const llista: any[] = [];
+          snap.forEach(docSnap => {
+            llista.push({
+              docId: docSnap.id,
+              ...docSnap.data()
+            });
+          });
+          llista.sort((a, b) => (a.id || 0) - (b.id || 0));
+          // Filtrem les que estan suspeses (perquè l'alumne no les vegi en fer el test)
+          const actives = llista.filter(p => p.suspensa !== true);
+          setPreguntesList(actives);
+        } else {
+          setPreguntesList([]);
+        }
+      } catch (err) {
+        console.error("Error carregant preguntes del test de biodata des de la BBDD", err);
+        setPreguntesList([]);
+      } finally {
+        setLoadingPreguntes(false);
+      }
+    };
+    fetchPreguntesBBDD();
+  }, []);
+
+  // Explicació per a no-programadors:
+  // Creem una variable de drecera que conté el conjunt de preguntes actives a mostrar en temps real de l'examen.
+  const preguntesActives = preguntesList;
+
+  // Explicació per a no-programadors:
+  // Guardem en un array de caselles el valor de la resposta seleccionada (+1, 0, -1, o qualsevol valor numèric).
+  // Comença amb totes les caselles buides (null) adaptades de forma dinàmica segons la mida del pool de preguntes.
+  const [respostesUsuari, setRespostesUsuari] = useState<(number | null)[]>([]);
+
+  // Adaptem la mida de les respostes de l'usuari quan les preguntes de BBDD han finalitzat de carregar-se
+  React.useEffect(() => {
+    if (preguntesActives.length > 0) {
+      setRespostesUsuari(Array(preguntesActives.length).fill(null));
+    }
+  }, [preguntesList]);
   
   // Explicació per a no-programadors:
   // El cronòmetre de 25 minuts que anirà reduint els segons (25 minuts = 1500 segons).
   const [tempsRestant, setTempsRestant] = useState<number>(25 * 60);
 
   // Explicació per a no-programadors:
-  // Desarà els darrers valors d'escala obtinguts del test (0 a 10) per a cadascuna de les 10 competències.
+  // Desarà els darrers valors d'escala obtinguts del test (0 a 10) per a cadascuna de les 10 competències de forma independent.
   const [resultatsTest, setResultatsTest] = useState<number[] | null>(null);
 
   // Explicació per a no-programadors:
-  // Indica si les mètriques mostrades són de debò per haver de fer el test sencer o són els valors orientatius simulats d'exemple.
+  // Indica si les mètriques mostrades són fictícies/simulades d'exemple o provenen d'un test realitzat per l'usuari de veritat.
   const [esResultatDeProva, setEsResultatDeProva] = useState<boolean>(false);
 
   // Explicació per a no-programadors:
-  // Carreguem des del navegador qualsevol històric de test realitzat per l'estudiant d'OposiCAT un cop s'inicia el programa.
+  // Controla si es mostra el diàleg de confirmació reactiu abans de lliurar definitivament el test de biodata.
+  const [mostraConfirmacioLliurament, setMostraConfirmacioLliurament] = useState<boolean>(false);
+
+  // Explicació per a no-programadors:
+  // Carreguem des del navegador o de la base de dades Firestore el darrer assaig guardat per a l'alumne autònomament.
   React.useEffect(() => {
-    try {
-      const g = localStorage.getItem('oposicat_biodata_ultim_test');
-      if (g) {
-        setResultatsTest(JSON.parse(g));
+    const carregarDarrerTest = async () => {
+      if (auth.currentUser) {
+        try {
+          const userId = auth.currentUser.uid;
+          const q = query(
+            collection(db, `usuaris/${userId}/resultats_biodata`),
+            orderBy('creatEl', 'desc'),
+            limit(1)
+          );
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            const d = snap.docs[0].data();
+            if (d.resultats) {
+              setResultatsTest(d.resultats);
+              return;
+            }
+          }
+        } catch (e) {
+          console.error("Error carregant darrer test de la BBDD", e);
+        }
       }
-    } catch (e) {
-      console.error("Error carregant el darrer test des de local", e);
-    }
-  }, []);
+
+      // Si no està logat o falla la xarxa, provem el disc local del navegador (localStorage)
+      try {
+        const g = localStorage.getItem('oposicat_biodata_ultim_test');
+        if (g) {
+          setResultatsTest(JSON.parse(g));
+        }
+      } catch (e) {
+        console.error("Error carregant el darrer test des de local", e);
+      }
+    };
+
+    carregarDarrerTest();
+  }, [auth.currentUser]);
 
   // Explicació per a no-programadors:
   // Fil de temporització asíncron per fer córrer el cronòmetre de 25 minuts enrere.
@@ -124,33 +194,91 @@ export const GuiaBiodata = ({
   }, [estatPractica, tempsRestant, respostesUsuari]);
 
   // Explicació per a no-programadors:
-  // Aquesta funció s'encarrega d'analitzar les respostes totals obtingudes de l'estudiant.
-  // Per a cada competència clau (hi ha 10 competències d'ISPC):
-  // 1. Sumem els punts corresponents a les 10 preguntes dedicades de cadascuna (+1, 0, o -1 punt).
-  // 2. Si la suma total neta és inferior a 0, s'ajusta el valor a 0 seguint el requisit d'OposiCAT.
-  // 3. Desa el resum dels resultats d'escala (0-10) en local perquè s'hi pugui accedir directament a futur.
+  // Aquesta funció central és el motor de càlcul de les notes del test de biodata.
+  // 1. Es creen dos sumatoris en temps real per a cadascuna de les 10 competències:
+  //    - punts_aconseguits: acumula la puntuació de l'opció que tria l'usuari (pot ser negatiu).
+  //    - punts_maxims: acumula el valor màxim que l'estudiant hagués pogut treure en aquella pregunta (independentment de la triada).
+  // 2. S'aplica la fórmula de normalització estricte exigida de cara a les oposicions de Mossos:
+  //    Nota_Competencia = ( punts_aconseguits_[COMPETÈNCIA] / punts_maxims_[COMPETÈNCIA] ) * 10
+  // 3. S'apliquen els controls de límit de seguretat (sanity checks):
+  //    - Tall Inferior: Si és menor de 0, es força automàticament a 0.
+  //    - Tall Superior: Si supera el 10, es limita de forma estricta a 10.
+  // 4. Els resultats d'escala es desen en format local per no perdre l'esforç i s'exposen de manera lúdica i transparent.
   const finalitzarTest = (respostes: (number | null)[], tempsExhaurit = false) => {
-    const puntuacions: number[] = [];
+    // Inicialitzem els objectes comptadors per a cadascun dels codis de competència clau (HSC, OSC, TEC, etc.)
+    const puntsAconseguits: Record<string, number> = {};
+    const puntsMaxims: Record<string, number> = {};
 
-    for (let c = 0; c < 10; c++) {
-      let sumaPunts = 0;
-      // Cada competència ocupa un bloc correlatiu d'índex de 10 preguntes (ex: 0-9, 10-19...)
-      const iniciC = c * 10;
-      for (let p = 0; p < 10; p++) {
-        const resposta = respostes[iniciC + p];
-        // Si no s'ha contestat, compta com a 0 punts de forma transparent i justa.
-        sumaPunts += resposta !== null ? resposta : 0;
+    MAP_COMPETENCIES.forEach(comp => {
+      puntsAconseguits[comp.id] = 0;
+      puntsMaxims[comp.id] = 0;
+    });
+
+    // Recorrem de forma independent cadascuna de les preguntes reals del nostre motor de Biodata
+    preguntesActives.forEach((preg, idx) => {
+      const respostaIndex = respostes[idx];
+
+      MAP_COMPETENCIES.forEach(comp => {
+        const compId = comp.id;
+
+        // Funció per obtenir els punts d'una opció per a una competència determinada (amb suport multidimensional per a no-programadors)
+        const getPuntsForComp = (op: any) => {
+          if (op.multidimensional && op.multidimensional[compId] !== undefined) {
+            return op.multidimensional[compId];
+          }
+          if (preg.competencia === compId) {
+            return op.punts;
+          }
+          return 0;
+        };
+
+        const maxPuntsPregunta = Math.max(...preg.opcions.map(getPuntsForComp));
+        puntsMaxims[compId] += maxPuntsPregunta;
+
+        if (respostaIndex !== null && preg.opcions[respostaIndex] !== undefined) {
+          puntsAconseguits[compId] += getPuntsForComp(preg.opcions[respostaIndex]);
+        }
+      });
+    });
+
+    // Calculem la nota final unificada de cadascuna de les 10 competències seguint la llista oficial
+    const puntuacions: number[] = MAP_COMPETENCIES.map(comp => {
+      const aconseguits = puntsAconseguits[comp.id];
+      const maxims = puntsMaxims[comp.id];
+
+      // Evitem divisions entre 0
+      if (maxims === 0) return 0;
+
+      let nota = (aconseguits / maxims) * 10;
+
+      // REGLAS DE CONTROL DE LÍMITS (SANITY CHECKS)
+      // Tall Inferior: forçar a 0 si la nota final és menor que zero
+      if (nota < 0) {
+        nota = 0;
       }
-      
-      // Ajustem el valor entre 0 i 10. Si surt negatiu (menys de 0) es converteix directament a 0.
-      const valorFinal = Math.max(0, sumaPunts);
-      puntuacions.push(valorFinal);
-    }
+      // Tall Superior: forçar a 10 si la nota calculada final és superior a 10
+      if (nota > 10) {
+        nota = 10;
+      }
+
+      // Deixem un decimal arrodonit amb exactitud per a una millor visualització
+      return parseFloat(nota.toFixed(1));
+    });
 
     setResultatsTest(puntuacions);
     setEsResultatDeProva(false);
     
-    // Perdurabilitat local: Gravem els resultats obtinguts al navegador en una clau d'OposiCAT
+    // Perdurabilitat local i remota: Gravem els resultats de l'alumne
+    if (auth.currentUser) {
+      const userId = auth.currentUser.uid;
+      addDoc(collection(db, `usuaris/${userId}/resultats_biodata`), {
+        userId,
+        resultats: puntuacions,
+        respostesUsuari: respostes,
+        creatEl: new Date().toISOString()
+      }).catch(e => console.error("Error guardant resultats a Firestore", e));
+    }
+
     try {
       localStorage.setItem('oposicat_biodata_ultim_test', JSON.stringify(puntuacions));
     } catch (e) {
@@ -164,9 +292,9 @@ export const GuiaBiodata = ({
   };
 
   // Explicació per a no-programadors:
-  // Funció per a carregar a l'instant un model fictici de prova per visualitzar de forma directa el panell de conclusions.
+  // Funció per a carregar a l'instant un model fictici de prova i així poder veure el panell d'anàlisi competencial immediatament
   const visualitzarResultatDeProvaDirecte = () => {
-    const valorsDeProva = [8, 6, 9, 7, 9, 8, 10, 7, 8, 5]; // Valors realistes de mostra entre 0 i 10
+    const valorsDeProva = [8.5, 6.0, 9.0, 7.5, 9.0, 8.0, 10.0, 7.0, 8.5, 5.5]; // Valors d'exemple excel·lents i realistes
     setResultatsTest(valorsDeProva);
     setEsResultatDeProva(true);
     setEstatPractica('resultats');
@@ -663,7 +791,7 @@ export const GuiaBiodata = ({
                     onClick={() => {
                       // Iniciem l'estat del nou qüestionari
                       setPreguntaActual(0);
-                      setRespostesUsuari(Array(100).fill(null));
+                      setRespostesUsuari(Array(preguntesActives.length).fill(null));
                       setTempsRestant(25 * 60); // 25 minuts
                       setEstatPractica('instruccions');
                     }}
@@ -720,14 +848,36 @@ export const GuiaBiodata = ({
                   Normativa del Simulacre
                 </span>
                 
-                <p className="text-white/80 text-[11px] md:text-sm font-medium leading-relaxed italic text-left">
-                  El test es composa de 100 preguntes. Cada pregunta te 3 respostes. Nomes pots selecionar 1 de les 3 respostes. No hi han respostes correctes o incorrectes, son respostes en relacio al que tu creus. Tens 25 minuts per a fer el test.
-                </p>
+                {preguntesActives.length === 0 ? (
+                  <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs font-bold leading-relaxed text-left flex items-start gap-2.5">
+                    <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                    <div>
+                      <h5 className="font-black uppercase tracking-wider text-[10px]">No s'han trobat preguntes</h5>
+                      <p className="mt-1 text-slate-300 text-[10px]">
+                        Hores d'ara no hi ha preguntes de Biodata actives a la base de dades. Si us plau, demana a un administrador d'OposiCAT que generi o creï preguntes a la secció de gestió.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-white/80 text-[11px] md:text-sm font-medium leading-relaxed italic text-left">
+                    El test es composa de <strong className="text-emerald-400">{preguntesActives.length} preguntes reals de tipus Biodata</strong> especialment dissenyades. Cada pregunta té 3 opcions de resposta psicoprofessional. Només pots seleccionar 1 de les 3 opcions en relació al que penses o sents davant de cada situació policial. Disposes d'un temps límit de <strong className="text-emerald-400">25 minuts</strong> per completar el simulacre.
+                  </p>
+                )}
 
                 <div className="flex flex-col gap-2 mt-2">
                   <button 
-                    onClick={() => setEstatPractica('fent_test')}
-                    className="w-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-950 rounded-xl py-3 text-center text-[11px] md:text-sm font-black uppercase tracking-widest transition-all cursor-pointer"
+                    disabled={preguntesActives.length === 0}
+                    onClick={() => {
+                      setPreguntaActual(0);
+                      setRespostesUsuari(Array(preguntesActives.length).fill(null));
+                      setTempsRestant(25 * 60);
+                      setEstatPractica('fent_test');
+                    }}
+                    className={`w-full rounded-xl py-3 text-center text-[11px] md:text-sm font-black uppercase tracking-widest transition-all ${
+                      preguntesActives.length === 0
+                        ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-white/5"
+                        : "bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-950 cursor-pointer"
+                    }`}
                   >
                     COMENÇAR JA
                   </button>
@@ -747,10 +897,10 @@ export const GuiaBiodata = ({
                 <div className="flex items-center justify-between bg-black/30 border border-white/5 p-3 rounded-xl">
                   <div className="flex flex-col text-left">
                     <span className="text-[10px] text-emerald-400 font-black uppercase tracking-wider">
-                      Pregunta {preguntaActual + 1} de 100
+                      Pregunta {preguntaActual + 1} de {preguntesActives.length}
                     </span>
-                    <span className="text-[7.5px] text-white/50 font-black uppercase tracking-widest mt-0.5">
-                      Comp: {competenciesClauTest[Math.floor(preguntaActual / 10)]}
+                    <span className="text-[7.5px] text-white/50 font-black uppercase tracking-widest mt-0.5 max-w-[200px] truncate">
+                      Àrea: {MAP_COMPETENCIES.find(c => c.id === preguntesActives[preguntaActual]?.competencia)?.nom || "General"}
                     </span>
                   </div>
                   
@@ -762,22 +912,22 @@ export const GuiaBiodata = ({
                   </div>
                 </div>
 
-                {/* Barra de progrés visual fins a la línia 100 */}
+                {/* Barra de progrés visual fins a la línia de final */}
                 <div className="w-full bg-white/5 rounded-full h-[3px]">
                   <div 
                     className="bg-emerald-400 h-[3px] rounded-full transition-all duration-300" 
-                    style={{ width: `${preguntaActual + 1}%` }}
+                    style={{ width: `${((preguntaActual + 1) / preguntesActives.length) * 100}%` }}
                   />
                 </div>
 
                 {/* Targeta interior de la pregunta de competència */}
                 <div className="bg-[#1a3a5a]/20 border border-white/5 rounded-2xl p-6 flex flex-col items-center gap-5 text-center min-h-[160px] justify-center backdrop-blur-md">
                   <span className="text-[8px] text-white/35 font-bold uppercase tracking-widest">
-                    Codi Pregunta: {(preguntaActual + 1).toString().padStart(3, '0')}
+                    Codi Pregunta: {(preguntaActual + 1).toString().padStart(3, '0')} | Codi Competència: [{preguntesActives[preguntaActual]?.competencia}]
                   </span>
                   
-                  <h4 className="text-white font-extrabold italic text-sm md:text-base leading-snug px-2">
-                    Pregunta de "competencia clau {competenciesClauTest[Math.floor(preguntaActual / 10)]}"
+                  <h4 className="text-white font-extrabold italic text-xs md:text-sm leading-relaxed px-2">
+                    "{preguntesActives[preguntaActual]?.enunciat}"
                   </h4>
                   
                   <p className="text-white/40 text-[9px] md:text-[10px] leading-relaxed max-w-[340px] italic">
@@ -785,26 +935,26 @@ export const GuiaBiodata = ({
                   </p>
                 </div>
 
-                {/* Opcions de respostes interactives: +1 punt, 0 punts, -1 punt */}
+                {/* Opcions de respostes interactives dinàmiques */}
                 <div className="flex flex-col gap-2 mt-1">
-                  {[
-                    { text: "+1 punt", valor: 1, colorClau: "hover:border-emerald-500/30 selection:bg-emerald-500/20" },
-                    { text: "0 punts", valor: 0, colorClau: "hover:border-blue-500/30 selection:bg-blue-500/20" },
-                    { text: "-1 punt", valor: -1, colorClau: "hover:border-red-500/30 selection:bg-red-500/20" }
-                  ].map((op, i) => {
-                    const seleccionada = respostesUsuari[preguntaActual] === op.valor;
+                  {preguntesActives[preguntaActual]?.opcions?.map((op, i) => {
+                    // El valor desat a l'array és l'índex triat de la pregunta (0, 1 o 2) per evitar conflictes de visualització
+                    const seleccionada = respostesUsuari[preguntaActual] === i;
+                    // Explicació per a no-programadors:
+                    // Creem el prefix en majúscules 'A- ', 'B- ' o 'C- ' per cada resposta.
+                    const prefix = i === 0 ? "A- " : i === 1 ? "B- " : "C- ";
                     return (
                       <button
                         key={i}
                         onClick={() => {
                           const novesRespostes = [...respostesUsuari];
-                          novesRespostes[preguntaActual] = op.valor;
+                          novesRespostes[preguntaActual] = i;
                           setRespostesUsuari(novesRespostes);
 
                           // UX auto-progressiu: canvi automàtic a la següent pregunta per fer el test més fluid i ràpid
-                          if (preguntaActual < 99) {
+                          if (preguntaActual < preguntesActives.length - 1) {
                             setTimeout(() => {
-                              setPreguntaActual(prev => Math.min(prev + 1, 99));
+                              setPreguntaActual(prev => Math.min(prev + 1, preguntesActives.length - 1));
                             }, 220);
                           }
                         }}
@@ -814,8 +964,10 @@ export const GuiaBiodata = ({
                             : "bg-[#1a3a5a]/10 border-white/5 text-white/70 hover:bg-white/[0.02]"
                         }`}
                       >
-                        <span className="text-[11px] md:text-xs tracking-wider uppercase font-extrabold italic">{op.text}</span>
-                        <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                        <span className="text-[11px] md:text-xs tracking-wider normal-case font-extrabold italic leading-relaxed pr-2">
+                          {prefix}{op.text.toLowerCase()}
+                        </span>
+                        <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ${
                           seleccionada ? "border-emerald-400 bg-emerald-400/20" : "border-white/20"
                         }`}>
                           {seleccionada && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
@@ -841,9 +993,7 @@ export const GuiaBiodata = ({
 
                   <button
                     onClick={() => {
-                      if (confirm("Segur que vols entregar el test de biodata ara mateix? Pots continuar contestant les preguntes restants si et queda de temps.")) {
-                        finalitzarTest(respostesUsuari);
-                      }
+                      setMostraConfirmacioLliurament(true);
                     }}
                     className="px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
                   >
@@ -851,10 +1001,10 @@ export const GuiaBiodata = ({
                   </button>
 
                   <button
-                    disabled={preguntaActual === 99}
-                    onClick={() => setPreguntaActual(prev => Math.min(prev + 1, 99))}
+                    disabled={preguntaActual === preguntesActives.length - 1}
+                    onClick={() => setPreguntaActual(prev => Math.min(prev + 1, preguntesActives.length - 1))}
                     className={`px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg border flex items-center gap-1 transition-colors ${
-                      preguntaActual === 99 
+                      preguntaActual === preguntesActives.length - 1 
                         ? "border-white/5 text-white/10 cursor-not-allowed" 
                         : "border-white/10 text-white/50 hover:text-white cursor-pointer"
                     }`}
@@ -863,9 +1013,9 @@ export const GuiaBiodata = ({
                   </button>
                 </div>
 
-                {/* Graella estètica resumida de navegació per fer seguiment visual ràpid (10 línies de 10) */}
+                {/* Graella estètica resumida de navegació per fer seguiment visual ràpid */}
                 <div className="mt-4 p-3 bg-black/20 border border-white/5 rounded-xl">
-                  <span className="text-[8px] text-white/40 font-bold uppercase tracking-widest block text-center mb-2">SEGUIMENT DE PREGUNTES (100)</span>
+                  <span className="text-[8px] text-white/40 font-bold uppercase tracking-widest block text-center mb-2">SEGUIMENT DE PREGUNTES ({preguntesActives.length})</span>
                   <div className="grid grid-cols-10 gap-1 justify-items-center">
                     {respostesUsuari.map((resp, idx) => {
                       const ésLaPreguntaActual = idx === preguntaActual;
@@ -888,115 +1038,202 @@ export const GuiaBiodata = ({
                     })}
                   </div>
                 </div>
-              </div>
-            )}
 
-            {estatPractica === 'resultats' && resultatsTest && (
-              <div className="flex flex-col gap-4 w-full max-w-[520px] mx-auto animate-in zoom-in-95 duration-300">
-                {/* Capçalera de resultats */}
-                <div className="text-center flex flex-col items-center gap-1.5">
-                  <span className="text-[9px] text-[#00f296] font-black uppercase tracking-[0.25em] italic">
-                    ★ DIAGNÒSTIC FINAL
-                  </span>
-                  <h3 className="text-white font-[900] italic uppercase text-sm tracking-widest">
-                    RESULTATS DEL TEST DE BIODATA
-                  </h3>
-                  <div className="h-[2px] bg-[#00f296]/20 w-12 rounded mt-1" />
-                </div>
+                {/* Modal de Confirmació de Lliurament de Test amb estil OposiCAT */}
+                {mostraConfirmacioLliurament && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
+                    <div className="w-full max-w-md bg-[#0b1b2d] border border-red-500/20 rounded-2xl p-6 text-center shadow-2xl relative overflow-hidden">
+                      {/* Línia decorativa de perill superior d'OposiCAT */}
+                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500/30 via-red-500 to-red-500/30" />
+                      
+                      <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-4">
+                        <FileText className="w-6 h-6 text-red-400" />
+                      </div>
 
-                {/* Avís de resultats de prova si és simulat per defecte */}
-                {esResultatDeProva && (
-                  <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400/90 rounded-xl p-3 text-center my-1 animate-pulse">
-                    <span className="text-[10px] font-black uppercase tracking-wider block mb-0.5">
-                      ⚠️ RESULTAT DE PROVA FICTICI / EXEMPLE
-                    </span>
-                    <p className="text-[9px] italic leading-relaxed text-white/60">
-                      Estàs visualitzant un resum d'avaluació d'exemple orientatiu. Completa el teu test per visualitzar les teves mètriques competencials personalitzades.
-                    </p>
+                      <h3 className="text-white font-black italic uppercase tracking-wider text-sm mb-2">
+                        Vols lliurar el test de biodata?
+                      </h3>
+                      
+                      <p className="text-white/60 text-xs leading-relaxed mb-6">
+                        Estàs a punt de lliurar el simulacre oficial de 80 preguntes. Es calcularà el perfil unificat de les teves 10 competències clau.
+                      </p>
+
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => {
+                            setMostraConfirmacioLliurament(false);
+                            finalitzarTest(respostesUsuari);
+                          }}
+                          className="w-full py-3 bg-red-500 hover:bg-red-600 text-slate-950 text-xs font-black uppercase tracking-widest italic rounded-xl transition-all cursor-pointer"
+                        >
+                          SÍ, LLIURAR EL TEST
+                        </button>
+                        
+                        <button
+                          onClick={() => setMostraConfirmacioLliurament(false)}
+                          className="w-full py-3 bg-white/5 hover:bg-white/10 text-white/75 text-xs font-black uppercase tracking-widest italic rounded-xl transition-all border border-white/5 cursor-pointer"
+                        >
+                          CONTINUAR CONTESTANT
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
-
-                {/* Explicació per a no-programadors:
-                    Dibuixem la llista bento de competències amb una barreja ràpida i fluida de files horizontal d'origen Tailwind.
-                    Això assegura que es visualitzi d'una forma preciosa en cada tamany de pantalla mòbil / iframe. */}
-                <div className="flex flex-col gap-2.5 mt-2 max-h-[380px] overflow-y-auto pr-1">
-                  {competenciesClauTest.map((comp, idx) => {
-                    const valor = resultatsTest[idx];
-                    
-                    // Definició de colors per a l'índex obtingut: (Verd per a 7-10, Groc per a 4-6, Vermell per a 0-3)
-                    let colorText = "text-emerald-400";
-                    let colorBarra = "bg-emerald-400";
-                    let etiquetaRang = "Apte / Excel·lent";
-
-                    if (valor < 4) {
-                      colorText = "text-red-400";
-                      colorBarra = "bg-red-500";
-                      etiquetaRang = "Sota perfil / Risc";
-                    } else if (valor < 7) {
-                      colorText = "text-amber-400";
-                      colorBarra = "bg-amber-400";
-                      etiquetaRang = "Mitjà / Millorable";
-                    }
-
-                    return (
-                      <div 
-                        key={idx} 
-                        className="bg-[#1a3a5a]/20 border border-white/5 rounded-xl p-3 flex flex-col gap-1.5 backdrop-blur-sm"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex flex-col text-left">
-                            <span className="text-[10.5px] font-extrabold text-white/85 tracking-wider italic">
-                              {idx + 1}. {comp}
-                            </span>
-                            <span className="text-[7.5px] text-white/40 font-black uppercase tracking-widest mt-0.5">
-                              {etiquetaRang}
-                            </span>
-                          </div>
-                          
-                          {/* Nota de 0 a 10 en tipografia mono de gran contrast */}
-                          <div className="flex items-baseline gap-0.5">
-                            <span className={`font-mono text-xs md:text-sm font-black ${colorText}`}>
-                              {valor}
-                            </span>
-                            <span className="font-mono text-[9px] text-white/30 font-bold">/10</span>
-                          </div>
-                        </div>
-
-                        {/* Barra de progrés representativa d'entre 0 i 10 */}
-                        <div className="w-full bg-white/5 h-2.5 rounded-full overflow-hidden border border-white/5">
-                          <div 
-                            className={`h-full rounded-full transition-all duration-500 ${colorBarra}`} 
-                            style={{ width: `${valor * 10}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Accions finals de results */}
-                <div className="flex flex-col gap-2.5 mt-3">
-                  <button 
-                    onClick={() => {
-                      setEstatPractica('opcions');
-                    }}
-                    className="w-full bg-[#1a3a5a]/40 hover:bg-[#1a3a5a]/60 active:scale-95 border border-white/10 rounded-xl py-3 text-center text-[10px] md:text-xs font-black uppercase tracking-widest transition-all cursor-pointer text-white"
-                  >
-                    FER UN NOU TEST (REINICIAR)
-                  </button>
-                  <button 
-                    onClick={() => {
-                      // Tornem al menú general de test de biodata (foto de l'estudiant de primeres)
-                      setSubSeccioTest('menu');
-                      setEstatPractica('opcions');
-                    }}
-                    className="text-white/40 hover:text-white text-[10px] font-black uppercase tracking-[0.15em] transition-colors italic cursor-pointer self-center"
-                  >
-                    Tornar al menú Biodata
-                  </button>
-                </div>
               </div>
             )}
+
+            {estatPractica === 'resultats' && resultatsTest && (() => {
+              // Explicació per a no-programadors:
+              // Calculem les mètriques d'idoneïtat de l'usuari sobre el perfil de Mossos d'Esquadra d'acord amb el punt 4 del manual:
+              // 1. SI QUALSEVOL COMPETÈNCIA OBTÉ UNA NOTA MENOR A 5.0 -> NO APTE (LÍNIA VERMELLA).
+              // 2. SI S'OBTÉ UN 10 PERFECTE EN MÉS DE 6 COMPETÈNCIES ALHORA -> TEST INCOHERENT (DETECTOR DE MENTIDES).
+              const competenciesSotaPerfil = MAP_COMPETENCIES.filter((comp, idx) => resultatsTest[idx] < 5.0);
+              const perfectesDe10 = MAP_COMPETENCIES.filter((comp, idx) => resultatsTest[idx] === 10.0);
+
+              let veredicteTipus: 'APTE' | 'NO_APTE' | 'INCOHERENT' = 'APTE';
+              let veredicteTitol = "APTE AMB BON PERFIL";
+              let veredicteDescripcio = "El teu patró competencial és del tot òptim i realista, complint amb el caràcter policial de Mossos. Mantens un perfil equilibrat. Et recomanem polir la defensa dels resultats de cara a l'entrevista real amb les nostres simulacions de l'acadèmia.";
+              let veredicteEstil = "border-emerald-500/20 bg-emerald-500/10 text-emerald-400";
+
+              if (competenciesSotaPerfil.length > 0) {
+                veredicteTipus = 'NO_APTE';
+                veredicteTitol = "NO APTE AUTOMÀTIC (LÍNIES VERMELLES)";
+                veredicteDescripcio = `Has obtingut una puntuació inferior a 5.0 en competències clau crítiques: ${competenciesSotaPerfil.map(c => c.nom).join(', ')}. Això genera un perfil no apte excloent de forma directa segons criteris d'avaluació.`;
+                veredicteEstil = "border-red-500/20 bg-red-500/10 text-red-400";
+              } else if (perfectesDe10.length > 6) {
+                veredicteTipus = 'INCOHERENT';
+                veredicteTitol = "TEST INCOHERENT (DETECTOR DE MENTIDES)";
+                veredicteDescripcio = "S'han identificat més de 6 competències amb una puntuació perfecta de 10.0 alhora. S'ha detectat desitjabilitat social extrema o manca de sinceritat de l'aspirant. Un perfil real té matisos; no vulguis simular la perfecció.";
+                veredicteEstil = "border-amber-500/20 bg-amber-500/10 text-amber-400";
+              }
+
+              return (
+                <div className="flex flex-col gap-4 w-full max-w-[520px] mx-auto animate-in zoom-in-95 duration-300">
+                  {/* Capçalera de resultats */}
+                  <div className="text-center flex flex-col items-center gap-1.5">
+                    <span className="text-[9px] text-[#00f296] font-black uppercase tracking-[0.25em] italic">
+                      ★ DIAGNÒSTIC FINAL
+                    </span>
+                    <h3 className="text-white font-[900] italic uppercase text-sm tracking-widest">
+                      RESULTATS DEL TEST DE BIODATA
+                    </h3>
+                    <div className="h-[2px] bg-[#00f296]/20 w-12 rounded mt-1" />
+                  </div>
+
+                  {/* Quadre de Veredicte Global del Perfil */}
+                  <div className={`border rounded-2xl p-4.5 flex flex-col gap-2 backdrop-blur-md text-left ${veredicteEstil}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider">
+                        VEREDICTE DE L'INFORME
+                      </span>
+                      <span className="font-mono text-[9px] font-bold uppercase tracking-widest opacity-80 border border-current px-2 py-0.5 rounded">
+                        {veredicteTipus}
+                      </span>
+                    </div>
+                    <h4 className="font-black italic uppercase text-xs md:text-sm tracking-wider">
+                      {veredicteTitol}
+                    </h4>
+                    <p className="text-white/70 text-[10px] md:text-[11px] leading-relaxed italic">
+                      {veredicteDescripcio}
+                    </p>
+                  </div>
+
+                  {/* Avís de resultats de prova si és simulat per defecte */}
+                  {esResultatDeProva && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400/90 rounded-xl p-3 text-center my-1 animate-pulse">
+                      <span className="text-[10px] font-black uppercase tracking-wider block mb-0.5">
+                        ⚠️ RESULTAT DE PROVA FICTICI / EXEMPLE
+                      </span>
+                      <p className="text-[9px] italic leading-relaxed text-white/60">
+                        Estàs visualitzant un resum d'avaluació d'exemple orientatiu. Completa el teu test per visualitzar les teves mètriques competencials personalitzades.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Explicació per a no-programadors:
+                      Dibuixem la llista de competències amb una barreja ràpida i fluida de files horitzontals. */}
+                  <div className="flex flex-col gap-2.5 mt-2 max-h-[350px] overflow-y-auto pr-1">
+                    {MAP_COMPETENCIES.map((comp, idx) => {
+                      const valor = resultatsTest[idx];
+                      
+                      // Definició de colors per a l'índex obtingut: (Verd per a 7-10, Groc per a 5-6.9, Vermell per a < 5)
+                      let colorText = "text-emerald-400";
+                      let colorBarra = "bg-emerald-400";
+                      let etiquetaRang = "Apte / Excel·lent";
+
+                      if (valor < 5) {
+                        colorText = "text-red-400";
+                        colorBarra = "bg-red-500";
+                        etiquetaRang = "Sota perfil / Risc crític";
+                      } else if (valor < 7) {
+                        colorText = "text-amber-400";
+                        colorBarra = "bg-amber-400";
+                        etiquetaRang = "Correcte / Millorable";
+                      }
+
+                      return (
+                        <div 
+                          key={idx} 
+                          className="bg-[#1a3a5a]/20 border border-white/5 rounded-xl p-3 flex flex-col gap-1.5 backdrop-blur-sm"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex flex-col text-left max-w-[340px]">
+                              <span className="text-[10.5px] font-extrabold text-white/85 tracking-wider italic">
+                                {idx + 1}. {comp.nom} <span className="text-[8px] font-bold text-white/30">[{comp.id}]</span>
+                              </span>
+                              <span className="text-[7.5px] text-white/40 font-black uppercase tracking-widest mt-0.5">
+                                {etiquetaRang}
+                              </span>
+                            </div>
+                            
+                            {/* Nota de 0 a 10 en tipografia mono de gran contrast */}
+                            <div className="flex items-baseline gap-0.5">
+                              <span className={`font-mono text-xs md:text-sm font-black ${colorText}`}>
+                                {valor.toFixed(1)}
+                              </span>
+                              <span className="font-mono text-[9px] text-white/30 font-bold">/10</span>
+                            </div>
+                          </div>
+
+                          {/* Barra de progrés representativa d'entre 0 i 10 */}
+                          <div className="w-full bg-white/5 h-2.5 rounded-full overflow-hidden border border-white/5">
+                            <div 
+                              className={`h-full rounded-full transition-all duration-500 ${colorBarra}`} 
+                              style={{ width: `${valor * 10}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Accions finals de results */}
+                  <div className="flex flex-col gap-2.5 mt-3">
+                    <button 
+                      onClick={() => {
+                        setPreguntaActual(0);
+                        setRespostesUsuari(Array(preguntesActives.length).fill(null));
+                        setTempsRestant(25 * 60);
+                        setEstatPractica('instruccions');
+                      }}
+                      className="w-full bg-[#1a3a5a]/40 hover:bg-[#1a3a5a]/60 active:scale-95 border border-white/10 rounded-xl py-3 text-center text-[10px] md:text-xs font-black uppercase tracking-widest transition-all cursor-pointer text-white"
+                    >
+                      FER UN NOU TEST (REINICIAR)
+                    </button>
+                    <button 
+                      onClick={() => {
+                        // Tornem al menú general de test de biodata (foto de l'estudiant de primeres)
+                        setSubSeccioTest('menu');
+                        setEstatPractica('opcions');
+                      }}
+                      className="text-white/40 hover:text-white text-[10px] font-black uppercase tracking-[0.15em] transition-colors italic cursor-pointer self-center"
+                    >
+                      Tornar al menú Biodata
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>

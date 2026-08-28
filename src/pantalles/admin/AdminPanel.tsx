@@ -13,12 +13,15 @@ import {
   updateDoc,
   setDoc,
   collectionGroup,
-  increment
+  increment,
+  limit,
+  onSnapshot
 } from "firebase/firestore";
 import AdminLogin from "./AdminLogin";
 import GestioRols from "./GestioRols";
 import CentreNotificacions from "./CentreNotificacions";
 import { DATA_CATALUNYA } from "../../data/municipis";
+import SearchableSelect from "../../components/SearchableSelect";
 import { 
   Plus, 
   Trash2, 
@@ -43,6 +46,7 @@ import {
   Check,
   RefreshCw,
   X,
+  AlertTriangle,
   Dumbbell,
   Calendar,
   CreditCard,
@@ -75,11 +79,21 @@ import {
   Phone,
   Mail,
   Lock as LockIcon,
-  Shield
+  Shield,
+  Apple,
+  Layers,
+  Power
 } from "lucide-react";
 import { TEMARI_DETALL } from "../../constants/temari";
 import { motion, AnimatePresence } from "motion/react";
 import { Routes, Route, Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import GestioBiodata from "../oposimossos/prova_psicologica/gestio_biodata";
+import { MAP_COMPETENCIES } from "../oposimossos/prova_psicologica/preguntes_biodata";
+import GestioAliments from "./GestioAliments";
+import GestioDietes from "./GestioDietes";
+import FeedbackUsuarisDieta from "./FeedbackUsuarisDieta";
+import FeedbackGimnasos from "./FeedbackGimnasos";
+import GimnasosExistents from "./GimnasosExistents";
 
 // Comentari planer per a no-programadors:
 // Definim els tipus d'operacions possibles a la base de dades
@@ -158,6 +172,8 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     proves: false,
+    dieta: false,
+    gimnasos: false,
     pagaments: false,
     usuaris: false,
     analisis: false,
@@ -248,7 +264,9 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     ambit: "A",
     tema: 0,
     capitol: 0,
-    explicacio: "",
+    // Comentari planer per a no-programadors: Establim una plantilla per defecte per a l'explicació didàctica
+    // perquè l'usuari pugui enganxar textos literals directament al mig de les cometes sense reescriure els símbols.
+    explicacio: `... "   " ...`,
     status: "activa" // status: 'activa' | 'suspesa'
   });
 
@@ -311,6 +329,46 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     correcta: 0,
     explicacio: ""
   });
+
+  // Comentari planer per a no-programadors:
+  // Definim l'estat per comptar quants feedbacks de la dieta estan en estat "pendent" a Firestore.
+  const [dietaFeedbackCount, setDietaFeedbackCount] = useState<number>(0);
+
+  // Comentari planer per a no-programadors:
+  // Aquest "useEffect" escolta en temps real la col·lecció 'notificacions_dietes'
+  // i calcula quants d'ells estan en estat "pendent" per actualitzar el menú automàticament.
+  // Només s'executa si l'administrador s'ha verificat correctament per evitar errors de permisos a la consola.
+  useEffect(() => {
+    if (!isAdminVerified) return;
+    const feedbackRef = collection(db, "notificacions_dietes");
+    const unsubscribe = onSnapshot(feedbackRef, (snapshot) => {
+      const pendents = snapshot.docs.filter(doc => doc.data().estat === "pendent").length;
+      setDietaFeedbackCount(pendents);
+    }, (err) => {
+      console.warn("Error llegint el comptador en temps real de notificacions_dietes:", err);
+    });
+    return () => unsubscribe();
+  }, [isAdminVerified]);
+
+  // Comentari planer per a no-programadors:
+  // Definim l'estat per comptar quants feedbacks de gimnasos enviats pels usuaris estan "pendents" a Firestore.
+  const [gimnasosFeedbackCount, setGimnasosFeedbackCount] = useState<number>(0);
+
+  // Comentari planer per a no-programadors:
+  // Aquest "useEffect" de seguretat s'encarrega d'escoltar en temps real les propostes de gimnasos nous
+  // enviades pels usuaris, per actualitzar el comptador vermell que surt al menú de control.
+  // Només s'executa si l'administrador s'ha verificat correctament per evitar errors de permisos a la consola.
+  useEffect(() => {
+    if (!isAdminVerified) return;
+    const feedbackRef = collection(db, "propostes_gimnasos");
+    const unsubscribe = onSnapshot(feedbackRef, (snapshot) => {
+      const pendents = snapshot.docs.filter(doc => doc.data().estat === "pendent").length;
+      setGimnasosFeedbackCount(pendents);
+    }, (err) => {
+      console.warn("Error llegint el comptador en temps real de propostes_gimnasos:", err);
+    });
+    return () => unsubscribe();
+  }, [isAdminVerified]);
 
   useEffect(() => {
     // Comentari planer per a no-programadors:
@@ -409,6 +467,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
             { id: "treballador_nivell_1", nom: "Treballador Nivell 1", descripcio: "Gestor de continguts teòrics i d'actualitat de nivell bàsic. Edita temes però no pot enviar notificacions ni eliminar exàmens.", actiu: true, permisos: { enviarNotificacions: false } },
             { id: "treballador_nivell_2", nom: "Treballador Nivell 2", descripcio: "Gestor de nivell mitjà. Habilitat per gestionar incidències, assignar consultes amb psicòlegs i crear calendaris físics.", actiu: true, permisos: { enviarNotificacions: false } },
             { id: "treballador_nivell_3", nom: "Treballador Nivell 3", descripcio: "Coordinador operatiu de continguts. Té permís per redactar notificacions push de l'APP d'estudi però no per enviar-les directament de forma immediata.", actiu: true, permisos: { enviarNotificacions: false } },
+            { id: "usuari_alpha", nom: "Usuari Alpha (Tester)", descripcio: "Perfil especial per als testers de la fase Alpha. Accés limitat a la prova psicològica.", actiu: true, permisos: { enviarNotificacions: false } },
             { id: "usuari", nom: "Usuari Opositor", descripcio: "Perfil estàndard dels estudiants de pagament complet. Accés i dret a visualitzar temari i fer entrenaments.", actiu: true, permisos: { enviarNotificacions: false } },
             { id: "usuari_free_trial", nom: "Usuari Prova (Free Trial)", descripcio: "Compte de prova gratuïta de 3 dies per a nous alumnes/usuaris registrats. No tenen accés d'edició ni dret d'enviament de cap mena.", actiu: true, permisos: { enviarNotificacions: false } },
             { id: "usuari_bannejat", nom: "Usuari Bannejat", descripcio: "Accés totalment bloquejat per violació de termes d'ús de comptes compartits o impagament.", actiu: true, permisos: { enviarNotificacions: false } },
@@ -441,8 +500,8 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
         safeFetch(query(collection(db, "subscripcions")), "subscripcions"),
         safeFetch(query(collection(db, "psicotecnics_tipus"), orderBy("titol")), "psicotecnics_tipus"),
         safeFetch(query(collection(db, "psicotecnics_preguntes"), orderBy("createdAt", "desc")), "psicotecnics_preguntes"),
-        safeFetch(query(collection(db, "exercicis_fisics"), orderBy("nom")), "exercicis_fisics"),
-        safeFetch(query(collection(db, "plans_entrenament"), orderBy("setmana")), "plans_entrenament"),
+        safeFetch(query(collection(db, "mossos_prova_fisica_exercicis"), orderBy("nom")), "mossos_prova_fisica_exercicis"),
+        safeFetch(query(collection(db, "mossos_plans_entrenament"), orderBy("createdAt", "desc")), "mossos_plans_entrenament"),
         safeFetch(query(collection(db, "preguntes_biodata_personals")), "preguntes_biodata_personals"),
         safeFetch(query(collection(db, "preguntes_biodata_laborals")), "preguntes_biodata_laborals"),
         safeFetch(query(collection(db, "preguntes_biodata_pgme")), "preguntes_biodata_pgme"),
@@ -935,7 +994,18 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
       if (editingId) {
          setEditingId(null);
       }
-      setNovaPregunta({ pregunta: "", opcions: ["", "", "", ""], correcta: 0, ambit: "A", tema: 0, capitol: 0, explicacio: "", status: "activa" });
+      setNovaPregunta(prev => ({
+         pregunta: "",
+         opcions: ["", "", "", ""],
+         correcta: 0,
+         ambit: prev.ambit,
+         tema: prev.tema,
+         capitol: prev.capitol,
+         // Comentari planer per a no-programadors: En netejar el formulari després de pujar la pregunta,
+         // tornem a col·locar la plantilla amb les cometes i els punts suspensius per defecte.
+         explicacio: `... "   " ...`,
+         status: "activa"
+      }));
       fetchData();
       
       // Comentari planer per a no-programadors: Netegem l'estat d'èxit després d'uns 5 segons per permetre llegir la confirmació
@@ -1159,8 +1229,9 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     e.preventDefault();
     setLoading(true);
     try {
-      await addDoc(collection(db, "exercicis_fisics"), {
+      await addDoc(collection(db, "mossos_prova_fisica_exercicis"), {
         ...nouExercici,
+        status: "activa",
         createdAt: serverTimestamp()
       });
       setSuccess(true);
@@ -1178,7 +1249,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     e.preventDefault();
     setLoading(true);
     try {
-      await addDoc(collection(db, "plans_entrenament"), {
+      await addDoc(collection(db, "mossos_plans_entrenament"), {
         ...nouPlaFisic,
         createdAt: serverTimestamp()
       });
@@ -1578,6 +1649,70 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
               {/* LÍNIA DIVISÒRIA */}
               <div className="h-px bg-white/10 mx-2" />
 
+              {/* SECCIÓ DIETA */}
+              <div className="space-y-1">
+                <CollapsibleSection 
+                  title="Dieta" 
+                  isOpen={openSections.dieta} 
+                  onToggle={() => toggleSection('dieta')}
+                  icon={<Apple size={14} />}
+                >
+                  <SidebarItem 
+                    to="/admin/gestio-aliments" 
+                    active={activeTab === 'gestio-aliments'} 
+                    icon={<Apple size={18} />} 
+                    label="Gestió aliments" 
+                  />
+                  <SidebarItem 
+                    to="/admin/gestio-dietes" 
+                    active={activeTab === 'gestio-dietes'} 
+                    icon={<Layers size={18} />} 
+                    label="Gestió de dietes" 
+                  />
+                  <SidebarItem 
+                    to="/admin/feedback-dieta" 
+                    active={activeTab === 'feedback-dieta'} 
+                    icon={<MessageSquare size={18} />} 
+                    label={`Gestió/Feedback Usuaris (${dietaFeedbackCount})`} 
+                  />
+                </CollapsibleSection>
+              </div>
+
+              {/* LÍNIA DIVISÒRIA */}
+              <div className="h-px bg-white/10 mx-2" />
+
+              {/* SECCIÓ GIMNASOS */}
+              <div className="space-y-1">
+                <CollapsibleSection 
+                  title="Gimnasos" 
+                  isOpen={openSections.gimnasos} 
+                  onToggle={() => toggleSection('gimnasos')}
+                  icon={<Building2 size={14} />}
+                >
+                  <SidebarItem 
+                    to="/admin/gimnasos-alta" 
+                    active={activeTab === 'gimnasos-alta'} 
+                    icon={<Plus size={18} />} 
+                    label="Donar d'alta un gimnàs" 
+                  />
+                  <SidebarItem 
+                    to="/admin/gimnasos-feedback" 
+                    active={activeTab === 'gimnasos-feedback'} 
+                    icon={<MessageSquare size={18} />} 
+                    label={gimnasosFeedbackCount > 0 ? `Gestió/Feedback usuari (${gimnasosFeedbackCount})` : "Gestió/Feedback usuari"} 
+                  />
+                  <SidebarItem 
+                    to="/admin/gimnasos-existents" 
+                    active={activeTab === 'gimnasos-existents'} 
+                    icon={<Building2 size={18} />} 
+                    label="Gimnasos existents" 
+                  />
+                </CollapsibleSection>
+              </div>
+
+              {/* LÍNIA DIVISÒRIA */}
+              <div className="h-px bg-white/10 mx-2" />
+
               {/* SECCIÓ 2: PAGAMENTS */}
               <div className="space-y-1">
                 <CollapsibleSection 
@@ -1810,6 +1945,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                   onSubmit={handleAddExerciciFisic}
                   onLoadMock={handleGenerateExampleExercicis}
                   onDelete={handleDelete}
+                  refreshData={fetchData}
                   loading={loading}
                   success={success}
                   darkMode={darkMode}
@@ -1824,10 +1960,20 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                   onSubmit={handleAddPlaEntrenament}
                   onLoadMock={handleGenerateExamplePlans}
                   onDelete={handleDelete}
+                  refreshData={fetchData}
                   loading={loading}
                   success={success}
                   darkMode={darkMode}
                 />
+              } />
+              <Route path="gestio-aliments" element={
+                <GestioAliments darkMode={darkMode} />
+              } />
+              <Route path="gestio-dietes" element={
+                <GestioDietes darkMode={darkMode} />
+              } />
+              <Route path="feedback-dieta" element={
+                <FeedbackUsuarisDieta darkMode={darkMode} />
               } />
               <Route path="preguntes" element={
                 <PreguntesView 
@@ -1845,7 +1991,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                 setConfirmModal={setConfirmModal}
                 cancelEdit={() => {
                   setEditingId(null);
-                  setNovaPregunta({ pregunta: "", opcions: ["", "", "", ""], correcta: 0, ambit: "A", tema: 0, capitol: 0, explicacio: "", status: "activa" });
+                  setNovaPregunta({ pregunta: "", opcions: ["", "", "", ""], correcta: 0, ambit: "A", tema: 0, capitol: 0, explicacio: `... "   " ...`, status: "activa" });
                 }}
                 loading={loading}
                 error={fetchError}
@@ -1926,7 +2072,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                 darkMode={darkMode}
               />
             } />
-            <Route path="gimnasos" element={
+            <Route path="gimnasos-alta" element={
               <GimnasosView 
                 gimnasos={gimnasos}
                 onDelete={handleDelete}
@@ -1939,7 +2085,17 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                 }}
                 onLoadMock={handleGenerateExampleGimnasos}
                 darkMode={darkMode}
+                isAltaMode={true}
               />
+            } />
+            <Route path="gimnasos-feedback" element={
+              <FeedbackGimnasos darkMode={darkMode} />
+            } />
+            <Route path="gimnasos-existents" element={
+              <GimnasosExistents darkMode={darkMode} setConfirmModal={setConfirmModal} />
+            } />
+            <Route path="biodata/oficial" element={
+              <GestioBiodata onTornar={() => navigate("/admin")} />
             } />
             <Route path="biodata/personals" element={
               <PreguntesBiodataView 
@@ -2453,7 +2609,7 @@ function ProvaTeoricaView({ darkMode }: { darkMode: boolean }) {
  */
 function ProvaFisicaView({ darkMode }: { darkMode: boolean }) {
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-10">
+    <div className="max-w-3xl mx-auto flex flex-col gap-10">
       <header className="relative flex items-center justify-center mb-16">
         <div className="absolute left-0 top-1/2 -translate-y-1/2">
           <BackButton darkMode={darkMode} />
@@ -2469,25 +2625,12 @@ function ProvaFisicaView({ darkMode }: { darkMode: boolean }) {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 relative border-y border-slate-200 dark:border-slate-800 py-10">
-        {/* COLUMNA 1: GESTIÓ PROVES */}
-        <div className="flex flex-col px-12 gap-8">
-          <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Gestió de les proves físiques</h3>
+      <div className="flex flex-col gap-0 border-y border-slate-200 dark:border-slate-800 py-12">
+        <div className="flex flex-col px-6 md:px-12 gap-8 text-center max-w-lg mx-auto w-full">
+          <h3 className={`text-2xl font-black uppercase tracking-tighter ${darkMode ? 'text-white' : 'text-slate-800'}`}>Gestió de les proves físiques</h3>
           <div className="flex flex-col gap-4">
             <MenuActionLink to="/admin/exercicis-fisics" label="Gestió d'exercici" icon={<Activity size={18} />} darkMode={darkMode} color="emerald" />
             <MenuActionLink to="/admin/plans-entrenament" label="Gestió de pla d'entrenament" icon={<Calendar size={18} />} darkMode={darkMode} color="emerald" />
-          </div>
-        </div>
-
-        {/* LÍNIA DIVISÒRIA CENTRAL */}
-        <div className="hidden md:block w-px bg-slate-200 dark:bg-slate-800 absolute left-1/2 top-0 bottom-0" />
-
-        {/* COLUMNA 2: GIMNASOS */}
-        <div className="flex flex-col px-12 gap-8">
-          <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Gestió de gimnasos</h3>
-          <div className="flex flex-col gap-4">
-            <MenuActionLink to="/admin/gimnasos?mode=alta" label="Donar d'alta gimnàs nou" icon={<Plus size={18} />} darkMode={darkMode} color="emerald" />
-            <MenuActionLink to="/admin/gimnasos" label="Gestió de gimnàs existent" icon={<Building2 size={18} />} darkMode={darkMode} color="emerald" />
           </div>
         </div>
       </div>
@@ -2668,6 +2811,7 @@ function ProvaPsicotecnicaView({ darkMode }: { darkMode: boolean }) {
         <div className="flex flex-col px-8 gap-8">
           <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Biodata</h3>
           <div className="flex flex-col gap-4">
+            <MenuActionLink to="/admin/biodata/oficial" label="Gestió Biodata (Banc de Preguntes BBDD)" icon={<Brain size={18} />} darkMode={darkMode} color="purple" />
             <MenuActionLink to="/admin/biodata/personals" label="Gestió preguntes personals" icon={<ClipboardList size={18} />} darkMode={darkMode} color="purple" />
             <MenuActionLink to="/admin/biodata/laborals" label="Gestió preguntes laborals" icon={<Briefcase size={18} />} darkMode={darkMode} color="purple" />
             <MenuActionLink to="/admin/biodata/pgme" label="Gestió preguntes PGME" icon={<FileText size={18} />} darkMode={darkMode} color="purple" />
@@ -3051,22 +3195,40 @@ function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onD
   const [filterTema, setFilterTema] = useState("");
   const [filterCapitol, setFilterCapitol] = useState("");
 
+  // Comentari planer per a no-programadors:
+  // Aquesta funció permet enganxar text directament des del portapapers de l'ordinador (Clipboard)
+  // en prémer un botó d'ajuda visual que hem col·locat al costat de cada camp. Això soluciona del tot el problema
+  // de quan l'entorn de seguretat o l'iFrame de l'aplicació interfereixen o bloquegen la drecera del teclat Ctrl+V.
+  const enganxarText = async (camp: string, opcioIdx?: number) => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        if (camp === 'pregunta') {
+          setNovaPregunta((prev: any) => ({ ...prev, pregunta: text }));
+        } else if (camp === 'explicacio') {
+          setNovaPregunta((prev: any) => ({ ...prev, explicacio: text }));
+        } else if (camp === 'opcio' && opcioIdx !== undefined) {
+          const newOps = [...novaPregunta.opcions];
+          newOps[opcioIdx] = text;
+          setNovaPregunta((prev: any) => ({ ...prev, opcions: newOps }));
+        }
+      }
+    } catch (err) {
+      console.error("No s'ha pogut enganxar directament de forma automàtica: ", err);
+      alert("No s'ha pogut llegir el portapapers automàticament. Recorda que també pots fer servir la drecera Ctrl+V de forma normal fent clic a l'interior del camp de text.");
+    }
+  };
+
   // Obrir el formulari automàticament si estem editant
   useEffect(() => {
     if (editingId) setIsFormOpen(true);
   }, [editingId]);
 
-  // Comentari planer per a no-programadors:
-  // Si la pregunta s'ha guardat correctament a la BBDD, esperem 3 segons perquè l'usuari pugui llegir
-  // el missatge d'èxit de color verd conscientment i després tanquem el panell desplegable automàticament.
-  useEffect(() => {
-    if (uploadStatus === 'completed' && !editingId) {
-      const t = setTimeout(() => {
-        setIsFormOpen(false);
-      }, 3000);
-      return () => clearTimeout(t);
-    }
-  }, [uploadStatus, editingId]);
+  // Explicació per a no-programadors:
+  // Eliminem el tancament automàtic del formulari d'alta de preguntes per millorar la qualitat de vida (QoL)
+  // i usabilitat. Ara l'acordió d'afegir preguntes es quedarà obert permanentment després de registrar una nova pregunta,
+  // permetent a l'operador registrar una pregunta rere una altra sense haver de reobrir manualment la secció.
+  // Es manté la línia d'èxit de color verd perquè puguis comprovar que tot ha anat correctament.
 
   // Obtenir dades del temari per al formulari de creació
   const formTemesAmbit = TEMARI_DETALL[novaPregunta.ambit as 'A' | 'B' | 'C'] || [];
@@ -3255,13 +3417,18 @@ function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onD
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Explicació per a no-programadors:
+          Canviem el disseny del panell a un format d'ample complet vertical.
+          - El formulari d'alta o modificació de preguntes es col·loca a dalt (com un acordió horitzontal d'ample complet), dividit en columnes per a una redacció més fàcil de fer servir.
+          - Els filtres i la taula de la base de dades es desplacen a la part inferior, aprofitant també el 100% de l'ample de la pantalla per millorar enormement la lectura dels enunciats.
+      */}
+      <div className="flex flex-col gap-8 w-full">
          
-         {/* COLUMNA ESQUERRA: FORMULARI AFÈGUIR (Tipus Acordió) */}
-         <div className="lg:col-span-4 space-y-6">
+         {/* FORMULARI D'ALTA / MODIFICACIÓ DE PREGUNTES (Ocupa tot l'ample de dalt) */}
+         <div className="w-full">
             <div className={`rounded-[2.5rem] border shadow-2xl overflow-hidden transition-all duration-500 ${
               darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
-            } ${isFormOpen ? 'max-h-[1500px]' : 'max-h-24'}`}>
+            } ${isFormOpen ? 'max-h-[2500px]' : 'max-h-24'}`}>
                
                {/* CAPÇALERA DEL BOTÓ DESPLEGABLE */}
                <button 
@@ -3285,86 +3452,151 @@ function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onD
                         <h3 className={`text-lg font-black uppercase italic tracking-tighter ${!isFormOpen && darkMode ? 'text-white' : ''}`}>
                           {editingId ? 'Modificar Pregunta' : 'Afegir Pregunta'}
                         </h3>
-                        {isFormOpen && <p className="text-[9px] font-bold uppercase tracking-widest opacity-60">Emplena tots els camps</p>}
+                        {isFormOpen && <p className="text-[9px] font-bold uppercase tracking-widest opacity-60">Emplena tots els camps en format horitzontal</p>}
                      </div>
                   </div>
                   <ChevronRight size={20} className={`transition-transform duration-300 ${isFormOpen ? 'rotate-90' : ''}`} />
                </button>
 
-               {/* COS DEL FORMULARI */}
+               {/* COS DEL FORMULARI - ARA AMB UNA DISPOSICIÓ EN DUES MARAVILLOSES COLUMNES HORITZONTALS */}
                <div className={`p-8 space-y-6 ${isFormOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                   <form onSubmit={onSubmit} className="space-y-6">
-                    <div className="space-y-1.5">
-                       <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-1">Enunciat de la pregunta</label>
-                       <textarea 
-                         required
-                         value={novaPregunta.pregunta}
-                         onChange={e => setNovaPregunta({...novaPregunta, pregunta: e.target.value})}
-                         className={`w-full p-5 rounded-2xl border-2 outline-none text-sm font-bold min-h-[120px] transition-all resize-none shadow-inner ${
-                           darkMode ? 'bg-slate-900 border-slate-700 focus:border-blue-500 text-white' : 'bg-slate-50 border-slate-100 focus:border-blue-500 text-slate-900'
-                         }`}
-                         placeholder="Ex: Segons la llei 10/1994, quines són les funcions de la policia?"
-                       />
-                    </div>
                     
-                    <div className="space-y-3">
-                       <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-1">Opcions de resposta</label>
-                       <div className="grid gap-2.5">
-                          {novaPregunta.opcions.map((op: string, idx: number) => (
-                            <div key={idx} className="relative group">
-                              <div className={`absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${
-                                novaPregunta.correcta === idx ? 'bg-emerald-500 text-white' : (darkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-200 text-slate-500')
-                              }`}>
-                                {String.fromCharCode(65+idx)}
-                              </div>
-                              <input 
-                                required
-                                value={op}
-                                onChange={e => {
-                                  const newOps = [...novaPregunta.opcions];
-                                  newOps[idx] = e.target.value;
-                                  setNovaPregunta({...novaPregunta, opcions: newOps});
-                                }}
-                                className={`w-full pl-12 pr-4 py-4 rounded-xl border text-xs font-bold outline-none transition-all ${
-                                  darkMode ? 'bg-slate-900 border-slate-700 focus:bg-blue-900/10 text-white' : 'bg-white border-slate-100 focus:bg-blue-50 text-slate-900'
-                                }`}
-                                placeholder={`Escriu l'opció ${String.fromCharCode(65+idx)}...`}
-                              />
-                            </div>
-                          ))}
-                       </div>
-                    </div>
+                    {/* Explicació per a no-programadors:
+                        Dividim els camps principals en una graella de 2 grans columnes en pantalles d'escriptori.
+                        - Columna Esquerra: L'enunciat i el feedback/explicació.
+                        - Columna Dreta: Les 4 opcions de resposta organitzades de forma compacta (graella 2x2) i el botó per definir la correcta.
+                    */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      
+                      {/* SUB-COLUMNA ESQUERRA: Redacció de continguts */}
+                      <div className="space-y-6">
+                        <div className="space-y-1.5">
+                           <div className="flex justify-between items-center px-1">
+                              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Enunciat de la pregunta</label>
+                              <button
+                                type="button"
+                                onClick={() => enganxarText('pregunta')}
+                                className="text-[9px] font-black uppercase tracking-wider text-blue-500 hover:text-blue-400 transition-colors flex items-center gap-1 bg-blue-500/10 px-2 py-0.5 rounded-lg cursor-pointer"
+                                title="Enganxa el text copiat del portapapers directament"
+                              >
+                                <span>📋 Enganxar</span>
+                              </button>
+                           </div>
+                           <textarea 
+                             required
+                             value={novaPregunta.pregunta}
+                             onChange={e => setNovaPregunta({...novaPregunta, pregunta: e.target.value})}
+                             onPaste={e => e.stopPropagation()}
+                             onCopy={e => e.stopPropagation()}
+                             className={`w-full p-5 rounded-2xl border-2 outline-none text-sm font-bold min-h-[140px] transition-all resize-none shadow-inner ${
+                               darkMode ? 'bg-slate-900 border-slate-700 focus:border-blue-500 text-white' : 'bg-slate-50 border-slate-100 focus:border-blue-500 text-slate-900'
+                             }`}
+                             placeholder="Ex: Segons la llei 10/1994, quines són les funcions de la policia?"
+                           />
+                        </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                       <div className="space-y-1.5 col-span-2">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-1">Resposta Correcta</label>
-                          <div className="grid grid-cols-4 gap-2">
-                             {[0,1,2,3].map(idx => (
-                               <button
-                                 key={idx}
-                                 type="button"
-                                 onClick={() => setNovaPregunta({...novaPregunta, correcta: idx})}
-                                 className={`py-3 rounded-xl border-2 font-black transition-all ${
-                                   novaPregunta.correcta === idx 
-                                    ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
-                                    : (darkMode ? 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-600' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200')
-                                 }`}
-                               >
-                                 {String.fromCharCode(65+idx)}
-                               </button>
+                        <div className="space-y-1.5">
+                           <div className="flex justify-between items-center px-1">
+                              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Feedback de resolució / Explicació didàctica</label>
+                              <button
+                                type="button"
+                                onClick={() => enganxarText('explicacio')}
+                                className="text-[9px] font-black uppercase tracking-wider text-blue-500 hover:text-blue-400 transition-colors flex items-center gap-1 bg-blue-500/10 px-2 py-0.5 rounded-lg cursor-pointer"
+                                title="Enganxa el text copiat del portapapers"
+                              >
+                                <span>📋 Enganxar</span>
+                              </button>
+                           </div>
+                           <textarea 
+                             value={novaPregunta.explicacio}
+                             onChange={e => setNovaPregunta({...novaPregunta, explicacio: e.target.value})}
+                             onPaste={e => e.stopPropagation()}
+                             onCopy={e => e.stopPropagation()}
+                             className={`w-full p-5 rounded-2xl border-2 outline-none text-xs min-h-[130px] transition-all resize-none ${
+                               darkMode ? 'bg-slate-900 border-slate-800 focus:border-blue-500 text-slate-400' : 'bg-white border-slate-50 focus:border-blue-500 text-slate-500 font-medium'
+                             }`}
+                             placeholder="Explica detalladament per què aquesta resposta és la correcta de cara a l'estudi de l'opositor..."
+                           />
+                        </div>
+                     </div>
+
+                     {/* SUB-COLUMNA DRETA: Opcions i resolució correcta */}
+                     <div className="space-y-6 flex flex-col justify-between">
+                       <div className="space-y-3">
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-1">Opcions de resposta</label>
+                          {/* Explicació per a no-programadors:
+                              Distribuïm les respostes A, B, C i D en format de graella 2x2. Això fa que ocupin la meitat d'espai
+                              vertical que abans i es llegeixin d'esquerra a dreta en lloc de fer un bloc vertical llarguíssim.
+                          */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                             {novaPregunta.opcions.map((op: string, idx: number) => (
+                               <div key={idx} className="relative group">
+                                 <div className={`absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black z-10 ${
+                                   novaPregunta.correcta === idx ? 'bg-emerald-500 text-white shadow-md' : (darkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-200 text-slate-500')
+                                 }`}>
+                                   {String.fromCharCode(65+idx)}
+                                 </div>
+                                 <input 
+                                   required
+                                   value={op}
+                                   onChange={e => {
+                                     const newOps = [...novaPregunta.opcions];
+                                     newOps[idx] = e.target.value;
+                                     setNovaPregunta({...novaPregunta, opcions: newOps});
+                                   }}
+                                   onPaste={e => e.stopPropagation()}
+                                   onCopy={e => e.stopPropagation()}
+                                   className={`w-full pl-12 pr-12 py-4 rounded-xl border text-xs font-bold outline-none transition-all ${
+                                     darkMode ? 'bg-slate-900 border-slate-700 focus:bg-blue-900/10 text-white' : 'bg-white border-slate-100 focus:bg-blue-50 text-slate-900'
+                                   }`}
+                                   placeholder={`Escriu l'opció ${String.fromCharCode(65+idx)}...`}
+                                 />
+                                 <button
+                                   type="button"
+                                   onClick={() => enganxarText('opcio', idx)}
+                                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-500 transition-colors text-xs cursor-pointer"
+                                   title="Enganxa el text del portapapers en aquesta resposta"
+                                 >
+                                   📋
+                                 </button>
+                               </div>
                              ))}
                           </div>
                        </div>
+
+                        <div className="space-y-2 pt-2">
+                           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-1">Selecciona la Resposta Correcta</label>
+                           <div className="grid grid-cols-4 gap-2">
+                              {[0,1,2,3].map(idx => (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => setNovaPregunta({...novaPregunta, correcta: idx})}
+                                  className={`py-4 rounded-xl border-2 font-black transition-all text-sm ${
+                                    novaPregunta.correcta === idx 
+                                     ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20 scale-[1.02]' 
+                                     : (darkMode ? 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-600' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200')
+                                  }`}
+                                >
+                                  {String.fromCharCode(65+idx)}
+                                </button>
+                              ))}
+                           </div>
+                        </div>
+                      </div>
+
                     </div>
 
-                    <div className="space-y-4 pt-6 mt-6 border-t border-slate-100 dark:border-slate-700">
+                    {/* SECCIÓ HORITZONTAL D'UBICACIÓ DEL TEMARI EN LA BBDD (Format de 3 columnes idèntic al dels filtres de cerca) */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 mt-6 border-t border-slate-100 dark:border-slate-700">
                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-1">1. Àmbit / Bloc</label>
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-1">1. Àmbit / Bloc Oficial</label>
                           <select 
                             value={novaPregunta.ambit}
                             onChange={e => setNovaPregunta({...novaPregunta, ambit: e.target.value, tema: 0, capitol: 0})}
                             className={`w-full p-4 rounded-xl text-xs font-black outline-none transition-colors appearance-none cursor-pointer ${
-                              darkMode ? 'bg-slate-900 text-white border border-slate-800' : 'bg-slate-50 text-slate-900 border border-slate-100'
+                              darkMode ? 'bg-slate-900 text-white border border-slate-800 focus:border-blue-500' : 'bg-slate-50 text-slate-900 border border-slate-100 focus:border-blue-500'
                             }`}
                           >
                             <option value="A">BLOC A — Coneixements de l'entorn</option>
@@ -3374,12 +3606,12 @@ function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onD
                        </div>
 
                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-1">2. Tema del bloc</label>
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-1">2. Tema específic del bloc</label>
                           <select 
                             value={novaPregunta.tema}
                             onChange={e => setNovaPregunta({...novaPregunta, tema: parseInt(e.target.value), capitol: 0})}
                             className={`w-full p-4 rounded-xl text-xs font-black outline-none transition-colors appearance-none cursor-pointer ${
-                              darkMode ? 'bg-slate-900 text-white border border-slate-800' : 'bg-slate-50 text-slate-900 border border-slate-100'
+                              darkMode ? 'bg-slate-900 text-white border border-slate-800 focus:border-blue-500' : 'bg-slate-50 text-slate-900 border border-slate-100 focus:border-blue-500'
                             }`}
                           >
                             {formTemesAmbit.map((t: any, idx: number) => (
@@ -3389,12 +3621,12 @@ function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onD
                        </div>
 
                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-1">3. Capítol d'especialització</label>
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-1">3. Capítol d'especialització de temari</label>
                           <select 
                             value={novaPregunta.capitol}
                             onChange={e => setNovaPregunta({...novaPregunta, capitol: parseInt(e.target.value)})}
                             className={`w-full p-4 rounded-xl text-xs font-black outline-none transition-colors appearance-none cursor-pointer ${
-                              darkMode ? 'bg-slate-900 text-white border border-slate-800' : 'bg-slate-50 text-slate-900 border border-slate-100'
+                              darkMode ? 'bg-slate-900 text-white border border-slate-800 focus:border-blue-500' : 'bg-slate-50 text-slate-900 border border-slate-100 focus:border-blue-500'
                             }`}
                           >
                             {formCapitolsTema.map((cap: string, idx: number) => (
@@ -3402,18 +3634,6 @@ function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onD
                             ))}
                           </select>
                        </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                       <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-1">Feedback de resolució</label>
-                       <textarea 
-                         value={novaPregunta.explicacio}
-                         onChange={e => setNovaPregunta({...novaPregunta, explicacio: e.target.value})}
-                         className={`w-full p-5 rounded-2xl border-2 outline-none text-xs min-h-[100px] transition-all resize-none ${
-                           darkMode ? 'bg-slate-900 border-slate-800 focus:border-blue-500 text-slate-400' : 'bg-white border-slate-50 focus:border-blue-500 text-slate-500 font-medium'
-                         }`}
-                         placeholder="Explica per què aquesta resposta és la correcta..."
-                       />
                     </div>
 
                      {/* Missatges de feedback de l'estat d'enviament a la BBDD acompanyats didàcticament */}
@@ -3450,7 +3670,8 @@ function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onD
                       )}
                       
 
-                    <div className="flex gap-3">
+                    {/* BOTONS D'ACCIÓ EN FORMAT HORITZONTAL GRAN */}
+                    <div className="flex gap-4 pt-4">
                        {editingId && (
                          <button 
                            type="button" 
@@ -3459,27 +3680,26 @@ function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onD
                              darkMode ? 'bg-slate-700 text-slate-400 hover:bg-slate-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                            }`}
                          >
-                           Cancel·lar
+                           Cancel·lar Edició
                          </button>
                        )}
                        <button 
                          disabled={loading}
                          type="submit"
                          className={!(userPermisos?.gestioPreguntesTeoria || userRol === "admin_master") ? "flex-[2] py-4 text-slate-300 dark:text-slate-500 rounded-2xl font-black uppercase italic tracking-widest text-xs transition-all flex items-center justify-center gap-3 bg-slate-200 dark:bg-slate-800 cursor-not-allowed opacity-40" : `flex-[2] py-4 text-white rounded-2xl font-black uppercase italic tracking-widest text-xs hover:translate-y-[-2px] hover:shadow-2xl transition-all flex items-center justify-center gap-3 active:scale-95 ${
-                           editingId ? 'bg-amber-500 shadow-amber-500/30' : 'bg-blue-600 shadow-blue-600/30'
-                         }`}
-                       >
-                         {loading ? "Guardant..." : <>{editingId ? <Save size={18} /> : <FilePlus2 size={18} />} {!(userPermisos?.gestioPreguntesTeoria || userRol === "admin_master") ? 'SENSE PERMÍS' : (editingId ? 'Guardar Canvis' : 'Afegir a BBDD')}</>}
-                       </button>
-                    </div>
-                  </form>
-               </div>
-            </div>
-         </div>
+                            editingId ? 'bg-amber-500 shadow-amber-500/30' : 'bg-blue-600 shadow-blue-600/30'
+                          }`}
+                        >
+                          {loading ? "Guardant dades..." : <>{editingId ? <Save size={18} /> : <FilePlus2 size={18} />} {!(userPermisos?.gestioPreguntesTeoria || userRol === "admin_master") ? 'SENSE PERMÍS' : (editingId ? 'Desar canvis a la BBDD' : 'Registrar Pregunta a Firestore')}</>}
+                        </button>
+                     </div>
+                   </form>
+                </div>
+             </div>
+          </div>
 
-         {/* COLUMNA DRETA: FILTRES I LLISTA */}
-         <div className="lg:col-span-8 flex flex-col gap-6">
-            
+          {/* BANC DE PREGUNTES DE LA BBDD I FILTRES (Ara ocupant la part inferior d'ample complet per a una lectura i usabilitat immillorables) */}
+          <div className="w-full flex flex-col gap-6">
             {/* BLOC DE FILTRES SEQUENCIALS */}
             <div className={`p-8 rounded-[2.5rem] border shadow-sm flex flex-col gap-6 transition-colors ${
               darkMode ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-100'
@@ -4811,10 +5031,101 @@ function PsicotecnicsPreguntesView({ preguntes, tipus, novaPregunta, setNovaPreg
  * VIEW: Gestió d'Exercicis Físics
  * Permet donar d'alta els tipus d'exercicis (LEGO) que s'usaran en els plans.
  */
-function ExercicisFisicsView({ exercicis, nouExercici, setNouExercici, onSubmit, onLoadMock, onDelete, loading, success, darkMode }: any) {
+function ExercicisFisicsView({ exercicis, nouExercici, setNouExercici, onSubmit, onLoadMock, onDelete, refreshData, loading, success, darkMode }: any) {
+  // Explicació per a no-programadors: Filtre actiu de categoria seleccionada pel botó superior
   const [extraFiltre, setExtraFiltre] = useState("");
+  // Explicació per a no-programadors: Controla si el formulari lateral de creació/edició es troba obert o tancat
   const [isFormOpen, setIsFormOpen] = useState(false);
-  
+  // Explicació per a no-programadors: Conté l'ID de l'exercici que estem editant (o null si és creació de nou)
+  const [editantId, setEditantId] = useState<string | null>(null);
+
+  // Explicació per a no-programadors: Formulari de dades local per controlar l'edició i la creació d'exercicis
+  const [formulariEx, setFormulariEx] = useState({
+    nom: "",
+    categoria: "Circuit Agilitat",
+    temps: "30 segons",
+    imatge: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80",
+    consells: ["", "", ""]
+  });
+
+  // Explicació per a no-programadors: Obre el formulari buit per registrar un nou exercici físic
+  const obrirCrear = () => {
+    setEditantId(null);
+    setFormulariEx({
+      nom: "",
+      categoria: "Circuit Agilitat",
+      temps: "30 segons",
+      imatge: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80",
+      consells: ["", "", ""]
+    });
+    setIsFormOpen(true);
+  };
+
+  // Explicació per a no-programadors: Obre el formulari carregant les dades d'un exercici existent per poder modificar-lo
+  const obrirEditar = (ex: any) => {
+    setEditantId(ex.id);
+    setFormulariEx({
+      nom: ex.nom || "",
+      categoria: ex.categoria || "Circuit Agilitat",
+      temps: ex.temps || "",
+      imatge: ex.imatge || "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80",
+      consells: ex.consells ? [...ex.consells] : ["", "", ""]
+    });
+    setIsFormOpen(true);
+  };
+
+  // Explicació per a no-programadors: Envia el formulari a Firestore per desar o actualitzar l'exercici
+  const handleDesarExercici = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editantId) {
+      // Estem modificant un exercici existent a Mossos Prova Fisica Exercicis
+      try {
+        await updateDoc(doc(db, "mossos_prova_fisica_exercicis", editantId), {
+          nom: formulariEx.nom,
+          categoria: formulariEx.categoria,
+          temps: formulariEx.temps,
+          imatge: formulariEx.imatge,
+          consells: formulariEx.consells
+        });
+        setIsFormOpen(false);
+        setEditantId(null);
+        if (refreshData) refreshData();
+      } catch (err) {
+        console.error("Error modificant l'exercici:", err);
+      }
+    } else {
+      // Estem creant un exercici nou a la BBDD
+      try {
+        await addDoc(collection(db, "mossos_prova_fisica_exercicis"), {
+          nom: formulariEx.nom,
+          categoria: formulariEx.categoria,
+          temps: formulariEx.temps,
+          imatge: formulariEx.imatge,
+          consells: formulariEx.consells,
+          status: "activa",
+          createdAt: serverTimestamp()
+        });
+        setIsFormOpen(false);
+        if (refreshData) refreshData();
+      } catch (err) {
+        console.error("Error afegint exercici:", err);
+      }
+    }
+  };
+
+  // Explicació per a no-programadors: Canvia l'estat d'un exercici entre 'activa' o 'suspesa' (toggle de suspensió)
+  const handleToggleSuspendre = async (ex: any) => {
+    const nouEstat = ex.status === "suspesa" ? "activa" : "suspesa";
+    try {
+      await updateDoc(doc(db, "mossos_prova_fisica_exercicis", ex.id), {
+        status: nouEstat
+      });
+      if (refreshData) refreshData();
+    } catch (err) {
+      console.error("Error canviant estat de suspensió de l'exercici:", err);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-10">
       <header className="flex items-center justify-between w-full">
@@ -4835,25 +5146,18 @@ function ExercicisFisicsView({ exercicis, nouExercici, setNouExercici, onSubmit,
               animate={{ opacity: 1, x: 0 }}
               className="px-4 py-2 bg-emerald-500/10 text-emerald-500 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-500/20"
             >
-              ✓ Actualitzat
+              ✓ Desat correctament
             </motion.div>
           )}
-          <button 
-            onClick={onLoadMock}
-            disabled={loading}
-            className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${darkMode ? 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-100'}`}
-          >
-            <Wand2 size={16} /> Test ( No BBDD )
-          </button>
         </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        {/* FORMULARI O BOTÓ D'OBRIR */}
+        {/* FORMULARI DE CREACIÓ / EDICIÓ */}
         <div className="lg:col-span-5 flex flex-col gap-4">
            {!isFormOpen ? (
              <button 
-               onClick={() => setIsFormOpen(true)}
+               onClick={obrirCrear}
                className={`w-full p-8 rounded-[2.5rem] border-2 border-dashed flex items-center justify-between group transition-all ${darkMode ? 'bg-slate-800/20 border-slate-700 hover:border-emerald-500 hover:bg-slate-800/40' : 'bg-white border-slate-200 hover:border-emerald-500 hover:shadow-xl hover:shadow-emerald-500/5'}`}
              >
                 <div className="flex items-center gap-6">
@@ -4862,7 +5166,7 @@ function ExercicisFisicsView({ exercicis, nouExercici, setNouExercici, onSubmit,
                    </div>
                    <div className="text-left">
                       <h3 className={`text-xl font-black uppercase italic ${darkMode ? 'text-white' : 'text-slate-800'}`}>Afegir Exercici</h3>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Nou component local o BBDD</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Crea un nou exercici a la BBDD</p>
                    </div>
                 </div>
                 <ChevronRight size={24} className={`text-slate-300 group-hover:text-emerald-500 transition-all group-hover:translate-x-1`} />
@@ -4874,31 +5178,33 @@ function ExercicisFisicsView({ exercicis, nouExercici, setNouExercici, onSubmit,
                className={`p-8 rounded-[2.5rem] border-2 shadow-2xl relative ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-50'}`}
              >
                 <button 
-                  onClick={() => setIsFormOpen(false)}
+                  onClick={() => { setIsFormOpen(false); setEditantId(null); }}
                   className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 transition-colors"
                 >
                    <X size={20} />
                 </button>
 
-                <h3 className={`text-xl font-black uppercase italic mb-6 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Nou Exercici</h3>
+                <h3 className={`text-xl font-black uppercase italic mb-6 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                  {editantId ? "Modificar Exercici" : "Nou Exercici"}
+                </h3>
                 
-                <form onSubmit={(e) => { onSubmit(e); setIsFormOpen(false); }} className="flex flex-col gap-5">
+                <form onSubmit={handleDesarExercici} className="flex flex-col gap-5">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Nom de l'exercici</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Nom d'exercici</label>
                     <input 
                       required
-                      value={nouExercici.nom}
-                      onChange={e => setNouExercici({...nouExercici, nom: e.target.value})}
+                      value={formulariEx.nom}
+                      onChange={e => setFormulariEx({...formulariEx, nom: e.target.value})}
                       placeholder="Ex: Sèries de velocitat 20m"
                       className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'}`}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Categoria de Prova</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Categoria de la prova</label>
                     <select 
-                      value={nouExercici.categoria}
-                      onChange={e => setNouExercici({...nouExercici, categoria: e.target.value})}
+                      value={formulariEx.categoria}
+                      onChange={e => setFormulariEx({...formulariEx, categoria: e.target.value})}
                       className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm appearance-none cursor-pointer ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'}`}
                     >
                       <option value="Course Navette">Course Navette</option>
@@ -4908,54 +5214,53 @@ function ExercicisFisicsView({ exercicis, nouExercici, setNouExercici, onSubmit,
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Temps / Repeticions</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Repeticions / Temps</label>
                     <input 
                       required
-                      value={nouExercici.temps}
-                      onChange={e => setNouExercici({...nouExercici, temps: e.target.value})}
-                      placeholder="Ex: 30 segons"
+                      value={formulariEx.temps}
+                      onChange={e => setFormulariEx({...formulariEx, temps: e.target.value})}
+                      placeholder="Ex: 3 sèries de 12 reps"
                       className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'}`}
                     />
                   </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">URL Imatge / Vídeo (Placeholder)</label>
-                  <input 
-                    required
-                    value={nouExercici.imatge}
-                    onChange={e => setNouExercici({...nouExercici, imatge: e.target.value})}
-                    className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'}`}
-                  />
-                </div>
-
-                {/* CONSELLS TÈCNICS */}
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Consells Tècnics (3 punts)</label>
-                  {nouExercici.consells.map((c: string, idx: number) => (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">URL imatge o vídeo</label>
                     <input 
-                      key={idx}
                       required
-                      value={c}
-                      onChange={e => {
-                        const newConsells = [...nouExercici.consells];
-                        newConsells[idx] = e.target.value;
-                        setNouExercici({...nouExercici, consells: newConsells});
-                      }}
-                      placeholder={`Consell ${idx + 1}...`}
-                      className={`w-full p-3 rounded-xl border-none outline-none text-xs font-medium ${darkMode ? 'bg-slate-900 text-slate-400' : 'bg-slate-50 text-slate-500'}`}
+                      value={formulariEx.imatge}
+                      onChange={e => setFormulariEx({...formulariEx, imatge: e.target.value})}
+                      placeholder="Ex: https://..."
+                      className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'}`}
                     />
-                  ))}
-                </div>
+                  </div>
 
-                <button 
-                  disabled={loading}
-                  type="submit"
-                  className={`w-full py-4 mt-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase italic tracking-widest transition-all active:scale-95 shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-3`}
-                >
-                  {loading ? "Processant..." : <><Activity size={18} /> Registrar Exercici</>}
-                </button>
-                {success && <p className="text-emerald-500 text-[10px] font-black uppercase text-center mt-2">✓ Exercici creat correctament</p>}
-              </form>
+                  {/* CONSELLS TÈCNICS */}
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Els 3 Consells (Opcionals)</label>
+                    {formulariEx.consells.map((c: string, idx: number) => (
+                      <input 
+                        key={idx}
+                        value={c}
+                        onChange={e => {
+                          const newConsells = [...formulariEx.consells];
+                          newConsells[idx] = e.target.value;
+                          setFormulariEx({...formulariEx, consells: newConsells});
+                        }}
+                        placeholder={`Consell ${idx + 1}...`}
+                        className={`w-full p-3 rounded-xl border-none outline-none text-xs font-medium ${darkMode ? 'bg-slate-900 text-slate-400' : 'bg-slate-50 text-slate-500'}`}
+                      />
+                    ))}
+                  </div>
+
+                  <button 
+                    disabled={loading}
+                    type="submit"
+                    className={`w-full py-4 mt-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase italic tracking-widest transition-all active:scale-95 shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-3 cursor-pointer`}
+                  >
+                    {loading ? "Processant..." : <><Activity size={18} /> {editantId ? "Actualitzar Exercici" : "Registrar Exercici"}</>}
+                  </button>
+                </form>
              </motion.div>
            )}
         </div>
@@ -4966,12 +5271,14 @@ function ExercicisFisicsView({ exercicis, nouExercici, setNouExercici, onSubmit,
               
               {/* CAPÇALERA BANC COMPACTA */}
               <div className="flex flex-col gap-4 border-b border-slate-500/10 pb-6">
-                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                       <Filter size={20} />
-                    </div>
-                    <div>
-                       <h3 className={`text-lg font-black uppercase italic ${darkMode ? 'text-white' : 'text-slate-800'}`}>Banc d'Exercicis</h3>
+                 <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                       <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                          <Filter size={20} />
+                       </div>
+                       <div>
+                          <h3 className={`text-lg font-black uppercase italic ${darkMode ? 'text-white' : 'text-slate-800'}`}>Banc d'Exercicis</h3>
+                       </div>
                     </div>
                  </div>
 
@@ -4994,7 +5301,7 @@ function ExercicisFisicsView({ exercicis, nouExercici, setNouExercici, onSubmit,
               </div>
 
               {/* LLISTAT COMPACTE */}
-              <div className="flex flex-col gap-2 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="flex flex-col gap-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
                  {exercicis
                    .filter((ex: any) => extraFiltre === "" ? true : ex.categoria === extraFiltre)
                    .length === 0 ? (
@@ -5002,39 +5309,78 @@ function ExercicisFisicsView({ exercicis, nouExercici, setNouExercici, onSubmit,
                        <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-300 dark:text-slate-800 mb-4">
                           <Dumbbell size={32} />
                        </div>
-                       <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Cap exercici trobat per aquest filtre</p>
-                       <button 
-                         onClick={onLoadMock}
-                         className="px-4 py-2 bg-emerald-500/10 text-emerald-600 text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-500 hover:text-white transition-all"
-                       >
-                         Carregar exercicis de prova
-                       </button>
+                       <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Cap exercici a la base de dades per a aquest filtre</p>
                     </div>
                    ) : (
                     exercicis
                       .filter((ex: any) => extraFiltre === "" ? true : ex.categoria === extraFiltre)
-                      .map((ex: any) => (
-                        <div key={ex.id} className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${darkMode ? 'bg-slate-900/30 border-transparent hover:border-slate-700' : 'bg-slate-50/50 border-transparent hover:border-slate-100'}`}>
-                           <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-900 shrink-0">
-                                 <img src={ex.imatge} className="w-full h-full object-cover opacity-60" />
-                              </div>
-                              <div className="min-w-0">
-                                 <h4 className={`font-black uppercase italic text-xs truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>{ex.nom}</h4>
-                                 <div className="flex items-center gap-2">
-                                    <span className="text-[8px] font-bold text-emerald-500 uppercase">{ex.categoria}</span>
-                                    <span className="text-[8px] font-medium text-slate-400 uppercase">{ex.temps}</span>
-                                 </div>
-                              </div>
-                           </div>
-                           <button 
-                             onClick={() => onDelete(`exercicis_fisics/${ex.id}`, ex.id)}
-                             className={`p-2 rounded-lg transition-all shrink-0 ${darkMode ? 'hover:bg-red-500/20 text-slate-600 hover:text-red-400' : 'hover:bg-red-50 text-slate-300 hover:text-red-500'}`}
-                           >
-                              <Trash2 size={14} />
-                           </button>
-                        </div>
-                      ))
+                      .map((ex: any) => {
+                        const isSuspended = ex.status === "suspesa";
+                        return (
+                          <div key={ex.id} className={`flex flex-col p-4 rounded-2xl border transition-all ${isSuspended ? 'opacity-50 scale-[0.98]' : ''} ${darkMode ? 'bg-slate-900/40 border-slate-900 hover:border-slate-800' : 'bg-slate-50/50 border-slate-100 hover:border-slate-200'}`}>
+                             <div className="flex items-start justify-between gap-3 min-w-0">
+                                <div className="flex items-center gap-3 min-w-0">
+                                   <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-900 shrink-0 border border-slate-800/20">
+                                      <img src={ex.imatge} className="w-full h-full object-cover opacity-70" />
+                                   </div>
+                                   <div className="min-w-0">
+                                      <div className="flex items-center gap-2 mb-0.5">
+                                         <h4 className={`font-black uppercase italic text-sm truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>{ex.nom}</h4>
+                                         {isSuspended && (
+                                            <span className="text-[7px] font-black bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 py-0.2 rounded uppercase tracking-wider">Suspès</span>
+                                         )}
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                         <span className="text-[8px] font-bold text-emerald-500 uppercase">{ex.categoria}</span>
+                                         <span className="text-[8px] font-bold text-slate-400 font-mono">{ex.temps}</span>
+                                      </div>
+                                   </div>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                   {/* Botó Suspendre / Activar */}
+                                   <button 
+                                     onClick={() => handleToggleSuspendre(ex)}
+                                     title={isSuspended ? "Activar exercici" : "Suspendre exercici"}
+                                     className={`p-2 rounded-xl transition-all ${isSuspended ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white' : 'bg-slate-500/10 text-slate-400 hover:bg-amber-600 hover:text-white'}`}
+                                   >
+                                      <Power size={13} />
+                                   </button>
+                                   {/* Botó Modificar */}
+                                   <button 
+                                     onClick={() => obrirEditar(ex)}
+                                     title="Modificar exercici"
+                                     className={`p-2 rounded-xl transition-all ${darkMode ? 'bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white' : 'bg-blue-50 text-blue-500 hover:bg-blue-600 hover:text-white'}`}
+                                   >
+                                      {/* Explicació per a no-programadors: Canviem a la icona Edit3 ja disponible per modificar l'exercici */}
+                                      <Edit3 size={13} />
+                                   </button>
+                                   {/* Botó Borrar */}
+                                   <button 
+                                     onClick={() => onDelete(`mossos_prova_fisica_exercicis/${ex.id}`, ex.id)}
+                                     title="Borrar exercici de la BBDD"
+                                     className={`p-2 rounded-xl transition-all ${darkMode ? 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white' : 'bg-red-50 text-red-500 hover:bg-red-600 hover:text-white'}`}
+                                   >
+                                      <Trash2 size={13} />
+                                   </button>
+                                </div>
+                             </div>
+
+                             {/* Consells tècnics de l'exercici (Només si no estan buits!) */}
+                             {ex.consells && ex.consells.filter((c: string) => c && c.trim() !== "").length > 0 && (
+                                <div className="mt-3 pt-3 border-t border-slate-500/5 flex flex-col gap-1">
+                                   <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">Consells d'execució:</span>
+                                   <div className="flex flex-col gap-1 pl-1">
+                                      {ex.consells.filter((c: string) => c && c.trim() !== "").map((c: string, index: number) => (
+                                         <p key={index} className="text-[10px] text-slate-500 font-semibold leading-relaxed">
+                                            • {c}
+                                         </p>
+                                      ))}
+                                   </div>
+                                </div>
+                             )}
+                          </div>
+                        );
+                      })
                    )}
               </div>
            </div>
@@ -5045,242 +5391,816 @@ function ExercicisFisicsView({ exercicis, nouExercici, setNouExercici, onSubmit,
 }
 
 /**
- * VIEW: Gestió de Plans d'Entrenament
- * Permet combinar exercicis existents en una setmana específica per a una prova.
+ * VIEW: Gestió de Plans d'Entrenament (MODUL DE FITNES & CONTROL DOCENT)
+ * Explicació per a no-programadors:
+ * Aquest component és la sala de màquines des d'on els entrenadors d'OposiCAT dissenyen les rutines.
+ * Permet visualitzar el que ja està funcionant (Plans Actius) i preparar el futur (Planificació de Plans).
+ * Permet crear rutines específiques per a cadascuna de les 3 proves, o rutines combinades que barregen exercicis.
+ * Tot funciona de manera 100% interactiva utilitzant la memòria del navegador (localStorage) per no dependre de servidors de moment.
  */
-function PlansEntrenamentView({ plans, exercicisDisponibles, nouPla, setNouPla, onSubmit, onLoadMock, onDelete, loading, success, darkMode }: any) {
-  const [isFormOpen, setIsFormOpen] = useState(false);
+function PlansEntrenamentView({ plans, exercicisDisponibles, onDelete, refreshData, darkMode }: any) {
+  // Explicació per a no-programadors: Pestanya activa de la interfície ('actius', 'planificacio' o 'crear')
+  const [activeTab, setActiveTab] = useState<'actius' | 'planificacio' | 'crear'>('actius');
+  
+  // Explicació per a no-programadors: Controla quin tipus de pla estem creant ('especific' o 'combinat')
+  const [tipusPlaACrear, setTipusPlaACrear] = useState<'especific' | 'combinat'>('especific');
+
+  // Explicació per a no-programadors: Guarda quin pla s'està editant actualment (si és que estem modificant)
+  const [editantId, setEditantId] = useState<string | null>(null);
+
+  // Explicació per a no-programadors: Llista d'exercicis "Lego" pre-creats per a cadascuna de les proves
+  const [exercicisSimulats] = useState<any[]>([
+    // Exercicis per a Press de Banca
+    { id: 'pb1', nom: "Sèries de Press de Banca progressiu (15kg, 25kg, 40kg)", categoria: "Press de Banca", desc: "Aixecaments de barra plans millorant la potència pectoral.", temps: "4 sèries x 12 reps" },
+    { id: 'pb2', nom: "Fons paral·leles amb llast de seguretat", categoria: "Press de Banca", desc: "Desenvolupament dels triceps i pectoral menor amb el propi pes corporal.", temps: "3 sèries x 10 reps" },
+    { id: 'pb3', nom: "Flexions explosives pliomètriques (impuls)", categoria: "Press de Banca", desc: "Treball explosiu des de terra amb separació de mans a l'aire.", temps: "3 sèries x 8 reps" },
+    { id: 'pb4', nom: "Obertures amb manuelles en banc inclinat", categoria: "Press de Banca", desc: "Força i estabilitat dels músculs auxiliars pectorals.", temps: "4 sèries x 12 reps" },
+
+    // Exercicis per a Course Navette
+    { id: 'cn1', nom: "Fraccionats de velocitat sobre 20m reals", categoria: "Course Navette", desc: "Cursa d'anada i tornada sincronitzant el gir per optimitzar consum d'oxigen.", temps: "8 repeticions" },
+    { id: 'cn2', nom: "Fartlek de ritme progressiu de 15 minuts", categoria: "Course Navette", desc: "Alternança de velocitats aeròbiques i anaeròbiques imitant els darrers períodes.", temps: "15 minuts" },
+    { id: 'cn3', nom: "Sèries llargues de recuperació activa (3x1000m)", categoria: "Course Navette", desc: "Curses de mitja distància per millorar la capacitat de recuperació cardíaca.", temps: "3 sèries x 1km" },
+    { id: 'cn4', nom: "Esprints d'acceleració des de posició de terra", categoria: "Course Navette", desc: "Millora de l'arrencada i la velocitat explosiva de reacció.", temps: "8 sèries x 30m" },
+
+    // Exercicis per a Circuit d'Agilitat
+    { id: 'ca1', nom: "Simulacre sencer cronometrat del Circuit oficial", categoria: "Circuit d'Agilitat", desc: "Execució íntegra del circuit cuidant de no fer caure cap barra de tanca.", temps: "5 intents" },
+    { id: 'ca2', nom: "Salts verticals sobre tanques de cautxú", categoria: "Circuit d'Agilitat", desc: "Entrenament de la potència de salt i coordinació de peus en recepció.", temps: "4 sèries x 6 salts" },
+    { id: 'ca3', nom: "Ziga-zaga tancat amb cons a alta velocitat", categoria: "Circuit d'Agilitat", desc: "Millora dels recolzaments i el canvi de sentit corporal.", temps: "6 passades" },
+    { id: 'ca4', nom: "Passos d'equilibri i girs explosius de maluc", categoria: "Circuit d'Agilitat", desc: "Exercicis per agilitzar el pas per sota de la tanca sense tocar terra.", temps: "5 repeticions" }
+  ]);
+
+  // Explicació per a no-programadors: Generador dinàmic de setmanes de dilluns a diumenge en català des de finals de 2024 fins a finals del 2027
+  const llistaSetmanes = useMemo(() => {
+    const setmanes = [];
+    let dataActual = new Date(2024, 11, 30); // 30 de Desembre de 2024 (dilluns de la setmana 1 de 2025)
+    const dataFi = new Date(2027, 11, 31);  // 31 de Desembre de 2027
+    
+    const nomsMesos = ["gen", "feb", "mar", "abr", "mai", "jun", "jul", "ago", "set", "oct", "nov", "des"];
+    
+    while (dataActual <= dataFi) {
+      const dilluns = new Date(dataActual);
+      const diumenge = new Date(dataActual);
+      diumenge.setDate(diumenge.getDate() + 6);
+      
+      const dDia = dilluns.getDate();
+      const dMes = nomsMesos[dilluns.getMonth()];
+      
+      const dgDia = diumenge.getDate();
+      const dgMes = nomsMesos[diumenge.getMonth()];
+      
+      // Regla senzilla per posar "Del" o "De" en funció del dia del mes
+      const prefixDilluns = dDia === 1 || dDia >= 10 ? "De" : "Del";
+      
+      // Afegim l'any de dilluns i de diumenge si canvien d'any, o només un si és el mateix per evitar confusions
+      const anyDilluns = dilluns.getFullYear();
+      const anyDiumenge = diumenge.getFullYear();
+      const textAny = anyDilluns === anyDiumenge ? `${anyDilluns}` : `${anyDilluns}/${anyDiumenge}`;
+      
+      const textSetmana = `${prefixDilluns} ${dDia} ${dMes} a ${dgDia} ${dgMes} (${textAny})`;
+      setmanes.push(textSetmana);
+      
+      // Avancem a la setmana següent
+      dataActual.setDate(dataActual.getDate() + 7);
+    }
+    return setmanes;
+  }, []);
+
+  // Explicació per a no-programadors: Estats del formulari de creació o modificació de pla
+  const [formulariPla, setFormulariPla] = useState({
+    nom: "",
+    setmana: "",
+    descripcio: "",
+    provaEspecifica: "Press de Banca", // Per a plans específics
+    exercicisIds: [] as string[]
+  });
+
+  // Inicialització de la setmana per defecte en carregar
+  useEffect(() => {
+    if (llistaSetmanes.length > 0 && !formulariPla.setmana) {
+      setFormulariPla(f => ({ ...f, setmana: llistaSetmanes[0] }));
+    }
+  }, [llistaSetmanes, formulariPla.setmana]);
+
+  // Explicació per a no-programadors: Classifiquem els plans de Firestore entre Actius i Planificats
+  const plansActius = (plans || []).filter((p: any) => p.actiu);
+  const plansPlanificats = (plans || []).filter((p: any) => !p.actiu);
+
+  // Explicació per a no-programadors: Filtra els exercicis que estiguin actius (no suspesos)
+  const exercicisDisponiblesFiltrats = useMemo(() => {
+    const actius = (exercicisDisponibles || []).filter((ex: any) => ex.status !== 'suspesa');
+    if (tipusPlaACrear === 'especific') {
+      return actius.filter((ex: any) => ex.categoria === formulariPla.provaEspecifica);
+    }
+    return actius;
+  }, [tipusPlaACrear, formulariPla.provaEspecifica, exercicisDisponibles]);
+
+  // Explicació per a no-programadors: Obre el formulari de creació d'un nou pla de treball buit
+  const obrirCreacio = (tipus: 'especific' | 'combinat') => {
+    setTipusPlaACrear(tipus);
+    setEditantId(null);
+    setFormulariPla({
+      nom: tipus === 'especific' ? "Nou Pla Específic de Mossos" : "Nou Pla Combinat OposiCAT",
+      setmana: llistaSetmanes[0] || "",
+      descripcio: "",
+      provaEspecifica: "Press de Banca",
+      exercicisIds: []
+    });
+    setActiveTab('crear');
+  };
+
+  // Explicació per a no-programadors: Obre el formulari de modificació carregant les dades de Firestore
+  const obrirModificar = (pla: any) => {
+    setEditantId(pla.id);
+    setTipusPlaACrear(pla.tipus || 'especific');
+    setFormulariPla({
+      nom: pla.nom || "",
+      setmana: pla.setmana || llistaSetmanes[0] || "",
+      descripcio: pla.descripcio || "",
+      provaEspecifica: pla.provaEspecifica || "Press de Banca",
+      exercicisIds: pla.exercicisIds || []
+    });
+    setActiveTab('crear');
+  };
+
+  // Explicació per a no-programadors: Desa un nou pla o un de modificat a la col·lecció Firestore
+  const handleDesarPla = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formulariPla.exercicisIds.length === 0) {
+      alert("Si us plau, selecciona com a mínim un exercici per a aquest pla d'entrenament.");
+      return;
+    }
+
+    try {
+      if (editantId) {
+        await updateDoc(doc(db, "mossos_plans_entrenament", editantId), {
+          nom: formulariPla.nom,
+          setmana: formulariPla.setmana,
+          descripcio: formulariPla.descripcio,
+          tipus: tipusPlaACrear,
+          provaEspecifica: tipusPlaACrear === 'especific' ? formulariPla.provaEspecifica : "",
+          exercicisIds: formulariPla.exercicisIds
+        });
+      } else {
+        await addDoc(collection(db, "mossos_plans_entrenament"), {
+          nom: formulariPla.nom,
+          setmana: formulariPla.setmana,
+          descripcio: formulariPla.descripcio,
+          tipus: tipusPlaACrear,
+          provaEspecifica: tipusPlaACrear === 'especific' ? formulariPla.provaEspecifica : "",
+          exercicisIds: formulariPla.exercicisIds,
+          actiu: false,
+          createdAt: serverTimestamp()
+        });
+      }
+      setEditantId(null);
+      setActiveTab('planificacio');
+      if (refreshData) refreshData();
+    } catch (err) {
+      console.error("Error desant el pla a Firestore:", err);
+    }
+  };
+
+  // Explicació per a no-programadors: Activa un pla (Donar d'alta per als alumnes) a Firestore
+  const handleDonarDAlta = async (plaId: string) => {
+    try {
+      await updateDoc(doc(db, "mossos_plans_entrenament", plaId), { actiu: true });
+      setActiveTab('actius');
+      if (refreshData) refreshData();
+    } catch (err) {
+      console.error("Error activant el pla:", err);
+    }
+  };
+
+  // Explicació per a no-programadors: Desactiva un pla (Retirar de l'APP mòbil) a Firestore
+  const handleDesactivarPla = async (plaId: string) => {
+    try {
+      await updateDoc(doc(db, "mossos_plans_entrenament", plaId), { actiu: false });
+      setActiveTab('planificacio');
+      if (refreshData) refreshData();
+    } catch (err) {
+      console.error("Error desactivant el pla:", err);
+    }
+  };
+
+  // Explicació per a no-programadors: Elimina un pla directament d'OposiCAT a Firestore
+  const handleEliminarPla = (plaId: string) => {
+    if (confirm("Estàs segur que vols eliminar completament aquest pla de treball?")) {
+      if (onDelete) {
+        onDelete(`mossos_plans_entrenament/${plaId}`, plaId);
+      }
+    }
+  };
+
+  // Explicació per a no-programadors: Selecciona o deselecciona un exercici de la col·lecció del pla
+  const toggleSeleccioExercici = (exId: string) => {
+    setFormulariPla(prev => {
+      const jaSeleccionat = prev.exercicisIds.includes(exId);
+      const nousIds = jaSeleccionat
+        ? prev.exercicisIds.filter(id => id !== exId)
+        : [...prev.exercicisIds, exId];
+      return { ...prev, exercicisIds: nousIds };
+    });
+  };
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-10">
-      <header className="flex items-center justify-between w-full">
-        <div className="flex items-center gap-10">
+    <div className="max-w-6xl mx-auto flex flex-col gap-10 pb-20">
+      
+      {/* CAPÇALERA PRINCIPAL DEL BACKOFFICE */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between w-full gap-6">
+        <div className="flex items-center gap-6">
           <BackButton darkMode={darkMode} />
           <div>
-            <span className="text-emerald-600 font-bold uppercase tracking-[0.2em] text-[10px]">Backoffice / Prova Física</span>
+            <span className="text-emerald-500 font-black uppercase tracking-[0.2em] text-[10px] block">Backoffice Administratiu • OposiCAT</span>
             <h1 className={`text-4xl font-black tracking-tight mt-1 uppercase italic ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-              Plans d'<span className="text-emerald-600">Entrenament</span>
+              Plans d'<span className="text-emerald-500">Entrenament</span>
             </h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-           {success && (
-             <motion.div 
-               initial={{ opacity: 0, x: 20 }}
-               animate={{ opacity: 1, x: 0 }}
-               className="px-4 py-2 bg-emerald-500/10 text-emerald-500 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-500/20"
-             >
-               ✓ Pla Publicat
-             </motion.div>
-           )}
-           <button 
-             onClick={onLoadMock}
-             disabled={loading}
-             className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${darkMode ? 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-100'}`}
-           >
-             <Wand2 size={16} /> Test ( No BBDD )
-           </button>
+        {/* INDICADOR D'ESTAT DELS PLANS */}
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] bg-slate-500/10 border border-slate-500/20 text-slate-400 font-bold px-3 py-1.5 rounded-xl uppercase tracking-widest">
+            {plansActius.length} Actius
+          </span>
+          <span className="text-[10px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 font-bold px-3 py-1.5 rounded-xl uppercase tracking-widest">
+            {plansPlanificats.length} Planificats
+          </span>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        {/* FORMULARI O BOTÓ D'OBRIR */}
-        <div className="lg:col-span-5 flex flex-col gap-4">
-           {!isFormOpen ? (
-              <button 
-                onClick={() => setIsFormOpen(true)}
-                className={`w-full p-8 rounded-[2.5rem] border-2 border-dashed flex items-center justify-between group transition-all ${darkMode ? 'bg-slate-800/20 border-slate-700 hover:border-emerald-500 hover:bg-slate-800/40' : 'bg-white border-slate-200 hover:border-emerald-500 hover:shadow-xl hover:shadow-emerald-500/5'}`}
-              >
-                 <div className="flex items-center gap-6">
-                    <div className="w-14 h-14 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-                       <Plus size={28} strokeWidth={3} />
-                    </div>
-                    <div className="text-left">
-                       <h3 className={`text-xl font-black uppercase italic ${darkMode ? 'text-white' : 'text-slate-800'}`}>Afegir Pla</h3>
-                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Combinació local d'exercicis</p>
-                    </div>
-                 </div>
-                 <ChevronRight size={24} className={`text-slate-300 group-hover:text-emerald-500 transition-all group-hover:translate-x-1`} />
-              </button>
-           ) : (
-             <motion.div 
-               initial={{ opacity: 0, scale: 0.95 }}
-               animate={{ opacity: 1, scale: 1 }}
-               className={`p-8 rounded-[2.5rem] border-2 shadow-2xl relative ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-50'}`}
-             >
-                <button 
-                  onClick={() => setIsFormOpen(false)}
-                  className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                   <X size={20} />
-                </button>
+      {/* NOU SISTEMA DE NAVEGACIÓ D'ACCIÓ RÀPIDA (3 BOTONS PRINCIPALS)
+          Explicació per a no-programadors:
+          Hem dissenyat 3 grans targetes/botons per accedir ràpidament a les 3 àrees dels plans.
+          Un botó per veure els actius, un altre per als programats i un tercer de color daurat per crear-ne de nous.
+      */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* BOTÓ 1: PLANS ACTIUS */}
+        <button
+          id="btn-plans-actius"
+          onClick={() => {
+            setActiveTab('actius');
+            setEditantId(null);
+          }}
+          className={`flex flex-col items-start gap-4 p-6 rounded-[2.2rem] border-2 text-left transition-all relative overflow-hidden group cursor-pointer ${
+            activeTab === 'actius'
+              ? 'bg-emerald-600/10 border-emerald-500 text-emerald-500 shadow-xl shadow-emerald-500/5'
+              : darkMode
+                ? 'bg-slate-950/40 border-slate-900 text-slate-400 hover:border-slate-800 hover:text-white'
+                : 'bg-white border-slate-100 text-slate-500 hover:border-slate-200 hover:text-slate-800 shadow-sm'
+          }`}
+        >
+          <div className={`p-3 rounded-2xl ${activeTab === 'actius' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-500/10 text-slate-400'} transition-all`}>
+            <CheckCircle2 size={20} />
+          </div>
+          <div>
+            <span className="text-[9px] font-black uppercase tracking-wider block opacity-70">1. Alumnes Estudiant</span>
+            <h3 className={`text-base font-black uppercase italic tracking-tight leading-none mt-1.5 ${activeTab === 'actius' ? 'text-emerald-500' : darkMode ? 'text-white' : 'text-slate-800'}`}>
+              Plans Actius
+            </h3>
+            <p className="text-[10px] text-slate-500 font-semibold leading-normal mt-1.5">
+              Plans de treball que els oponents veuen ara mateix a l'APP mòbil.
+            </p>
+          </div>
+          {activeTab === 'actius' && (
+            <span className="absolute top-4 right-4 flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+          )}
+        </button>
 
-                <h3 className={`text-xl font-black uppercase italic mb-6 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Nou Pla Setmanal</h3>
-                
-                <form onSubmit={(e) => { onSubmit(e); setIsFormOpen(false); }} className="flex flex-col gap-5">
-                  <div className="grid grid-cols-2 gap-4">
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Setmana núm.</label>
-                        <input 
-                          type="number"
-                          min="1"
-                          max="52"
-                          required
-                          value={nouPla.setmana}
-                          onChange={e => setNouPla({...nouPla, setmana: parseInt(e.target.value)})}
-                          className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'}`}
-                        />
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Prova</label>
-                        <select 
-                          value={nouPla.tipusProva}
-                          onChange={e => setNouPla({...nouPla, tipusProva: e.target.value})}
-                          className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm appearance-none cursor-pointer ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'}`}
-                        >
-                          <option value="Course Navette">Course Navette</option>
-                          <option value="Circuit Agilitat">Circuit Agilitat</option>
-                          <option value="Press de Banca">Press de Banca</option>
-                        </select>
-                     </div>
-                  </div>
+        {/* BOTÓ 2: PLANS PROGRAMATS */}
+        <button
+          id="btn-plans-programats"
+          onClick={() => {
+            setActiveTab('planificacio');
+            setEditantId(null);
+          }}
+          className={`flex flex-col items-start gap-4 p-6 rounded-[2.2rem] border-2 text-left transition-all relative overflow-hidden group cursor-pointer ${
+            activeTab === 'planificacio'
+              ? 'bg-blue-600/10 border-blue-500 text-blue-500 shadow-xl shadow-blue-500/5'
+              : darkMode
+                ? 'bg-slate-950/40 border-slate-900 text-slate-400 hover:border-slate-800 hover:text-white'
+                : 'bg-white border-slate-100 text-slate-500 hover:border-slate-200 hover:text-slate-800 shadow-sm'
+          }`}
+        >
+          <div className={`p-3 rounded-2xl ${activeTab === 'planificacio' ? 'bg-blue-500 text-white' : 'bg-slate-500/10 text-slate-400'} transition-all`}>
+            <Calendar size={20} />
+          </div>
+          <div>
+            <span className="text-[9px] font-black uppercase tracking-wider block opacity-70">2. Esborradors / Calendari</span>
+            <h3 className={`text-base font-black uppercase italic tracking-tight leading-none mt-1.5 ${activeTab === 'planificacio' ? 'text-blue-500' : darkMode ? 'text-white' : 'text-slate-800'}`}>
+              Plans Programats
+            </h3>
+            <p className="text-[10px] text-slate-500 font-semibold leading-normal mt-1.5">
+              Catàleg de rutines preparades i llistes per ser donades d'alta.
+            </p>
+          </div>
+        </button>
 
-                  <div className="space-y-3">
-                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1 flex items-center justify-between">
-                        Exercicis del pla (Select Multip)
-                        <span className="text-[8px] opacity-50 italic">Tria per ordre d'execució</span>
-                     </label>
-                     
-                     <div className={`grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto p-2 rounded-2xl ${darkMode ? 'bg-slate-900/50' : 'bg-slate-50'}`}>
-                        {exercicisDisponibles.length === 0 ? (
-                          <p className="p-4 text-[10px] text-center opacity-30 uppercase font-bold uppercase tracking-widest">No hi ha exercicis creats!</p>
-                        ) : (
-                          exercicisDisponibles.map((ex: any) => {
-                            const isSelected = nouPla.exercicisIds.includes(ex.id);
-                            return (
-                              <button
-                                key={ex.id}
-                                type="button"
-                                onClick={() => {
-                                  const ids = isSelected 
-                                    ? nouPla.exercicisIds.filter((id: string) => id !== ex.id)
-                                    : [...nouPla.exercicisIds, ex.id];
-                                  setNouPla({...nouPla, exercicisIds: ids});
-                                }}
-                                className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
-                                  isSelected 
-                                    ? 'bg-emerald-600 border-emerald-500 text-white' 
-                                    : darkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-100 text-slate-600'
-                                }`}
-                              >
-                                 <div className={`w-5 h-5 rounded-md flex items-center justify-center border ${isSelected ? 'bg-white text-emerald-600 border-white' : 'border-slate-500'}`}>
-                                    {isSelected && <Check size={14} strokeWidth={4} />}
-                                 </div>
-                                 <span className="text-[11px] font-black uppercase truncate">{ex.nom}</span>
-                              </button>
-                            );
-                          })
-                        )}
-                     </div>
-                  </div>
+        {/* BOTÓ 3: CREAR PLANS */}
+        <button
+          id="btn-crear-plans"
+          onClick={() => {
+            setActiveTab('crear');
+            setEditantId(null);
+            setTipusPlaACrear('especific');
+            setFormulariPla({
+              nom: "Nou Pla Específic de Mossos",
+              setmana: llistaSetmanes[0] || "De 29 jun a 5 jul (2026)",
+              descripcio: "",
+              provaEspecifica: "Press de Banca",
+              exercicisIds: []
+            });
+          }}
+          className={`flex flex-col items-start gap-4 p-6 rounded-[2.2rem] border-2 text-left transition-all relative overflow-hidden group cursor-pointer ${
+            activeTab === 'crear'
+              ? 'bg-amber-500/10 border-amber-500 text-amber-500 shadow-xl shadow-amber-500/5'
+              : darkMode
+                ? 'bg-slate-950/40 border-slate-900 text-slate-400 hover:border-slate-800 hover:text-white'
+                : 'bg-white border-slate-100 text-slate-500 hover:border-slate-200 hover:text-slate-800 shadow-sm'
+          }`}
+        >
+          <div className={`p-3 rounded-2xl ${activeTab === 'crear' ? 'bg-amber-500 text-slate-950' : 'bg-slate-500/10 text-slate-400'} transition-all`}>
+            <Plus size={20} />
+          </div>
+          <div>
+            <span className="text-[9px] font-black uppercase tracking-wider block opacity-70">3. Dissenyador Didàctic</span>
+            <h3 className={`text-base font-black uppercase italic tracking-tight leading-none mt-1.5 ${activeTab === 'crear' ? 'text-amber-500' : darkMode ? 'text-white' : 'text-slate-800'}`}>
+              Crear Plans
+            </h3>
+            <p className="text-[10px] text-slate-500 font-semibold leading-normal mt-1.5">
+              Dissenya noves rutines barrejant exercicis o per proves de forma guiada.
+            </p>
+          </div>
+        </button>
+      </div>
 
-                  <button 
-                    disabled={loading || nouPla.exercicisIds.length === 0}
-                    type="submit"
-                    className={`w-full py-4 mt-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-2xl font-black uppercase italic tracking-widest transition-all shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-3`}
+      <div className="w-full">
+
+        {/* ====================================================================
+            VISTA 1: PLANS D'ENTRENAMENT ACTIUS (PANTALLA SENCERA)
+            Explicació per a no-programadors:
+            Mostra una quadrícula de targetes d'aquells plans que estan ara mateix
+            en funcionament i visibles per als estudiants des de la seva aplicació.
+            ==================================================================== */}
+        {activeTab === 'actius' && (
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between px-2">
+              <div>
+                <h3 className={`text-lg font-black uppercase tracking-widest ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                  Plans de treball actius a l'APP mòbil
+                </h3>
+                <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                  Els alumnes reben notificacions d'aquests plans de preparació física de Mossos d'Esquadra de manera immediata.
+                </p>
+              </div>
+            </div>
+
+            {plansActius.length === 0 ? (
+              <div className="py-24 flex flex-col items-center justify-center text-center opacity-30 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem] px-6">
+                <CheckCircle2 size={48} className="text-slate-400 mb-4" />
+                <p className="font-black uppercase italic tracking-widest text-xs">No hi ha cap pla d'entrenament actiu en aquest moment</p>
+                <p className="text-[10px] max-w-sm mt-1 leading-relaxed">Vés a la pestanya de plans programats i selecciona un pla de preparació per donar-lo d'alta.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {plansActius.map((p) => (
+                  <div
+                    key={p.id}
+                    className={`p-6 rounded-[2.5rem] border-2 flex flex-col justify-between gap-6 transition-all group ${
+                      darkMode ? 'bg-slate-950/50 border-slate-900/60 hover:border-emerald-500/50' : 'bg-white border-slate-100 hover:border-emerald-500 shadow-md shadow-slate-200/50'
+                    }`}
                   >
-                    {loading ? "Processant..." : <><Calendar size={18} /> Publicar Pla</>}
-                  </button>
-                  {success && <p className="text-emerald-500 text-[10px] font-black uppercase text-center mt-2">✓ Pla publicat amb èxit</p>}
-                </form>
-             </motion.div>
-           )}
-        </div>
-
-        {/* LLISTAT DE PLANS PUBLICATS */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
-           <h3 className={`text-base font-black uppercase tracking-widest px-4 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>Banc de Plans Publicats</h3>
-           
-           <div className="flex flex-col gap-4">
-              {plans.length === 0 ? (
-                <div className="py-20 flex flex-col items-center justify-center text-center opacity-30 px-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem]">
-                   <Calendar size={48} className="text-slate-300 dark:text-slate-700 mb-6" />
-                   <p className="font-black uppercase italic tracking-widest text-xs mb-6">No hi ha plans publicats encara</p>
-                   <button 
-                     onClick={onLoadMock}
-                     className="px-6 py-3 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-xl shadow-emerald-500/20"
-                   >
-                     Generar plans de prova ràpidament
-                   </button>
-                </div>
-              ) : (
-                plans.map((p: any) => (
-                  <div key={p.id} className={`p-6 rounded-[2.5rem] border-2 transition-all flex flex-col gap-6 group ${darkMode ? 'bg-slate-800 border-slate-700/50 hover:border-emerald-500/50' : 'bg-white border-slate-100 hover:border-emerald-500 shadow-sm shadow-slate-200/50'}`}>
-                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-6">
-                           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${darkMode ? 'bg-emerald-900/40 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
-                              <Calendar size={24} />
-                           </div>
-                           <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                 <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">SETMANA {p.setmana}</span>
-                                 <div className="w-1 h-1 rounded-full bg-slate-400"></div>
-                                 <span className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{p.tipusProva}</span>
-                              </div>
-                              <h4 className={`text-lg font-black uppercase italic tracking-tighter ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                                 Rutina de {p.exercicisIds?.length || 0} exercicis
-                              </h4>
-                           </div>
+                    <div>
+                      {/* Encapçalat de la targeta */}
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                            <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">
+                              {p.setmana}
+                            </span>
+                            <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${
+                              p.tipus === 'especific' ? 'bg-blue-500/10 text-blue-400' : 'bg-[#FFDF00]/10 text-[#FFDF00]'
+                            }`}>
+                              {p.tipus === 'especific' ? `ESPECÍFIC • ${p.provaEspecifica}` : 'COMBINAT (3 PROVES)'}
+                            </span>
+                          </div>
+                          <h4 className={`text-base font-black uppercase italic tracking-tight leading-snug ${darkMode ? 'text-white group-hover:text-emerald-400' : 'text-slate-800'} transition-colors`}>
+                            {p.nom}
+                          </h4>
                         </div>
-                        <button 
-                           onClick={() => onDelete(`plans_entrenament/${p.id}`, p.id)}
-                           className={`p-3 rounded-xl transition-all ${darkMode ? 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white' : 'bg-red-50 text-red-400 hover:bg-red-500 hover:text-white'}`}
-                        >
-                           <Trash2 size={18} />
-                        </button>
-                     </div>
+                      </div>
 
-                     {/* MINI LLISTAT D'EXERCICIS DINS EL PLA */}
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 opacity-60 group-hover:opacity-100 transition-opacity">
-                        {p.exercicisIds?.map((exId: string, idx: number) => {
-                           const ex = exercicisDisponibles.find((e: any) => e.id === exId);
-                           if (!ex) return null;
-                           return (
-                              <div key={exId} className={`flex items-center gap-3 p-2 rounded-xl ${darkMode ? 'bg-slate-900/40' : 'bg-slate-50'}`}>
-                                 <span className="text-[10px] font-black text-emerald-500 w-4">{idx + 1}</span>
-                                 <span className={`text-[10px] font-bold uppercase truncate ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>{ex.nom}</span>
+                      {/* Descripció */}
+                      <p className="text-[10px] text-slate-500 font-semibold leading-relaxed mt-3 italic">
+                        {p.descripcio || "Sense consells docents definits per a aquesta setmana."}
+                      </p>
+
+                      {/* Mini llista d'exercicis vinculats */}
+                      <div className="mt-5 space-y-2">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Sèrie d'exercicis actius ({p.exercicisIds?.length || 0}):</span>
+                        <div className="grid grid-cols-1 gap-2">
+                          {p.exercicisIds?.map((exId: string, idx: number) => {
+                            const ex = (exercicisDisponibles || []).find(e => e.id === exId) || exercicisSimulats.find(e => e.id === exId);
+                            if (!ex) return null;
+                            return (
+                              <div key={exId} className={`flex items-center justify-between p-2 rounded-xl text-left ${darkMode ? 'bg-slate-900/60' : 'bg-slate-50'}`}>
+                                <div className="flex items-center gap-2 overflow-hidden mr-2">
+                                  <span className="text-[9px] font-black text-emerald-500 font-mono w-4 shrink-0 text-center">{idx + 1}</span>
+                                  <span className={`text-[9px] font-bold uppercase truncate ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{ex.nom}</span>
+                                </div>
+                                <span className="text-[8px] font-mono text-[#FFDF00] bg-slate-800/80 px-1.5 py-0.5 rounded shrink-0 font-bold">{ex.temps}</span>
                               </div>
-                           );
-                        })}
-                     </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Accions de control de pla actiu */}
+                    <div className="border-t border-slate-900/40 pt-4 flex items-center justify-between gap-4">
+                      <span className="text-[8px] text-emerald-500 font-black uppercase tracking-widest flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                        Visible a l'APP
+                      </span>
+                      <button
+                        onClick={() => handleDesactivarPla(p.id)}
+                        className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer ${
+                          darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        Retirar del mòbil
+                      </button>
+                    </div>
                   </div>
-                ))
-              )}
-           </div>
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ====================================================================
+            VISTA 2: PLANS D'ENTRENAMENT PROGRAMATS
+            Explicació per a no-programadors:
+            Aquí és on es mostren els esborradors dissenyats pels docents d'OposiCAT.
+            Poden ser modificats, esborrats, o passats a "Actiu" directament.
+            ==================================================================== */}
+        {activeTab === 'planificacio' && (
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between px-2">
+              <div>
+                <h3 className={`text-lg font-black uppercase tracking-widest ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                  Plans de treball programats (Esborradors)
+                </h3>
+                <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                  Aquestes rutines es preparen a futur. L'alumne no les veu fins que l'administrador prem "Donar d'Alta".
+                </p>
+              </div>
+            </div>
+
+            {plansPlanificats.length === 0 ? (
+              <div className="py-24 flex flex-col items-center justify-center text-center opacity-30 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem] px-6">
+                <Calendar size={48} className="text-slate-400 mb-4" />
+                <p className="font-black uppercase italic tracking-widest text-xs">No hi ha plans de treball programats</p>
+                <p className="text-[10px] max-w-sm mt-1 leading-relaxed">Prem el botó de dalt "Crear Plans" per començar a dissenyar una nova rutina.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {plansPlanificats.map((p) => (
+                  <div
+                    key={p.id}
+                    className={`p-6 rounded-[2.5rem] border-2 flex flex-col justify-between gap-6 transition-all group ${
+                      darkMode ? 'bg-slate-950/30 border-slate-900/40 hover:border-blue-500/40' : 'bg-white border-slate-100 hover:border-blue-500 shadow-sm shadow-slate-200/50'
+                    }`}
+                  >
+                    <div>
+                      {/* Encapçalat de la targeta */}
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                            <span className="text-[8px] font-black uppercase tracking-widest bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded">
+                              {p.setmana}
+                            </span>
+                            <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${
+                              p.tipus === 'especific' ? 'bg-blue-500/10 text-blue-400' : 'bg-amber-500/10 text-amber-400'
+                            }`}>
+                              {p.tipus === 'especific' ? `ESPECÍFIC • ${p.provaEspecifica}` : 'COMBINAT (3 PROVES)'}
+                            </span>
+                          </div>
+                          <h4 className={`text-base font-black uppercase italic tracking-tight leading-snug ${darkMode ? 'text-white group-hover:text-blue-400' : 'text-slate-800'} transition-colors`}>
+                            {p.nom}
+                          </h4>
+                        </div>
+
+                        {/* Botó d'esborrar el pla programat */}
+                        <button
+                          onClick={() => handleEliminarPla(p.id)}
+                          className={`p-2.5 rounded-xl shrink-0 transition-colors cursor-pointer ${
+                            darkMode ? 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white' : 'bg-red-50 text-red-400 hover:bg-red-500 hover:text-white'
+                          }`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+
+                      {/* Descripció */}
+                      <p className="text-[10px] text-slate-500 font-semibold leading-relaxed mt-3 italic">
+                        {p.descripcio || "Sense consells docents definits per a aquesta setmana."}
+                      </p>
+
+                      {/* Mini llista d'exercicis vinculats */}
+                      <div className="mt-5 space-y-2">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Sèrie d'exercicis dissenyats ({p.exercicisIds?.length || 0}):</span>
+                        <div className="grid grid-cols-1 gap-2">
+                          {p.exercicisIds?.map((exId: string, idx: number) => {
+                            const ex = (exercicisDisponibles || []).find(e => e.id === exId) || exercicisSimulats.find(e => e.id === exId);
+                            if (!ex) return null;
+                            return (
+                              <div key={exId} className={`flex items-center justify-between p-2 rounded-xl text-left ${darkMode ? 'bg-slate-900/60' : 'bg-slate-50'}`}>
+                                <div className="flex items-center gap-2 overflow-hidden mr-2">
+                                  <span className="text-[9px] font-black text-blue-500 font-mono w-4 shrink-0 text-center">{idx + 1}</span>
+                                  <span className={`text-[9px] font-bold uppercase truncate ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{ex.nom}</span>
+                                </div>
+                                <span className="text-[8px] font-mono text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded shrink-0 font-bold">{ex.temps}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Accions de control de pla programat */}
+                    <div className="border-t border-slate-900/40 pt-4 flex items-center justify-between gap-4">
+                      <button
+                        onClick={() => obrirModificar(p)}
+                        className={`px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer ${
+                          darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        Modificar
+                      </button>
+
+                      <button
+                        onClick={() => handleDonarDAlta(p.id)}
+                        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/10 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Check size={12} strokeWidth={4} />
+                        Donar d'Alta
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ====================================================================
+            VISTA 3: DISSENYADOR I CREADOR DE PLANS (CRAQUELAT SENCER)
+            Explicació per a no-programadors:
+            Aquí és on dissenyem un nou pla de preparació o editem un existent.
+            Un entorn net, centralitzat, completament adaptat i amb selector integrat.
+            ==================================================================== */}
+        {activeTab === 'crear' && (
+          <div className="max-w-3xl mx-auto w-full">
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`p-10 rounded-[3rem] border-2 shadow-2xl relative ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}
+            >
+              {/* Botó de tancar el formulari */}
+              <button
+                onClick={() => { setActiveTab('planificacio'); setEditantId(null); }}
+                className="absolute top-8 right-8 p-3 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-500/10 transition-colors cursor-pointer"
+                title="Tornar enrere"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="mb-8">
+                <span className="text-[10px] bg-amber-500/10 text-amber-500 px-3 py-1.5 rounded-xl font-black uppercase tracking-wider">
+                  {editantId ? 'MODIFICAR PLANS EXISTENTS' : 'DISSENY DE NOU PLA'}
+                </span>
+                <h3 className={`text-2xl font-black uppercase italic mt-3 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                  {editantId ? "Modificar pla d'entrenament" : "Dissenyar pla d'entrenament"}
+                </h3>
+                <p className="text-[11px] text-slate-400 font-semibold leading-relaxed mt-1">
+                  Crea una nova setmana de treball i selecciona els exercicis que hagin de realitzar els alumnes de preparació física.
+                </p>
+              </div>
+
+              {/* FORMULARI REACTIU */}
+              <form onSubmit={handleDesarPla} className="flex flex-col gap-6">
+                
+                {/* Selecció del Tipus de Pla */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Tipologia del pla de treball</label>
+                  <div className={`grid grid-cols-2 gap-2 p-1.5 rounded-2xl ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTipusPlaACrear('especific');
+                        setFormulariPla(f => ({
+                          ...f,
+                          nom: editantId ? f.nom : "Nou Pla Específic de Mossos",
+                          exercicisIds: []
+                        }));
+                      }}
+                      className={`py-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                        tipusPlaACrear === 'especific'
+                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                          : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
+                      }`}
+                    >
+                      👮‍♂️ Pla Específic
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTipusPlaACrear('combinat');
+                        setFormulariPla(f => ({
+                          ...f,
+                          nom: editantId ? f.nom : "Nou Pla Combinat OposiCAT",
+                          exercicisIds: []
+                        }));
+                      }}
+                      className={`py-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                        tipusPlaACrear === 'combinat'
+                          ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20'
+                          : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
+                      }`}
+                    >
+                      🔥 Pla Combinat
+                    </button>
+                  </div>
+                </div>
+
+                {/* Títol del pla */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Nom descriptiu del pla</label>
+                  <input
+                    type="text"
+                    required
+                    value={formulariPla.nom}
+                    onChange={e => setFormulariPla({ ...formulariPla, nom: e.target.value })}
+                    placeholder="Ex: Pla de Potència Muscular de Pectoral"
+                    className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-800'}`}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Setmana del pla */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Setmana</label>
+                    <select
+                      required
+                      value={formulariPla.setmana}
+                      onChange={e => setFormulariPla({ ...formulariPla, setmana: e.target.value })}
+                      className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm appearance-none cursor-pointer ${darkMode ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-800'}`}
+                    >
+                      {llistaSetmanes.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Selector de prova (només per a plans específics) */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Tipologia d'exercici</label>
+                    {tipusPlaACrear === 'especific' ? (
+                      <select
+                        value={formulariPla.provaEspecifica}
+                        onChange={e => setFormulariPla({ ...formulariPla, provaEspecifica: e.target.value, exercicisIds: [] })}
+                        className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm appearance-none cursor-pointer ${darkMode ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-800'}`}
+                      >
+                        <option value="Press de Banca">Press de Banca</option>
+                        <option value="Course Navette">Course Navette</option>
+                        <option value="Circuit d'Agilitat">Circuit d'Agilitat</option>
+                      </select>
+                    ) : (
+                      <div className={`p-4 rounded-2xl font-bold text-xs uppercase tracking-widest border border-dashed border-emerald-500/20 text-emerald-500 text-center ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+                        3 combinats 👮‍♂️
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Descripció didàctica del pla */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Descripció o indicacions dels docents</label>
+                  <textarea
+                    rows={2}
+                    value={formulariPla.descripcio}
+                    onChange={e => setFormulariPla({ ...formulariPla, descripcio: e.target.value })}
+                    placeholder="Consells sobre el ritme, el nombre d'intents, etc."
+                    className={`w-full p-4 rounded-2xl border-none outline-none font-semibold text-xs leading-relaxed ${darkMode ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-800'}`}
+                  />
+                </div>
+
+                {/* Llista d'exercicis "Lego" disponibles segons configuració */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between px-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Tria els Exercicis de la rutina:
+                    </label>
+                    <span className="text-[8px] text-slate-500 font-extrabold uppercase italic">
+                      {formulariPla.exercicisIds.length} seleccionats
+                    </span>
+                  </div>
+
+                  <div className={`grid grid-cols-1 gap-2 max-h-[220px] overflow-y-auto p-2 rounded-2xl ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+                    {exercicisDisponiblesFiltrats.map((ex) => {
+                      const seleccionat = formulariPla.exercicisIds.includes(ex.id);
+                      return (
+                        <button
+                          key={ex.id}
+                          type="button"
+                          onClick={() => toggleSeleccioExercici(ex.id)}
+                          className={`flex items-start gap-3 p-3 rounded-xl border transition-all text-left group cursor-pointer ${
+                            seleccionat
+                              ? 'bg-emerald-600/10 border-emerald-500 text-emerald-400'
+                              : darkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700' : 'bg-white border-slate-100 text-slate-600 hover:border-slate-200'
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded mt-0.5 flex items-center justify-center border transition-all shrink-0 ${seleccionat ? 'bg-emerald-500 border-emerald-500 text-slate-950' : 'border-slate-600'}`}>
+                            {seleccionat && <Check size={12} strokeWidth={4} />}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase tracking-tight text-white group-hover:text-emerald-400 transition-colors">{ex.nom}</span>
+                              <span className="text-[8px] font-mono opacity-60 font-bold bg-slate-800 px-1.5 py-0.5 rounded text-[#FFDF00] shrink-0">{ex.temps}</span>
+                            </div>
+                            <p className="text-[9px] text-slate-500 leading-tight mt-0.5">{ex.desc}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Botons del formulari */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('planificacio');
+                      setEditantId(null);
+                    }}
+                    className={`py-4 rounded-2xl font-black uppercase italic tracking-widest transition-all text-xs text-center border-2 cursor-pointer ${
+                      darkMode ? 'border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white' : 'border-slate-100 text-slate-500 hover:bg-slate-50'
+                    }`}
+                  >
+                    Cancel·lar i Tornar
+                  </button>
+                  <button
+                    type="submit"
+                    className="py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase italic tracking-widest transition-all shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-3 active:scale-[0.98] cursor-pointer text-xs"
+                  >
+                    <Save size={18} />
+                    {editantId ? "✓ Desa les modificacions" : "✓ Publicar a la planificació"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
       </div>
     </div>
   );
 }
 
-function GimnasosView({ gimnasos, onDelete, onAdd, onLoadMock, darkMode }: any) {
+function GimnasosView({ gimnasos, onDelete, onAdd, onLoadMock, darkMode, isAltaMode: isAltaModeProp }: any) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const mode = searchParams.get('mode');
-  const isAltaMode = mode === 'alta';
+  const isAltaMode = isAltaModeProp !== undefined ? isAltaModeProp : (mode === 'alta' || location.pathname.includes('-alta'));
 
   const [nouGimnas, setNouGimnas] = useState({ 
     nom: "", 
     imatges: [] as string[], 
     descripcio: "", 
     entrenament: [] as string[], 
-    preus: "", 
+    preus: "", // Mapeja a Tarifes per a compatibilitat de base de dades
     telefon: "", 
     correu: "", 
     provincia: "", 
     comarca: "", 
     municipi: "", 
+    adreca: "", // Adreça física (Nou camp)
+    horaris_setmana: "", // Horari dill-div (Nou camp)
+    horaris_dissabte: "", // Horari dissabte (Nou camp)
+    horaris_diumenge: "", // Horari diumenge (Nou camp)
+    horari_especial_opos: "", // Horari especial per oposicions (Nou camp)
+    te_preu_especial_opositors: false, // Preu especial opositors (Nou camp)
+    preu_especial_opositors: "", // Detall preu especial opositors (Nou camp)
+    rrss_instagram: "", // Instagram URL (Nou camp)
+    rrss_facebook: "", // Facebook URL (Nou camp)
+    rrss_twitter: "", // Twitter URL (Nou camp)
+    rrss_tiktok: "", // TikTok URL (Nou camp)
+    rrss_web: "", // Web URL (Nou camp)
     infoPrivada: "" 
   });
 
@@ -5324,7 +6244,11 @@ function GimnasosView({ gimnasos, onDelete, onAdd, onLoadMock, darkMode }: any) 
   const comarquesDisponibles = nouGimnas.provincia ? Object.keys(DATA_CATALUNYA[nouGimnas.provincia as keyof typeof DATA_CATALUNYA] || {}) : [];
   const municipisDisponibles = (nouGimnas.provincia && nouGimnas.comarca) ? (DATA_CATALUNYA[nouGimnas.provincia as keyof typeof DATA_CATALUNYA]?.[nouGimnas.comarca] || []) : [];
 
-  const FormContent = () => (
+  // Comentari planer per a no-programadors:
+  // Convertim FormContent de component independent a funció ordinària de render (renderFormContent).
+  // D'aquesta manera, evitem que React reconstrueixi completament el formulari amb cada tecla pulsada.
+  // Això soluciona definitivament el 'bug de pèrdua de focus' quan s'introdueix text.
+  const renderFormContent = () => (
     <form onSubmit={async (e) => { e.preventDefault(); await onAdd(nouGimnas); setIsFormOpen(false); if (isAltaMode) navigate('/admin/gimnasos'); }} className="space-y-8">
       {/* SECCIÓ 1: DADES BÀSIQUES */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -5361,135 +6285,278 @@ function GimnasosView({ gimnasos, onDelete, onAdd, onLoadMock, darkMode }: any) 
       </div>
 
       {/* SECCIÓ 2: LOCALITZACIÓ */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pt-4 border-t border-slate-100 dark:border-slate-800 items-end">
+        <SearchableSelect
+          label="Província"
+          value={nouGimnas.provincia}
+          onChange={val => setNouGimnas({...nouGimnas, provincia: val, comarca: "", municipi: ""})}
+          options={Object.keys(DATA_CATALUNYA)}
+          placeholder="Província"
+          required
+          darkMode={darkMode}
+          isAdminView={true}
+        />
+        <SearchableSelect
+          label="Comarca"
+          value={nouGimnas.comarca}
+          onChange={val => setNouGimnas({...nouGimnas, comarca: val, municipi: ""})}
+          options={comarquesDisponibles}
+          placeholder="Comarca"
+          disabled={!nouGimnas.provincia}
+          required
+          darkMode={darkMode}
+          isAdminView={true}
+        />
+        <SearchableSelect
+          label="Municipi"
+          value={nouGimnas.municipi}
+          onChange={val => setNouGimnas({...nouGimnas, municipi: val})}
+          options={municipisDisponibles}
+          placeholder="Municipi"
+          disabled={!nouGimnas.comarca}
+          required
+          darkMode={darkMode}
+          isAdminView={true}
+        />
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase text-slate-500 px-1">Província</label>
-          <select 
+          <label className="text-[10px] font-black uppercase text-slate-500 px-1">Adreça o carrer *</label>
+          <input 
             required
-            value={nouGimnas.provincia}
-            onChange={e => setNouGimnas({...nouGimnas, provincia: e.target.value, comarca: "", municipi: ""})}
-            className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm appearance-none ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
-          >
-            <option value="">Selecciona província</option>
-            {Object.keys(DATA_CATALUNYA).map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-        </div>
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase text-slate-500 px-1">Comarca</label>
-          <select 
-            required
-            disabled={!nouGimnas.provincia}
-            value={nouGimnas.comarca}
-            onChange={e => setNouGimnas({...nouGimnas, comarca: e.target.value, municipi: ""})}
-            className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm appearance-none transition-all ${!nouGimnas.provincia ? 'opacity-30' : ''} ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
-          >
-            <option value="">Selecciona comarca</option>
-            {comarquesDisponibles.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase text-slate-500 px-1">Municipi</label>
-          <select 
-            required
-            disabled={!nouGimnas.comarca}
-            value={nouGimnas.municipi}
-            onChange={e => setNouGimnas({...nouGimnas, municipi: e.target.value})}
-            className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm appearance-none transition-all ${!nouGimnas.comarca ? 'opacity-30' : ''} ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
-          >
-            <option value="">Selecciona municipi</option>
-            {municipisDisponibles.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
+            value={nouGimnas.adreca}
+            onChange={e => setNouGimnas({...nouGimnas, adreca: e.target.value})}
+            placeholder="Ex: Rambla de Catalunya, 40"
+            className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+          />
         </div>
       </div>
 
-      {/* SECCIÓ 3: CONTACTE I PREUS */}
+      {/* SECCIÓ 3: HORARIS I PREUS (REQUERIT PEL CLIENT) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pt-4 border-t border-slate-100 dark:border-slate-800">
-        <div className="space-y-6">
+        <div className="space-y-4">
+          <label className="text-[10px] font-black uppercase text-slate-500 block px-1">Horaris d'obertura</label>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="space-y-1">
+              <span className="text-[9px] text-slate-400 font-bold uppercase block px-1">Dl - Dv</span>
+              <input 
+                required
+                value={nouGimnas.horaris_setmana}
+                onChange={e => setNouGimnas({...nouGimnas, horaris_setmana: e.target.value})}
+                placeholder="Ex: 07h-22:30h"
+                className={`w-full p-3 rounded-xl border-none outline-none font-bold text-xs ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+              />
+            </div>
+            <div className="space-y-1">
+              <span className="text-[9px] text-slate-400 font-bold uppercase block px-1">Dissabtes</span>
+              <input 
+                value={nouGimnas.horaris_dissabte}
+                onChange={e => setNouGimnas({...nouGimnas, horaris_dissabte: e.target.value})}
+                placeholder="Ex: 09h-14h"
+                className={`w-full p-3 rounded-xl border-none outline-none font-bold text-xs ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+              />
+            </div>
+            <div className="space-y-1">
+              <span className="text-[9px] text-slate-400 font-bold uppercase block px-1">Diumenges</span>
+              <input 
+                value={nouGimnas.horaris_diumenge}
+                onChange={e => setNouGimnas({...nouGimnas, horaris_diumenge: e.target.value})}
+                placeholder="Ex: Tancat"
+                className={`w-full p-3 rounded-xl border-none outline-none font-bold text-xs ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <span className="text-[9px] text-slate-400 font-bold uppercase block px-1">Horari Especial oposicions</span>
+            <input 
+              value={nouGimnas.horari_especial_opos}
+              onChange={e => setNouGimnas({...nouGimnas, horari_especial_opos: e.target.value})}
+              placeholder="Ex: Ma-Dj de 18:30 a 20h entrenament lliure d'oposicions"
+              className={`w-full p-4 rounded-xl border-none outline-none font-bold text-xs ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4">
           <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-500 px-1">Telèfon de contacte</label>
+            <label className="text-[10px] font-black uppercase text-slate-500 px-1">Preu Gimnàs i Tarifes (podeu posar tarifes diferents: dia, setmana, etc.) *</label>
+            <textarea 
+              required
+              value={nouGimnas.preus}
+              onChange={e => setNouGimnas({...nouGimnas, preus: e.target.value})}
+              placeholder="Quota general: 40€/mes. Passi diari: 8€. Quota matins (de 7h a 12h): 28€/mes."
+              className={`w-full h-24 p-4 rounded-2xl border-none outline-none font-bold text-sm resize-none ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[9px] text-slate-400 font-bold uppercase">Preu Especial per Opositors</span>
+              <button
+                type="button"
+                onClick={() => setNouGimnas({...nouGimnas, te_preu_especial_opositors: !nouGimnas.te_preu_especial_opositors})}
+                className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase transition-all ${nouGimnas.te_preu_especial_opositors ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}
+              >
+                {nouGimnas.te_preu_especial_opositors ? 'Sí' : 'No'}
+              </button>
+            </div>
+            {nouGimnas.te_preu_especial_opositors && (
+              <input 
+                value={nouGimnas.preu_especial_opositors}
+                onChange={e => setNouGimnas({...nouGimnas, preu_especial_opositors: e.target.value})}
+                placeholder="Ex: quota d'opositor a 35€/mes sense matrícula"
+                className={`w-full p-3.5 rounded-xl border-none outline-none font-bold text-xs ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* SECCIÓ 4: CONTACTE, DESCRIPCIÓ I XARXES */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pt-4 border-t border-slate-100 dark:border-slate-800">
+        <div className="space-y-4">
+          <label className="text-[10px] font-black uppercase text-slate-500 block px-1">Contacte i Xarxes socials</label>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <span className="text-[8px] text-slate-400 font-bold uppercase block px-1">Telèfon</span>
               <input 
                 value={nouGimnas.telefon}
                 onChange={e => setNouGimnas({...nouGimnas, telefon: e.target.value})}
                 placeholder="Ex: 93 XXXXXXX"
-                className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+                className={`w-full p-3.5 rounded-xl border-none outline-none font-bold text-xs ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
               />
-          </div>
-          <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-500 px-1">Correu electrònic</label>
+            </div>
+            <div className="space-y-1">
+              <span className="text-[8px] text-slate-400 font-bold uppercase block px-1">Email</span>
               <input 
                 value={nouGimnas.correu}
                 onChange={e => setNouGimnas({...nouGimnas, correu: e.target.value})}
                 placeholder="Ex: hola@gimnas.com"
-                className={`w-full p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+                className={`w-full p-3.5 rounded-xl border-none outline-none font-bold text-xs ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
               />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <span className="text-[8px] text-slate-400 font-bold uppercase block px-1">Instagram</span>
+              <input 
+                value={nouGimnas.rrss_instagram}
+                onChange={e => setNouGimnas({...nouGimnas, rrss_instagram: e.target.value})}
+                placeholder="Instagram URL"
+                className={`w-full p-3 rounded-xl border-none outline-none font-semibold text-xs ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+              />
+            </div>
+            <div className="space-y-1">
+              <span className="text-[8px] text-slate-400 font-bold uppercase block px-1">Facebook</span>
+              <input 
+                value={nouGimnas.rrss_facebook}
+                onChange={e => setNouGimnas({...nouGimnas, rrss_facebook: e.target.value})}
+                placeholder="Facebook URL"
+                className={`w-full p-3 rounded-xl border-none outline-none font-semibold text-xs ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div className="space-y-1">
+              <span className="text-[8px] text-slate-400 font-bold uppercase block px-1">Twitter</span>
+              <input 
+                value={nouGimnas.rrss_twitter}
+                onChange={e => setNouGimnas({...nouGimnas, rrss_twitter: e.target.value})}
+                placeholder="Twitter URL"
+                className={`w-full p-3 rounded-xl border-none outline-none font-semibold text-[10px] ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+              />
+            </div>
+            <div className="space-y-1">
+              <span className="text-[8px] text-slate-400 font-bold uppercase block px-1">TikTok</span>
+              <input 
+                value={nouGimnas.rrss_tiktok}
+                onChange={e => setNouGimnas({...nouGimnas, rrss_tiktok: e.target.value})}
+                placeholder="TikTok URL"
+                className={`w-full p-3 rounded-xl border-none outline-none font-semibold text-[10px] ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+              />
+            </div>
+            <div className="space-y-1">
+              <span className="text-[8px] text-slate-400 font-bold uppercase block px-1">Pàgina Web</span>
+              <input 
+                value={nouGimnas.rrss_web}
+                onChange={e => setNouGimnas({...nouGimnas, rrss_web: e.target.value})}
+                placeholder="Web URL"
+                className={`w-full p-3 rounded-xl border-none outline-none font-semibold text-[10px] ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+              />
+            </div>
           </div>
         </div>
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase text-slate-500 px-1">Preus i Tarifes</label>
-          <textarea 
-              value={nouGimnas.preus}
-              onChange={e => setNouGimnas({...nouGimnas, preus: e.target.value})}
-              placeholder="Detalla els packs, matrícules o preus per sessió..."
-              className={`w-full h-[140px] p-4 rounded-2xl border-none outline-none font-bold text-sm resize-none ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
-          />
-        </div>
-      </div>
 
-      {/* SECCIÓ 4: DESCRIPCIÓ I IMATGES */}
-      <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-slate-800">
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase text-slate-500 px-1">Descripció del centre</label>
-          <textarea 
-            value={nouGimnas.descripcio}
-            onChange={e => setNouGimnas({...nouGimnas, descripcio: e.target.value})}
-            placeholder="Breu descripció del gimnàs i les seves instal·lacions..."
-            className={`w-full h-24 p-4 rounded-2xl border-none outline-none font-bold text-sm resize-none ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
-          />
-        </div>
-        
         <div className="space-y-4">
-          <label className="text-[10px] font-black uppercase text-slate-500 px-1">Imatges del centre (URLs)</label>
-          <div className="flex gap-2">
-            <input 
-              value={urlImatge}
-              onChange={e => setUrlImatge(e.target.value)}
-              placeholder="Afegeix URL de la imatge..."
-              className={`flex-1 p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+          <div className="space-y-2">
+            <div className="flex justify-between px-1">
+              <label className="text-[10px] font-black uppercase text-slate-500">Descripció del centre *</label>
+              <span className={`text-[9px] font-bold ${nouGimnas.descripcio.length > 950 ? 'text-red-500 font-black' : 'text-slate-400'}`}>
+                {nouGimnas.descripcio.length} / 1000
+              </span>
+            </div>
+            <textarea 
+              required
+              value={nouGimnas.descripcio}
+              onChange={e => setNouGimnas({...nouGimnas, descripcio: e.target.value.substring(0, 1000)})}
+              placeholder="Explica breument la descripció del gimnàs i les seves instal·lacions (màxim 1000 caràcters)..."
+              className={`w-full h-24 p-4 rounded-2xl border-none outline-none font-bold text-sm resize-none ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
             />
-            <button 
-              type="button"
-              onClick={addImatge}
-              className="px-6 bg-slate-800 text-white rounded-2xl font-black uppercase text-[10px] hover:bg-slate-700 transition-all"
-            >
-              Afegir
-            </button>
           </div>
-          <div className="flex flex-wrap gap-3">
-            {nouGimnas.imatges.map((img, idx) => (
-              <div key={idx} className="relative group w-24 h-24 rounded-2xl overflow-hidden border-2 border-slate-100 dark:border-slate-800">
-                <img src={img} alt="preview" className="w-full h-full object-cover" />
-                <button 
-                  type="button"
-                  onClick={() => removeImatge(idx)}
-                  className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                >
-                  <Trash2 size={20} />
-                </button>
-              </div>
-            ))}
+
+          {/* MISSATGE D'INFORACIÓ EXTRA PER A IMATGES EN ALTA QUALITAT (EXIGIT PEL CLIENT) */}
+          <div className="p-4 bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/10 dark:border-indigo-500/20 rounded-2xl">
+            <p className="text-[10px] text-indigo-400 font-black uppercase tracking-wider mb-1">📸 Informació Extra d'Imatges</p>
+            <p className="text-[10px] font-medium leading-relaxed text-slate-400">
+              Si es volen posar imatges directament del centre en alta qualitat, cal enviar-les a: <strong className="text-slate-200">oposicat@gmail.com</strong>
+            </p>
           </div>
         </div>
       </div>
 
-      {/* SECCIÓ 5: INFO PRIVADA */}
+      {/* SECCIÓ 5: IMATGES DEL CENTRE */}
+      <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+        <label className="text-[10px] font-black uppercase text-slate-500 px-1">Imatges enllaçades del centre (URLs d'Internet)</label>
+        <div className="flex gap-2">
+          <input 
+            value={urlImatge}
+            onChange={e => setUrlImatge(e.target.value)}
+            placeholder="Afegeix una URL de la imatge..."
+            className={`flex-1 p-4 rounded-2xl border-none outline-none font-bold text-sm ${darkMode ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-800'}`}
+          />
+          <button 
+            type="button"
+            onClick={addImatge}
+            className="px-6 bg-slate-800 dark:bg-slate-700 text-white rounded-2xl font-black uppercase text-[10px] hover:bg-slate-700 dark:hover:bg-slate-600 transition-all"
+          >
+            Afegir
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {nouGimnas.imatges.map((img, idx) => (
+            <div key={idx} className="relative group w-24 h-24 rounded-2xl overflow-hidden border-2 border-slate-100 dark:border-slate-800">
+              <img src={img} alt="preview" className="w-full h-full object-cover" />
+              <button 
+                type="button"
+                onClick={() => removeImatge(idx)}
+                className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+              >
+                <Trash2 size={20} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* SECCIÓ 6: INFO PRIVADA */}
       <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
         <label className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-500 px-1">
-          <LockIcon size={12} /> Informació Privada (Només per a nosaltres)
+          <LockIcon size={12} /> Informació Privada (Només per a l'administració d'OposiCAT)
         </label>
         <textarea 
           value={nouGimnas.infoPrivada}
           onChange={e => setNouGimnas({...nouGimnas, infoPrivada: e.target.value})}
-          placeholder="Comentaris sobre comissionat, tracte especial, acords de pagament, etc."
+          placeholder="Comentaris interns sobre el comissionat, tracte especial amb el propietari, acords econòmics, acords de pagament, etc."
           className={`w-full h-24 p-4 rounded-2xl border-none outline-none font-bold text-[11px] resize-none ${darkMode ? 'bg-amber-500/5 text-amber-500' : 'bg-amber-50 text-amber-900'}`}
         />
       </div>
@@ -5556,7 +6623,7 @@ function GimnasosView({ gimnasos, onDelete, onAdd, onLoadMock, darkMode }: any) 
                    Veure banc de gimnasos
                  </Link>
               </div>
-              <FormContent />
+              {renderFormContent()}
             </motion.div>
           </div>
         ) : (
@@ -5583,7 +6650,7 @@ function GimnasosView({ gimnasos, onDelete, onAdd, onLoadMock, darkMode }: any) 
                        <span className="text-emerald-500 font-black uppercase text-[10px] tracking-widest">Registre d'instal·lació</span>
                        <h3 className="text-2xl font-black uppercase italic mt-1">Nou Gimnàs Col·laborador</h3>
                     </div>
-                    <FormContent />
+                    {renderFormContent()}
                   </motion.div>
                 </div>
               )}
@@ -6060,6 +7127,41 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
   const [filterEstatSubscripcio, setFilterEstatSubscripcio] = useState("all");
   const [filterPagament, setFilterPagament] = useState("all");
 
+  // Estat per visualitzar els resultats de Biodata per part dels psicòlegs / administradors d'OposiCAT
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [userBiodataResults, setUserBiodataResults] = useState<any | null>(null);
+  const [loadingResults, setLoadingResults] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!selectedUser) {
+      setUserBiodataResults(null);
+      return;
+    }
+    const fetchUserBiodata = async () => {
+      setLoadingResults(true);
+      try {
+        const uId = selectedUser.uid || selectedUser.id;
+        const q = query(
+          collection(db, `usuaris/${uId}/resultats_biodata`),
+          orderBy('creatEl', 'desc'),
+          limit(1)
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          setUserBiodataResults(snap.docs[0].data());
+        } else {
+          setUserBiodataResults({ no_data: true });
+        }
+      } catch (e) {
+        console.error("Error carregant resultats de biodata de l'usuari:", e);
+        setUserBiodataResults({ error: true });
+      } finally {
+        setLoadingResults(false);
+      }
+    };
+    fetchUserBiodata();
+  }, [selectedUser]);
+
   // Comentari planer per a no-programadors:
   // Llista legible dels noms en català per als 10 rols que gestionem a l'aplicació.
   const ROLS_NOMS_CAT: any = {
@@ -6069,6 +7171,7 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
     treballador_nivell_1: "Treballador Nivell 1",
     treballador_nivell_2: "Treballador Nivell 2",
     treballador_nivell_3: "Treballador Nivell 3",
+    usuari_alpha: "Usuari Alpha (Tester)",
     usuari: "Usuari Opositor",
     usuari_free_trial: "Usuari Prova (Free trial)",
     usuari_bannejat: "Usuari Bannejat",
@@ -6093,6 +7196,8 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
       case 'usuari':
       case 'opositor':
         return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+      case 'usuari_alpha':
+        return 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20';
       case 'usuari_free_trial':
         return 'bg-teal-500/10 text-teal-400 border border-teal-500/20';
       case 'usuari_bannejat':
@@ -6315,6 +7420,7 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
               <option value="treballador_nivell_3">Treballador Nivell 3</option>
               <option value="usuari">Usuari Opositor (usuari)</option>
               <option value="opositor">Usuari Opositor (opositor)</option>
+              <option value="usuari_alpha">Usuari Alpha (Tester)</option>
               <option value="usuari_free_trial">Usuari Prova (Free Trial)</option>
               <option value="usuari_bannejat">Usuari Bannejat</option>
               <option value="usuari_sospitos">Usuari Sospitós</option>
@@ -6480,6 +7586,14 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
                   {u.estatSubscripcio === 'activa' ? 'Anul·lar Accés' : 'Autoritzar Accés'}
                 </button>
 
+                {/* Botó per veure els resultats del test de Biodata del alumne (per part del psicòleg) */}
+                <button
+                  onClick={() => setSelectedUser(u)}
+                  className="flex-1 py-2 px-3 rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all truncate text-center cursor-pointer bg-purple-500/10 text-purple-400 border border-purple-500/25 hover:bg-purple-500 hover:text-white hover:shadow-md"
+                >
+                  Veure Biodata 📊
+                </button>
+
                 {/* Botó per commutar el càrrec/rol (Opositor clàssic o Administrador de control) */}
                 {/* Selector Dropdown de Rol - Comentari planer per a no-programadors:
                     En lloc d'un botó simple de si/no admin, ara l'Admin Master pot triar manualment
@@ -6512,6 +7626,7 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
                         { val: "treballador_nivell_3", text: "✎ Treballador Nivell 3" },
                         { val: "usuari", text: "✔ Usuari Opositor (usuari)" },
                         { val: "opositor", text: "✔ Usuari Opositor (opositor)" },
+                        { val: "usuari_alpha", text: "🎯 Usuari Alpha (Tester)" },
                         { val: "usuari_free_trial", text: "⏳ Usuari Prova (Free trial)" },
                         { val: "usuari_bannejat", text: "✖ Usuari Bannejat" },
                         { val: "usuari_sospitos", text: "⚠ Usuari Sospitós" }
@@ -6543,6 +7658,187 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
           </p>
         </div>
       )}
+
+      {/* MODAL DE RESULTATS DE BIODATA PER AL PSICÒLEG */}
+      <AnimatePresence>
+        {selectedUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
+            <div className={`w-full max-w-2xl rounded-3xl border p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh] ${
+              darkMode ? 'bg-[#0b1b2d] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+            }`}>
+              {/* Línia decorativa de dalt d'OposiCAT */}
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-purple-500 via-yellow-500 to-emerald-500" />
+
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200/20">
+                <div className="text-left">
+                  <span className="text-[10px] text-yellow-500 font-black uppercase tracking-widest italic">PREPARACIÓ D'ENTREVISTA • PSICÒLEGS</span>
+                  <h3 className={`text-xl font-black italic uppercase tracking-wider ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                    Biodata de {selectedUser.displayName || "Novell Opositor"}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-medium">{selectedUser.email}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedUser(null)}
+                  className={`p-2 rounded-xl transition-colors hover:bg-white/10 cursor-pointer ${
+                    darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto pr-1 flex-1 flex flex-col gap-6">
+                {loadingResults ? (
+                  <div className="py-20 flex flex-col items-center justify-center text-center gap-3">
+                    <RefreshCw className="w-8 h-8 text-yellow-500 animate-spin" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Carregant resultats de la BBDD...</span>
+                  </div>
+                ) : userBiodataResults?.no_data ? (
+                  <div className="py-16 flex flex-col items-center justify-center text-center gap-4 border border-dashed border-slate-700/40 rounded-2xl">
+                    <Info className="w-10 h-10 text-amber-500" />
+                    <div>
+                      <h4 className={`text-sm font-black uppercase tracking-wider ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>Sense simulacres realitzats</h4>
+                      <p className="text-[10px] text-slate-450 font-medium max-w-sm mt-1 leading-relaxed">
+                        Aquest alumne encara no ha realitzat o lliurat el simulacre oficial de 80 preguntes de Biodata. Un cop el completi, els resultats es desaran aquí a la base de dades en temps real.
+                      </p>
+                    </div>
+                  </div>
+                ) : userBiodataResults?.error ? (
+                  <div className="py-16 flex flex-col items-center justify-center text-center gap-4 border border-red-500/20 bg-red-500/5 rounded-2xl">
+                    <AlertTriangle className="w-10 h-10 text-red-400" />
+                    <div>
+                      <h4 className="text-sm font-black uppercase tracking-wider text-red-400">Error de connexió</h4>
+                      <p className="text-[10px] text-slate-400 font-medium max-w-sm mt-1 leading-relaxed">
+                        S'ha produït un error en intentar connectar amb Firestore per recuperar les dades. Si us plau, torna-ho a intentar d'aquí a uns minuts.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Diagnostic final i informació de data */}
+                    {(() => {
+                      const resultatsTest = userBiodataResults.resultats || [];
+                      const competenciesSotaPerfil = MAP_COMPETENCIES.filter((comp, idx) => resultatsTest[idx] < 5.0);
+                      const perfectesDe10 = MAP_COMPETENCIES.filter((comp, idx) => resultatsTest[idx] === 10.0);
+
+                      let veredicteTipus = 'APTE';
+                      let veredicteTitol = "APTE AMB BON PERFIL";
+                      let veredicteDescripcio = "El patró competencial d'aquest alumne és del tot òptim i realista, complint amb el caràcter policial de Mossos. Manté un perfil equilibrat idoni per a l'entrevista.";
+                      let veredicteEstil = "border-emerald-500/20 bg-emerald-500/10 text-emerald-400";
+
+                      if (competenciesSotaPerfil.length > 0) {
+                        veredicteTipus = 'NO_APTE';
+                        veredicteTitol = "NO APTE AUTOMÀTIC (LÍNIES VERMELLES)";
+                        veredicteDescripcio = `L'alumne ha obtingut una puntuació inferior a 5.0 en competències clau crítiques: ${competenciesSotaPerfil.map(c => c.nom).join(', ')}. Això genera un perfil no apte excloent de forma directa segons criteris d'avaluació policial.`;
+                        veredicteEstil = "border-red-500/20 bg-red-500/10 text-red-400";
+                      } else if (perfectesDe10.length > 6) {
+                        veredicteTipus = 'INCOHERENT';
+                        veredicteTitol = "TEST INCOHERENT (DETECTOR DE MENTIDES)";
+                        veredicteDescripcio = "S'han identificat més de 6 competències amb una puntuació perfecta de 10.0 alhora. S'ha detectat desitjabilitat social extrema o manca de sinceritat de l'aspirant. Cal advertir-lo d'actuar amb més realisme i no simular la perfecció.";
+                        veredicteEstil = "border-amber-500/20 bg-amber-500/10 text-amber-400";
+                      }
+
+                      // Formatador de data local
+                      let dataFormatada = "S/D";
+                      if (userBiodataResults.creatEl) {
+                        try {
+                          dataFormatada = new Date(userBiodataResults.creatEl).toLocaleString('ca-ES', {
+                            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                          });
+                        } catch (err) {}
+                      }
+
+                      return (
+                        <div className="flex flex-col gap-4">
+                          <div className={`p-4 rounded-2xl border ${veredicteEstil} text-left`}>
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 bg-black/10 rounded-md">
+                                {veredicteTipus}
+                              </span>
+                              <h4 className="font-black text-xs md:text-sm uppercase tracking-wide">
+                                {veredicteTitol}
+                              </h4>
+                            </div>
+                            <p className="text-[10px] md:text-xs font-medium leading-relaxed opacity-90">
+                              {veredicteDescripcio}
+                            </p>
+                            <span className="text-[8px] font-mono opacity-60 block mt-2 text-right">
+                              Data de lliurament: {dataFormatada}
+                            </span>
+                          </div>
+
+                          {/* Graella de Competències */}
+                          <div className="flex flex-col gap-2.5">
+                            <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest block text-left">DETALL DE COMPETÈNCIES (PERFIL UNIFICAT)</span>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {MAP_COMPETENCIES.map((comp, idx) => {
+                                const valor = resultatsTest[idx] !== undefined ? resultatsTest[idx] : 0;
+                                const sotaPerfil = valor < 5.0;
+                                const perfecte = valor === 10.0;
+                                
+                                let colorText = "text-emerald-400";
+                                let colorBarra = "bg-emerald-400";
+                                if (sotaPerfil) {
+                                  colorText = "text-red-400 font-bold animate-pulse";
+                                  colorBarra = "bg-red-400";
+                                } else if (perfecte) {
+                                  colorText = "text-amber-400 font-bold";
+                                  colorBarra = "bg-amber-400";
+                                }
+
+                                return (
+                                  <div 
+                                    key={comp.id}
+                                    className={`p-3 rounded-xl border flex flex-col justify-between gap-2 text-left ${
+                                      darkMode ? 'bg-black/20 border-white/5' : 'bg-slate-50 border-slate-200'
+                                    }`}
+                                  >
+                                    <div className="flex items-start justify-between gap-2 min-w-0">
+                                      <div className="min-w-0">
+                                        <span className={`text-[8px] font-mono uppercase px-1.5 py-0.5 rounded ${
+                                          sotaPerfil ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'
+                                        }`}>
+                                          [{comp.id}] {comp.nom}
+                                        </span>
+                                      </div>
+                                      <span className={`text-xs font-mono font-black shrink-0 ${colorText}`}>
+                                        {valor.toFixed(1)} / 10
+                                      </span>
+                                    </div>
+                                    <div className="w-full bg-slate-700/20 h-2 rounded-full overflow-hidden">
+                                      <div 
+                                        className={`h-full rounded-full transition-all duration-500 ${colorBarra}`} 
+                                        style={{ width: `${valor * 10}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </>
+                )}
+              </div>
+
+              {/* Consells Didàctics del Psicòleg - A Futur segons la norma 6 d'AGENTS.md */}
+              <div className={`mt-6 p-4 rounded-2xl border text-left ${
+                darkMode ? 'bg-[#1a3a5a]/20 border-white/5' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <h4 className="text-yellow-500 font-black uppercase text-[10px] tracking-wider mb-1 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                  Et recomano, modificaria i/o recorda que pot passar... a futur (Rol del Psicòleg)
+                </h4>
+                <p className="text-[10px] md:text-[11px] text-slate-450 leading-relaxed italic">
+                  Com a psicòleg de l'acadèmia, utilitza el perfil anterior per focalitzar l'entrevista personal en les competències on l'alumne hagi obtingut puntuacions baixes (menys de 5.0) o incoherents (perfectes de 10). Revisa si l'alumne mostra contradiccions o si s'ha posat nerviós davant de les situacions de dany o adaptabilitat. Això estalviarà temps valuós de sessió individual.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

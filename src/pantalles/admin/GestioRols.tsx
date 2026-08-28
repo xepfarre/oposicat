@@ -86,6 +86,13 @@ const ROLS_PREDEFINITS: ConfiguracioRol[] = [
     permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: true, gestioIncidencies: true, gestioFisica: true, veureTemariSencer: true, accesLimitatFreeTrial: false, gestioPreguntesTeoria: false }
   },
   {
+    id: "usuari_alpha",
+    nom: "Usuari Alpha (Tester)",
+    descripcio: "Perfil especial per als testers de la fase Alpha. Accés exclusiu a la prova psicològica (teòrica i física restringides).",
+    actiu: true,
+    permisos: { enviarNotificacions: false, visualitzarFinances: false, actualitzarTeoria: false, gestioIncidencies: false, gestioFisica: false, veureTemariSencer: false, accesLimitatFreeTrial: true, gestioPreguntesTeoria: false }
+  },
+  {
     id: "usuari",
     nom: "Usuari Opositor",
     descripcio: "Perfil estàndard dels estudiants de pagament complet. Accés i dret a visualitzar temari i fer entrenaments bàsics.",
@@ -449,6 +456,8 @@ export default function GestioRols({ darkMode }: { darkMode: boolean }) {
       case "usuari":
       case "opositor":
         return "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20";
+      case "usuari_alpha":
+        return "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20";
       case "usuari_free_trial":
         return "bg-teal-500/10 text-teal-400 border border-teal-500/20";
       case "usuari_bannejat":
@@ -468,6 +477,7 @@ export default function GestioRols({ darkMode }: { darkMode: boolean }) {
     treballador_nivell_1: "Treballador Nivell 1",
     treballador_nivell_2: "Treballador Nivell 2",
     treballador_nivell_3: "Treballador Nivell 3",
+    usuari_alpha: "Usuari Alpha (Tester)",
     usuari: "Usuari Opositor",
     usuari_free_trial: "Usuari Prova (Free trial)",
     usuari_bannejat: "Usuari Bannejat",
@@ -989,6 +999,7 @@ export default function GestioRols({ darkMode }: { darkMode: boolean }) {
                     <option value="treballador_nivell_2">✎ Treballador Nivell 2</option>
                     <option value="treballador_nivell_3">✎ Treballador Nivell 3</option>
                     <option value="opositor">✔ Usuari Opositor</option>
+                    <option value="usuari_alpha">🎯 Usuari Alpha (Tester)</option>
                     <option value="usuari_free_trial">⏳ Usuari Prova (Free trial)</option>
                     <option value="usuari_bannejat">✖ Usuari Bannejat</option>
                     <option value="usuari_sospitos">⚠ Usuari Sospitós</option>
@@ -1062,6 +1073,7 @@ export default function GestioRols({ darkMode }: { darkMode: boolean }) {
                               { val: "treballador_nivell_3", text: "✎ Treballador Nivell 3" },
                               { val: "usuari", text: "✔ Usuari Opositor (usuari)" },
                               { val: "opositor", text: "✔ Usuari Opositor (opositor)" },
+                              { val: "usuari_alpha", text: "🎯 Usuari Alpha (Tester)" },
                               { val: "usuari_free_trial", text: "⏳ Usuari Prova (Free trial)" },
                               { val: "usuari_bannejat", text: "✖ Usuari Bannejat" },
                               { val: "usuari_sospitos", text: "⚠ Usuari Sospitós" }

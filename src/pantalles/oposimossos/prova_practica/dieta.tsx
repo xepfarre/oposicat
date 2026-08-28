@@ -1,124 +1,113 @@
-import { ChevronLeft, Apple, UtensilsCrossed, Sparkles } from "lucide-react";
-import { useState } from "react";
-import { motion } from "motion/react";
+import { useState, useEffect } from "react";
+import { ChevronLeft, Apple, Loader2 } from "lucide-react";
 import DietaPremiumQuiz from "./dieta_premium_quiz";
+import CalculadoraDieta from "./calculadora_dieta";
+import { auth, db, handleFirestoreError, OperationType } from "../../../lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+
+// Explicació per a no-programadors: Carreguem la nova imatge de fons de les dietes específica per a format aplicació (Dieta_APP.png) de forma segura
+// @ts-ignore
+import fonsDieta from "../../../assets/images/Dieta_APP.png";
 
 /**
  * PANTALLA: Dieta
- * Secció de nutrició per a opositors.
+ * Secció de nutrició i alt rendiment per a opositors de Mossos.
+ * Enllaça el qüestionari inicial amb la calculadora de calories reals de Firestore.
  */
-export default function Dieta({ onTornar }: { onTornar: () => void }) {
-  // Estat per gestionar si veiem el menú o el qüestionari
-  const [seccio, setSeccio] = useState<'menu' | 'premium_quiz'>('menu');
+export default function Dieta({ 
+  onTornar,
+  onAnarSeccio
+}: { 
+  onTornar: () => void;
+  onAnarSeccio?: (seccio: 'home' | 'forum' | 'noticies' | 'perfil') => void;
+}) {
+  const [loading, setLoading] = useState<boolean>(true);
+  const [completat, setCompletat] = useState<boolean>(false);
+  const [avatarEstil, setAvatarEstil] = useState<string>("👮‍♂️");
 
-  if (seccio === 'premium_quiz') {
-    return <DietaPremiumQuiz onTornar={() => setSeccio('menu')} />;
+  // Explicació per a no-programadors: Quan l'opositor prem a "Dieta", comprovem si té el perfil de rendiment calculat i guardat a la base de dades Firestore.
+  useEffect(() => {
+    // Carreguem primer l'avatar des de l'emmagatzematge local de l'estudiant per mostrar-ho al menú inferior
+    try {
+      const deLocalStorage = localStorage.getItem("avatar_estil");
+      if (deLocalStorage) {
+        setAvatarEstil(deLocalStorage);
+      }
+    } catch {
+      setAvatarEstil("👮‍♂️");
+    }
+
+    // Comprovem l'estat d'autenticació per carregar les dades de Firestore
+    const desconnecta = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const docRef = doc(db, "usuaris", user.uid, "dades_dietes", "dades");
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const dades = docSnap.data();
+            // Si el qüestionari ha arribat a la pantalla final i s'ha guardat amb èxit
+            if (dades.completat === true) {
+              setCompletat(true);
+            } else {
+              setCompletat(false);
+            }
+          } else {
+            setCompletat(false);
+          }
+        } catch (err) {
+          console.error("Error verificant qüestionari a Firestore:", err);
+          setCompletat(false);
+          handleFirestoreError(err, OperationType.GET, `usuaris/${user.uid}/dades_dietes/dades`);
+        }
+      } else {
+        // Si no està loggejat, es pot usar de forma estàndard amb valors per defecte a la calculadora o forçar qüestionari
+        setCompletat(false);
+      }
+      setLoading(false);
+    });
+
+    return () => desconnecta();
+  }, []);
+
+  // Explicació per a no-programadors: Si està carregant l'estat de la base de dades, mostrem un disseny elegant de càrrega d'alt rendiment d'OposiCAT
+  if (loading) {
+    return (
+      <div className="fixed inset-0 w-full flex flex-col items-center justify-center bg-[#00274d] px-6">
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <img 
+            src={fonsDieta} 
+            alt=""
+            className="w-full h-full object-cover opacity-60"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-[#00274d]/55 to-[#00274d]/98" />
+        </div>
+        <div className="relative z-10 flex flex-col items-center gap-4 bg-[#001f3d]/45 backdrop-blur-md p-8 rounded-3xl border border-white/10 text-center shadow-2xl">
+          <Loader2 className="animate-spin text-emerald-400" size={36} />
+          <h2 className="text-sm font-black italic uppercase tracking-wider text-white">Carregant Perfil Nutricional...</h2>
+          <p className="text-[10px] text-white/50 italic leading-relaxed">Sincronitzant els teus càlculs de macronutrients d'OposiCAT</p>
+        </div>
+      </div>
+    );
   }
 
+  // Explicació per a no-programadors: Si l'opositor ja ha completat el qüestionari en el passat, obrim directament la Calculadora adaptada.
+  // També li passem una acció especial (onResetQuiz) que ens permet amagar la calculadora i tornar a obrir el qüestionari inicial de forma local si així ho desitja l'estudiant.
+  if (completat) {
+    return (
+      <CalculadoraDieta 
+        onTornar={onTornar} 
+        onAnarSeccio={onAnarSeccio} 
+        onResetQuiz={() => setCompletat(false)}
+      />
+    );
+  }
+
+  // Explicació per a no-programadors: Si és la seva primera vegada, s'obre el qüestionari interactiu
   return (
-    <div className="fixed inset-0 w-full flex flex-col items-center bg-[#00274d] overflow-y-auto px-6 pb-20" style={{ WebkitOverflowScrolling: "touch" }}>
-      
-      {/* CAPÇALERA INTEGRADA AMB BOTÓ TORNAR */}
-      <header className="pt-8 w-full flex items-center justify-center gap-4 pb-10 md:max-w-4xl md:mx-auto relative">
-        <button 
-          onClick={onTornar}
-          className="absolute left-0 w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-all active:scale-90 border border-white/10 shadow-lg"
-        >
-          <ChevronLeft size={24} />
-        </button>
-
-        <div className="bg-white/5 px-8 py-3 rounded-xl border border-white/10 shadow-lg">
-          <h1 className="text-xl md:text-3xl font-black italic tracking-tighter uppercase text-white">
-            <span className="text-emerald-400">Dieta</span>
-          </h1>
-        </div>
-      </header>
-
-      {/* CONTINGUT PRINCIPAL */}
-      <main className="w-full max-w-md md:max-w-xl flex flex-col gap-10">
-        
-        {/* EXPLICACIÓ INICIAL COMPACTA */}
-        <div className="flex flex-col gap-4 px-4">
-          <div className="flex items-center gap-3">
-            <Apple size={18} className="text-emerald-400" />
-            <h2 className="text-sm md:text-xl font-black italic uppercase tracking-tight text-white/80">
-              Nutrició i Rendiment
-            </h2>
-          </div>
-          
-          <p className="text-xs md:text-base text-white/40 leading-relaxed italic">
-            Per tal de millorar al màxim la nostra musculatura i rendiment físic, la dieta és clau. T'ajudem de dues formes:{" "}
-            <span className="text-blue-400/80 font-bold uppercase">genèrica</span> o{" "}
-            <span className="text-yellow-400/80 font-bold uppercase">personalitzada</span>.
-          </p>
-        </div>
-
-        {/* SECCIÓ DE BOTONS SLIM */}
-        <div className="flex flex-col gap-6">
-          
-          {/* OPCIÓ 1: GENÈRICA */}
-          <div className="flex flex-col gap-2">
-             <div className="flex items-center gap-2 px-4 text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white/15 italic">
-               Ajuda dietistes (estàndard)
-             </div>
-             <motion.button 
-               whileTap={{ scale: 0.98 }}
-               className="w-full bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl p-6 md:p-8 flex items-center justify-between group transition-all"
-             >
-               <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:bg-blue-500 group-hover:text-[#00274d] transition-all">
-                   <UtensilsCrossed size={20} className="md:size-8" />
-                 </div>
-                 <span className="text-lg md:text-3xl font-black italic uppercase tracking-tighter text-white">
-                   Dieta Genèrica
-                 </span>
-               </div>
-               <ChevronLeft className="rotate-180 text-white/10 group-hover:text-white/40 transition-colors" size={16} />
-             </motion.button>
-          </div>
-
-          {/* OPCIÓ 2: PREMIUM / PERSONALITZADA */}
-          <div className="flex flex-col gap-2">
-             <div className="flex items-center gap-2 px-4 text-[8px] md:text-[10px] font-black uppercase tracking-widest text-yellow-400/15 italic">
-               Ajuda nutricionistes (Premium)
-             </div>
-             <motion.button 
-               onClick={() => setSeccio('premium_quiz')}
-               whileTap={{ scale: 0.98 }}
-               className="w-full bg-yellow-400/5 hover:bg-yellow-400/10 border border-yellow-400/10 rounded-2xl p-6 md:p-8 flex items-center justify-between group transition-all"
-             >
-               <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl bg-yellow-400 flex items-center justify-center text-[#00274d] group-hover:scale-105 transition-transform">
-                   <Sparkles size={20} className="md:size-8" />
-                 </div>
-                 <span className="text-lg md:text-3xl font-black italic uppercase tracking-tighter text-yellow-400">
-                   Dieta Premium
-                 </span>
-               </div>
-               <ChevronLeft className="rotate-180 text-yellow-400/20 group-hover:text-yellow-400/50 transition-colors" size={16} />
-             </motion.button>
-          </div>
-
-        </div>
-
-      </main>
-
-      {/* PEU DE PÀGINA */}
-      <footer className="w-full max-w-xs flex flex-col items-center gap-4 pt-12">
-        <button 
-          onClick={onTornar}
-          className="flex items-center gap-2 group transition-all"
-        >
-          <ChevronLeft size={20} className="text-white/30 group-hover:text-white transition-colors" />
-          <span className="text-white/40 group-hover:text-white text-[10px] font-black uppercase tracking-[0.2em] transition-colors">
-            Tornar al Menú Física
-          </span>
-        </button>
-        <p className="text-[8px] font-black uppercase tracking-wider text-white/20 select-none whitespace-nowrap mt-2">
-          Preparació acadèmica per a oposicions de l'ISPC
-        </p>
-      </footer>
-
-    </div>
+    <DietaPremiumQuiz 
+      onTornar={onTornar} 
+      onAnarSeccio={onAnarSeccio} 
+    />
   );
 }

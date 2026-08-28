@@ -383,12 +383,254 @@
       "description": "Comptadors de volum i estadístiques de preguntes totals d'oposició agrupades per tema.",
       "type": "object",
       "properties": {}
+    },
+    "PreguntaBiodataOficial": {
+      "title": "Pregunta de Biodata Oficial",
+      "description": "Pregunta oficial de Biodata del banc d'examen de Mossos d'Esquadra.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "enunciat": { "type": "string" },
+        "competencia": { "type": "string" },
+        "suspensa": { "type": "boolean" },
+        "opcions": { "type": "array" }
+      },
+      "required": ["id", "enunciat", "competencia", "opcions"]
+    },
+    "ResultatsBiodataUsuari": {
+      "title": "Resultats de Biodata de l'Usuari",
+      "description": "Resultats d'assajos de Biodata associats a les competències claus desar a la BBDD.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "resultats": { "type": "array" },
+        "respostesUsuari": { "type": "array" },
+        "creatEl": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "resultats", "respostesUsuari", "creatEl"]
+    },
+    "Aliment": {
+      "title": "Aliment del Banc d'Aliments",
+      "description": "Aliment oficial enregistrat que es pot afegir a les diferents dietes de l'aplicació.",
+      "type": "object",
+      "properties": {
+        "nom": { "type": "string", "description": "Nom complet de l'aliment o plat" },
+        "kcal": { "type": "integer", "description": "Kilo-calories per porció estàndard o quantitat especificada" },
+        "carbs": { "type": "integer", "description": "Carbohidrats totals en grams" },
+        "protes": { "type": "integer", "description": "Proteïnes totals en grams" },
+        "greixos": { "type": "integer", "description": "Greixos totals en grams" },
+        "moments": { "type": "array", "items": { "type": "string" }, "description": "Àpats o moments en què es pot consumir" },
+        "creatEl": { "type": "string", "format": "date-time", "description": "Instant de registre" }
+      },
+      "required": ["nom", "kcal", "carbs", "protes", "greixos", "moments"]
+    },
+    "Dieta": {
+      "title": "Dieta Oficial de l'Acadèmia",
+      "description": "Dieta oficial creada i publicada per l'equip d'administració d'OposiCAT.",
+      "type": "object",
+      "properties": {
+        "nom": { "type": "string", "description": "Nom o títol de la dieta" },
+        "descripcio": { "type": "string", "description": "Explicació o directrius per fer la dieta" },
+        "tipus": { "type": "string", "enum": ["tematica", "kcal"], "description": "Tipus de dieta (temàtica o per objectiu de kcal)" },
+        "apats": { "type": "array", "description": "Llista d'aliments, moments i quantitats d'àpats associats" },
+        "creatEl": { "type": "string", "format": "date-time", "description": "Instant de creació de la dieta" }
+      },
+      "required": ["nom", "tipus", "apats"]
+    },
+    "DadesDietesUsuari": {
+      "title": "Dades de Dieta de l'Usuari",
+      "description": "Dades nutricionals, preferències, respostes dels qüestionaris de l'alumne per personalitzar les seves dietes.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Identificador únic de l'usuari" },
+        "respostesQuestionari": { "type": "array", "description": "Llista de respostes als qüestionaris de dietes" },
+        "objectiuCaloric": { "type": "integer", "description": "Calories diàries objectiu desitjades per l'estudiant" },
+        "actualitzatEl": { "type": "string", "format": "date-time", "description": "Instant de la darrera actualització" },
+        "creatEl": { "type": "string", "format": "date-time", "description": "Instant de creació de la fitxa" }
+      },
+      "required": ["userId", "respostesQuestionari"]
+    },
+    "DietaFeedback": {
+      "title": "Feedback de Dieta dels Usuaris",
+      "description": "Notificacions de dubtes, errors o suggeriments sobre aliments i dietes enviats pels opositors o noves altes d'aliments.",
+      "type": "object",
+      "properties": {
+        "usuariId": { "type": "string", "description": "UID de l'estudiant" },
+        "usuariNom": { "type": "string", "description": "Nom complet de l'estudiant" },
+        "usuariEmail": { "type": "string", "description": "Correu electrònic de l'estudiant" },
+        "tipus": { "type": "string", "enum": ["suggeriment", "aliment_erroni", "aliment_duplicat", "dubte_general", "alta_aliment"], "description": "Tipus de feedback nutricional" },
+        "alimentNom": { "type": "string", "description": "Nom de l'aliment de referència" },
+        "missatge": { "type": "string", "description": "Missatge de dubte redactat" },
+        "llegit": { "type": "boolean", "description": "Si l'admin ha llegit la notificació" },
+        "estat": { "type": "string", "enum": ["pendent", "resolt", "tramitat"], "description": "Estat de resolució del cas" },
+        "respostaAdmin": { "type": "string", "description": "Resposta redactada de l'administrador" },
+        "creatEl": { "type": "string", "format": "date-time", "description": "Instant de creació del feedback" },
+        "kcal": { "type": "integer", "description": "Kilo-calories per 100g de l'aliment proposat" },
+        "carbs": { "type": "number", "description": "Grams d'hidrats de carboni per 100g de l'aliment proposat" },
+        "protes": { "type": "number", "description": "Grams de proteïnes per 100g de l'aliment proposat" },
+        "greixos": { "type": "number", "description": "Grams de greixos per 100g de l'aliment proposat" }
+      },
+      "required": ["usuariId", "usuariNom", "usuariEmail", "tipus", "alimentNom", "missatge", "llegit", "estat"]
+    },
+    "PropostaGimnas": {
+      "title": "Proposta de Nou Gimnàs o Centre d'Entrenament",
+      "description": "Sol·licitud o proposta d'un alumne o d'un propietari per afegir un centre col·laborador a OposiCAT.",
+      "type": "object",
+      "properties": {
+        "usuariId": { "type": "string", "description": "UID de l'estudiant que fa la proposta" },
+        "tipusProposta": { "type": "string", "enum": ["usuari", "propietari"], "description": "Tipus de persona que fa l'enviament (usuari o propietari)" },
+        "nomSollicitant": { "type": "string", "description": "Nom complet de qui fa la proposta" },
+        "emailContacte": { "type": "string", "description": "Correu electrònic de contacte" },
+        "telefonContacte": { "type": "string", "description": "Telèfon de contacte" },
+        "nomGimnas": { "type": "string", "description": "Nom del centre o gimnàs proposat" },
+        "provincia": { "type": "string", "description": "Província on es troba el gimnàs" },
+        "comarca": { "type": "string", "description": "Comarca on es troba el gimnàs" },
+        "municipi": { "type": "string", "description": "Municipi on es troba el gimnàs" },
+        "adreca": { "type": "string", "description": "Adreça física o carrer" },
+        "proves": { "type": "array", "description": "Llista de proves físiques de Mossos que es poden preparar" },
+        "comentari": { "type": "string", "description": "Comentari addicional explicatiu" },
+        "tarifes": { "type": "string", "description": "Descripció o text de les tarifes si és propietari" },
+        "descripcio": { "type": "string", "description": "Breu descripció del gimnàs si és propietari" },
+        "estat": { "type": "string", "enum": ["pendent", "aprovat", "rebutjat"], "description": "Estat de validació per part dels administradors" },
+        "creatEl": { "type": "string", "format": "date-time", "description": "Instant de creació de la proposta" }
+      },
+      "required": ["usuariId", "tipusProposta", "nomSollicitant", "emailContacte", "nomGimnas", "provincia", "comarca", "municipi", "adreca", "proves", "estat", "creatEl"]
+    },
+    "Gimnas": {
+      "title": "Gimnàs o Centre d'Entrenament Oficial Col·laborador",
+      "description": "Gimnàs col·laborador homologat o publicat per l'equip d'OposiCAT per a la preparació física de Mossos.",
+      "type": "object",
+      "properties": {
+        "nom": { "type": "string", "description": "Nom complet del centre o gimnàs" },
+        "provincia": { "type": "string", "description": "Província on es troba" },
+        "comarca": { "type": "string", "description": "Comarca on es troba" },
+        "municipi": { "type": "string", "description": "Municipi de residència o ubicació" },
+        "adreca": { "type": "string", "description": "Adreça física del local o camp de treball" },
+        "entrenament": { "type": "array", "description": "Llista de proves de Mossos d'Esquadra que es poden preparar al centre" },
+        "imatges": { "type": "array", "description": "Llista d'enllaços d'imatges d'instal·lacions d'Unsplash o propis" },
+        "descripcio": { "type": "string", "description": "Descripció o presentació comercial" },
+        "telefon": { "type": "string", "description": "Telèfon de contacte oficial" },
+        "correu": { "type": "string", "description": "Email oficial de contacte del gimnàs" },
+        "preus": { "type": "string", "description": "Especificació o resum de preus o packs preparació Mossos" },
+        "infoPrivada": { "type": "string", "description": "Anotacions o seguiment privat d'acords d'OposiCAT amb el centre" },
+        "creatEl": { "type": "string", "format": "date-time", "description": "Instant de registre o creació" }
+      },
+      "required": ["nom", "provincia", "comarca", "municipi", "entrenament", "creatEl"]
+    },
+    "ExerciciFisic": {
+      "title": "Exercici de la Prova Física",
+      "description": "Exercici individual de preparació física per a les oposicions de Mossos.",
+      "type": "object",
+      "properties": {
+        "nom": {
+          "type": "string",
+          "description": "Nom complet de l'exercici"
+        },
+        "categoria": {
+          "type": "string",
+          "enum": ["Course Navette", "Circuit Agilitat", "Press de Banca"],
+          "description": "Categoria o tipus de la prova física"
+        },
+        "temps": {
+          "type": "string",
+          "description": "Temps de durada o nombre de repeticions"
+        },
+        "imatge": {
+          "type": "string",
+          "description": "Enllaç URL a una imatge o vídeo"
+        },
+        "consells": {
+          "type": "array",
+          "description": "Llista d'un màxim de 3 consells tècnics opcionals"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["activa", "suspesa"],
+          "description": "Estat de l'exercici (activa o suspesa)"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Instant de creació de l'exercici"
+        }
+      },
+      "required": ["nom", "categoria", "temps", "imatge", "status"]
+    },
+    "PlaEntrenament": {
+      "title": "Pla d'Entrenament de Mossos",
+      "description": "Pla d'entrenament setmanal que agrupa diferents exercicis de preparació física per als opositors.",
+      "type": "object",
+      "properties": {
+        "nom": {
+          "type": "string",
+          "description": "Nom o títol del pla d'entrenament"
+        },
+        "setmana": {
+          "type": "string",
+          "description": "Setmana de planificació de dilluns a diumenge amb l'any"
+        },
+        "descripcio": {
+          "type": "string",
+          "description": "Descripció o objectius del pla setmanal"
+        },
+        "tipus": {
+          "type": "string",
+          "enum": ["especific", "combinat"],
+          "description": "Tipus de pla d'entrenament"
+        },
+        "provaEspecifica": {
+          "type": "string",
+          "description": "Nom de la prova si és específic"
+        },
+        "exercicisIds": {
+          "type": "array",
+          "description": "Llista d'identificadors dels exercicis inclosos"
+        },
+        "actiu": {
+          "type": "boolean",
+          "description": "Estat d'activació per als alumnes (actiu o planificat/esborrador)"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Instant de creació del pla"
+        }
+      },
+      "required": ["nom", "setmana", "descripcio", "tipus", "exercicisIds", "actiu"]
     }
   },
   "firestore": {
+    "gimnasos/{gimnasId}": {
+      "schema": "Gimnas",
+      "description": "Col·lecció de gimnasos o centres col·laboradors publicats oficialment"
+    },
+    "propostes_gimnasos/{propostaId}": {
+      "schema": "PropostaGimnas",
+      "description": "Col·lecció de propostes, dubtes i fitxes de nous centres d'entrenament enviades pels opositors o propietaris"
+    },
+    "usuaris/{userId}/dades_dietes/{docId}": {
+      "schema": "DadesDietesUsuari",
+      "description": "Subcol·lecció on es guarden les preferències, perfil nutricional i respostes dels qüestionaris de cada opositor"
+    },
+    "dietes/{dietaId}": {
+      "schema": "Dieta",
+      "description": "Col·lecció de les dietes publicades pels administradors per a ús dels opositors"
+    },
+    "aliments/{alimentId}": {
+      "schema": "Aliment",
+      "description": "Col·lecció de tots els aliments del banc nutricional d'OposiCAT"
+    },
     "comptadors/{comptadorId}": {
       "schema": "Comptador",
       "description": "Col·lecció de comptadors i estadístiques globals com a denominadors d'anàlisi de rendiment"
+    },
+    "preguntes_biodata_oficial/{preguntaId}": {
+      "schema": "PreguntaBiodataOficial",
+      "description": "Col·lecció de preguntes oficials del Banc de preguntes de Biodata"
+    },
+    "usuaris/{userId}/resultats_biodata/{resultatId}": {
+      "schema": "ResultatsBiodataUsuari",
+      "description": "Resultats d'assajos de Biodata fets per l'opositor desats i llegibles per ell i psicòlegs"
     },
     "usuaris/{userId}": {
       "schema": "Usuari",
@@ -437,6 +679,18 @@
     "examens/{examenId}/preguntes/{preguntaId}": {
       "schema": "Pregunta",
       "description": "Subcol·lecció de preguntes d'exàmens oficials i simulacres generals"
+    },
+    "notificacions_dietes/{docId}": {
+      "schema": "DietaFeedback",
+      "description": "Col·lecció de notificacions, dubtes i feedback sobre dietes enviades per l'alumnat"
+    },
+    "mossos_prova_fisica_exercicis/{exerciciId}": {
+      "schema": "ExerciciFisic",
+      "description": "Col·lecció de tots els exercicis del banc físic de Mossos"
+    },
+    "mossos_plans_entrenament/{plaId}": {
+      "schema": "PlaEntrenament",
+      "description": "Col·lecció de tots els plans d'entrenament setmanals de Mossos"
     }
   }
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, MapPin, Apple, ArrowRight, Timer, Activity, Weight, Home, MessageSquare, Bell } from "lucide-react";
+import { ChevronLeft, MapPin, Apple, ArrowRight, Timer, Activity, Weight, Home, MessageSquare, Bell, Check } from "lucide-react";
 import { motion } from "motion/react";
 import OnEntrenarInici from "./on_entrenar_inici";
 import DetallProvaFisica from "./detall_prova_fisica";
@@ -27,6 +27,38 @@ export default function ProvaFisicaInici({
   // Explicació per a no-programadors: Estat d'àvatar obtingut dinàmicament per a mostrar el mateix dibuix d'avatar personalitzat escollit des del perfil de l'alumne.
   const [avatarEstil, setAvatarEstil] = useState<string>("👮‍♂️");
 
+  // Explicació per a no-programadors: Estats per al pop-up de "On puc entrenar" amb recordatori
+  const [showOnEntrenarPopup, setShowOnEntrenarPopup] = useState(false);
+  const [noTornarAMostrar, setNoTornarAMostrar] = useState(false);
+
+  // Explicació planer per a no-programadors: 
+  // Aquesta funció comprova si l'usuari ha demanat saltar-se el missatge de benvinguda de gimnasos.
+  // Si té marcada la opció a la memòria (localStorage), el porta directe. Si no, li obre el Pop-up informatiu.
+  const anarAOnEntrenar = () => {
+    try {
+      const deLocalStorage = localStorage.getItem("no_tornar_a_mostrar_missatge_entrenar");
+      if (deLocalStorage === "true") {
+        setSeccio('on_entrenar');
+        return;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    setShowOnEntrenarPopup(true);
+  };
+
+  const handleEndavant = () => {
+    if (noTornarAMostrar) {
+      try {
+        localStorage.setItem("no_tornar_a_mostrar_missatge_entrenar", "true");
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setShowOnEntrenarPopup(false);
+    setSeccio('on_entrenar');
+  };
+
   useEffect(() => {
     try {
       const deLocalStorage = localStorage.getItem("avatar_estil");
@@ -45,7 +77,7 @@ export default function ProvaFisicaInici({
 
   // Si estem a la secció de dieta
   if (seccio === 'dieta') {
-    return <Dieta onTornar={() => setSeccio('menu')} />;
+    return <Dieta onTornar={() => setSeccio('menu')} onAnarSeccio={onAnarSeccio} />;
   }
 
   // Detalls individuals de cada prova
@@ -58,7 +90,7 @@ export default function ProvaFisicaInici({
         videoUrl="https://youtu.be/mrnciH-f1Kc?si=Is8UU2tn-Ch4emyh"
         onTornar={() => setSeccio('menu')}
         onDieta={() => setSeccio('dieta')}
-        onOnEntrenar={() => setSeccio('on_entrenar')}
+        onOnEntrenar={anarAOnEntrenar}
         onAnarSeccio={onAnarSeccio}
         color="emerald-400"
       />
@@ -74,7 +106,7 @@ export default function ProvaFisicaInici({
         videoUrl="https://youtu.be/mrnciH-f1Kc?si=Is8UU2tn-Ch4emyh"
         onTornar={() => setSeccio('menu')}
         onDieta={() => setSeccio('dieta')}
-        onOnEntrenar={() => setSeccio('on_entrenar')}
+        onOnEntrenar={anarAOnEntrenar}
         onAnarSeccio={onAnarSeccio}
         color="emerald-400"
       />
@@ -90,7 +122,7 @@ export default function ProvaFisicaInici({
         videoUrl="https://youtu.be/mrnciH-f1Kc?si=Is8UU2tn-Ch4emyh"
         onTornar={() => setSeccio('menu')}
         onDieta={() => setSeccio('dieta')}
-        onOnEntrenar={() => setSeccio('on_entrenar')}
+        onOnEntrenar={anarAOnEntrenar}
         onAnarSeccio={onAnarSeccio}
         color="emerald-400"
       />
@@ -157,7 +189,7 @@ export default function ProvaFisicaInici({
           </button>
           
           <button 
-            onClick={() => setSeccio('on_entrenar')}
+            onClick={anarAOnEntrenar}
             className="flex flex-col items-center justify-center gap-2 md:gap-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-3 md:p-8 transition-all active:scale-95 group shadow-lg"
           >
             <div className="w-9 h-9 md:w-16 md:h-16 rounded-xl bg-red-500/20 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
@@ -297,6 +329,53 @@ export default function ProvaFisicaInici({
 
         </div>
       </div>
+
+      {/* Explicació planer per a no-programadors:
+          Aquest és el Pop-up informatiu de "On puc entrenar".
+          Explica el propòsit de la secció de gimnasos i conté una casella de selecció per a desar la preferència de no tornar-lo a veure. */}
+      {showOnEntrenarPopup && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/75 backdrop-blur-md">
+          <div className="w-full max-w-sm bg-gradient-to-b from-[#0e1626] to-[#050912] border border-white/10 rounded-3xl p-6 shadow-2xl animate-fade-in text-center flex flex-col items-center">
+            
+            <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center mb-4">
+              <MapPin size={22} className="stroke-[2.5]" />
+            </div>
+
+            <h3 className="text-lg font-black italic uppercase tracking-wider text-red-500 mb-2">
+              On puc entrenar
+            </h3>
+
+            <p className="text-xs text-white/80 leading-relaxed font-sans font-medium mb-6 text-left">
+              Des de OposiCAT sabem que és molt complicat trobar centres on entrenar per a les oposicions. Hem creat una eina per tal de que puguis cercar / donar a conèixer gimnasos per a poder entrenar per a les oposicions.
+            </p>
+
+            {/* Checkbox "No tornar a mostrar el missatge" */}
+            <label className="flex items-center gap-3 w-full p-3.5 bg-white/5 border border-white/10 hover:border-white/20 rounded-xl cursor-pointer select-none mb-6 text-left transition-all">
+              <input 
+                type="checkbox"
+                checked={noTornarAMostrar}
+                onChange={(e) => setNoTornarAMostrar(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-5 h-5 rounded-md border border-white/30 flex items-center justify-center text-emerald-400 bg-white/5 transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-500/10 shrink-0">
+                {noTornarAMostrar && <Check size={14} className="stroke-[3]" />}
+              </div>
+              <span className="text-[11px] font-bold uppercase tracking-wide text-white/70">
+                No tornar a mostrar el missatge
+              </span>
+            </label>
+
+            {/* Botó Endavant ! */}
+            <button
+              onClick={handleEndavant}
+              className="w-full bg-red-500 hover:bg-red-400 text-white py-3.5 px-4 rounded-xl font-black italic uppercase text-[11px] tracking-wider transition-all active:scale-95 cursor-pointer text-center shadow-lg shadow-red-500/10"
+            >
+              Endavant !
+            </button>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

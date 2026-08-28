@@ -90,6 +90,9 @@ export default function PaginaMossos({ onTornar, onEntrarCampus }: PropsPaginaMo
   // Cada 5 segons canviarà entre color Blau Mossos d'Esquadra i Vermell d'Emergències/Seguretat de la Generalitat.
   const [esColorBlau, setEsColorBlau] = useState(true);
 
+  // Explicació per a no-programadors: Aquest estat controla si es troba obert o tancat el desplegable del menú del sub-header amb les 6 opcions de seccions, dividit en 2 columnes.
+  const [menuObert, setMenuObert] = useState(false);
+
   // Explicació per a no-programadors: Aquest estat indica quin dels 5 botons del campus s'ha pressionat.
   // En lloc de romandre estàtic, ara cada clic actualitza dinàmicament la imatge a l'esquerra i el text a la dreta.
   const [indexModulActiu, setIndexModulActiu] = useState(0);
@@ -811,8 +814,8 @@ export default function PaginaMossos({ onTornar, onEntrarCampus }: PropsPaginaMo
       >
         
         {/* CAPÇALERA SIMPLIFICADA COPIADA DE LA PÀGINA PRINCIPAL */}
-      {/* Explicació per a no-programadors: Capçalera d'alta definició, amb fons difuminat, alçada de 74px de cel·les i estil unificat. */}
-      <header  
+        {/* Explicació per a no-programadors: Capçalera d'alta definició, amb fons difuminat, alçada de 74px de cel·les i estil unificat. */}
+        <header  
         style={{
           position: 'sticky',
           top: 0,
@@ -831,22 +834,24 @@ export default function PaginaMossos({ onTornar, onEntrarCampus }: PropsPaginaMo
         {/* BLOC PORTABILITAT ABSOLUTA EXTRA-ESQUERRA: TORNAR A L'INICI (ESQUERRA DEL TOT) */}
         {/* Explicació per a no-programadors:
             Col·loquem el botó de retorn a l'extrem absolut del header per assegurar que queda enganxat
-            al límit esquerre sense alterar mai l'alineació o posició del logotip de l'acadèmia. */}
+            al límit esquerre de forma circular minimalista. */}
         <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', zIndex: 150 }}>
           {onTornar ? (
             <button 
               onClick={onTornar}
-              className="text-xs font-black italic uppercase tracking-wider text-slate-400 hover:text-white transition-colors bg-transparent border-none p-0 cursor-pointer flex items-center gap-1"
-              style={{ border: 'none', background: 'none' }}
+              className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer flex items-center justify-center font-bold text-lg"
+              title="Tornar"
+              style={{ border: 'none' }}
             >
-              ← Pàgina principal
+              ←
             </button>
           ) : (
             <Link 
               to="/" 
-              className="text-xs font-black italic uppercase tracking-wider text-slate-400 hover:text-white transition-colors flex items-center gap-1"
+              className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition-colors flex items-center justify-center font-bold text-lg no-underline"
+              title="Tornar"
             >
-              ← Pàgina principal
+              ←
             </Link>
           )}
         </div>
@@ -861,125 +866,71 @@ export default function PaginaMossos({ onTornar, onEntrarCampus }: PropsPaginaMo
             width: '100%',
             height: '100%', // Alçar de dalt a baix per complet
             boxSizing: 'border-box',
-            position: 'relative' // Explicació per a no-programadors: Establim la posició relativa per poder col·locar el bloc central exactament al mig
+            position: 'relative' // Explicació per a no-programadors: Establim la posició relative per poder col·locar el bloc central exactament al mig
           }}
         >
-          {/* BLOC ESQUERRA SENSE EMPENTES: LOGO PRINCIPAL FIXAT A LA GRATELLA */}
+          {/* BLOC ESQUERRA SENSE EMPENTES: LOGO PRINCIPAL OposiCAT */}
           {/* Explicació per a no-programadors: 
-              Aquest és el logo original de la marca d'alt rendiment d'OposicionsCatalunya.
-              Perquè no es mogui ni un sol píxel quan entrem a la vista de Mossos, manté exactament
-              la mateixa posició i marges lliures de padding (display flex simple sense empenta) que a la portada. */}
-          <div style={{ display: 'flex', alignItems: 'center', zIndex: 10 }}>
+              Aquest és el logo original de la marca redissenyada d'OposiCAT. */}
+          <div style={{ display: 'flex', alignItems: 'center', zIndex: 10, marginLeft: '32px' }}>
             {onTornar ? (
-              <button onClick={onTornar} className="no-underline text-left cursor-pointer bg-transparent border-none p-0" style={{ border: 'none', background: 'none' }}>
-                <span style={{ fontSize: '22px', fontWeight: '900', fontStyle: 'italic', textTransform: 'uppercase', letterSpacing: '1px', color: '#ffffff', userSelect: 'none' }} className="hover:opacity-90 transition-opacity">
-                  OPOSICIONS{' '}
-                  <span style={{ fontStyle: 'italic' }}>
-                    <span style={{ color: '#FFDF00' }}>C</span>
-                    <span style={{ color: '#e10613' }}>A</span>
-                    <span style={{ color: '#FFDF00' }}>T</span>
-                    <span style={{ color: '#e10613' }}>A</span>
-                    <span style={{ color: '#FFDF00' }}>L</span>
-                    <span style={{ color: '#e10613' }}>U</span>
-                    <span style={{ color: '#FFDF00' }}>N</span>
-                    <span style={{ color: '#e10613' }}>Y</span>
-                    <span style={{ color: '#FFDF00' }}>A</span>
-                  </span>
+              <button onClick={onTornar} className="no-underline text-left cursor-pointer bg-transparent border-none p-0 flex items-center" style={{ border: 'none', background: 'none' }}>
+                <span style={{ fontSize: '22px', fontWeight: '950', fontStyle: 'italic', letterSpacing: '0.5px', color: '#ffffff', userSelect: 'none' }} className="hover:opacity-90 transition-opacity">
+                  Oposi<span style={{ color: '#FFDF00' }}>CAT</span>
                 </span>
               </button>
             ) : (
-              <Link to="/" className="no-underline">
-                <span style={{ fontSize: '22px', fontWeight: '900', fontStyle: 'italic', textTransform: 'uppercase', letterSpacing: '1px', color: '#ffffff', userSelect: 'none' }} className="hover:opacity-90 transition-opacity">
-                  OPOSICIONS{' '}
-                  <span style={{ fontStyle: 'italic' }}>
-                    <span style={{ color: '#FFDF00' }}>C</span>
-                    <span style={{ color: '#e10613' }}>A</span>
-                    <span style={{ color: '#FFDF00' }}>T</span>
-                    <span style={{ color: '#e10613' }}>A</span>
-                    <span style={{ color: '#FFDF00' }}>L</span>
-                    <span style={{ color: '#e10613' }}>U</span>
-                    <span style={{ color: '#FFDF00' }}>N</span>
-                    <span style={{ color: '#e10613' }}>Y</span>
-                    <span style={{ color: '#FFDF00' }}>A</span>
-                  </span>
+              <Link to="/" className="no-underline flex items-center">
+                <span style={{ fontSize: '22px', fontWeight: '950', fontStyle: 'italic', letterSpacing: '0.5px', color: '#ffffff', userSelect: 'none' }} className="hover:opacity-90 transition-opacity">
+                  Oposi<span style={{ color: '#FFDF00' }}>CAT</span>
                 </span>
               </Link>
             )}
           </div>
 
-          {/* BLOC CENTRAL S'HA CONVERTIT EN PANEL ESTÀTIC VERD DE CONVOCATÒRIES ACTIVES */}
-          {/* Explicació per a no-programadors:
-              Un botó-insígnia de color verd esmaralda fixat i estàtic que indica de forma elegant
-              que les oposicions actuals a Mossos d'Esquadra tenen les convocatòries actives de 46/26 i 46/25. */}
-          <div 
-            style={{
-              position: 'absolute',
-              left: '50%', // Centrat pur a nivell de l'eix central lliure d'interferències
-              top: '50%',
-              transform: 'translate(-50%, -50%)',
-              zIndex: 15,
-              height: '42px', // Més baix (menys alt) de manera que queda integrat elegantment sense tocar les vores superior i inferior
-              backgroundColor: '#059669', // Verd estàtic esmeralda de seguretat i estat actiu
-              boxShadow: '0 0 20px rgba(5, 150, 105, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.25)',
-              border: '1px solid rgba(16, 185, 129, 0.6)',
-              borderRadius: '6px', // Rectangular molt net i professional tipus bento box o botó integrat
-              transition: 'all 300ms ease-in-out',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingLeft: '28px', // Ajustem el padding lateral perquè el text de la convocatòria hi càpiga perfectament sense sobreposar-se
-              paddingRight: '28px',
-              boxSizing: 'border-box',
-            }}
-            className="hidden lg:flex items-center select-none whitespace-nowrap active:brightness-110 cursor-pointer"
-          >
-            <span style={{ fontSize: '11.5px', fontWeight: '950', letterSpacing: '1px' }} className="uppercase tracking-wider font-sans text-white">
-              🟢 CONVOCATÒRIES 46/26 I 46/25 ACTIVES
-            </span>
-          </div>
+          {/* ELIMINAT EL BLOC CENTRAL DE LAS CONVOCATÒRIES SEGONS LES INSTRUCCIONS DE L'USUARI */}
 
-          {/* BLOC DRETA: ACCÉS PREMIUM AL CAMPUS */}
-          {/* Explicació per a no-programadors: En lloc del text simple de reaccions de retorn, col·loquem el botó premium del campus idèntic en estil, degradat i ombra. */}
+          {/* BLOC DRETA: ACCÉS DESCARREGAR APP COLOR BLAU FLUIX MÉS PETIT I SENSE EMOTICONA */}
+          {/* Explicació per a no-programadors: Botó de color blau fluix per a descarregar l'aplicació, optimitzat amb una mida compacte i sense icona perquè s'adapti perfectament a pantalles mòbils sense tapar contingut. */}
           <div style={{ display: 'flex', alignItems: 'center', zIndex: 10 }}>
             {onEntrarCampus ? (
               <button
                 onClick={onEntrarCampus}
                 style={{
-                  padding: '12px 20px',
-                  borderRadius: '12px',
-                  fontWeight: '900',
-                  fontSize: '11px',
+                  padding: '7px 12px',
+                  borderRadius: '8px',
+                  fontWeight: '955',
+                  fontSize: '10px',
                   letterSpacing: '1px',
                   textTransform: 'uppercase',
                   border: 'none',
                   cursor: 'pointer',
-                  color: '#ffffff',
-                  backgroundImage: 'linear-gradient(135deg, #1d4ed8 0%, #065f46 100%)', // Degradat exclusiu d'alta conversió d'OposiCAT
-                  boxShadow: '0 4px 14px 0 rgba(29, 78, 216, 0.35)',
+                  color: '#020b16',
+                  backgroundColor: '#60a5fa', // Blau fluix bonic corporatiu sota les indicacions del client
+                  boxShadow: '0 4px 12px 0 rgba(96, 165, 250, 0.25)',
                 }}
                 className="hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5"
               >
-                CAMPUS VIRTUAL 💻
+                descarrega l'APP
               </button>
             ) : (
               <Link
                 to="/?marketing=true"
                 style={{
-                  padding: '12px 20px',
-                  borderRadius: '12px',
-                  fontWeight: '900',
-                  fontSize: '11px',
+                  padding: '7px 12px',
+                  borderRadius: '8px',
+                  fontWeight: '955',
+                  fontSize: '10px',
                   letterSpacing: '1px',
                   textTransform: 'uppercase',
-                  color: '#ffffff',
-                  backgroundImage: 'linear-gradient(135deg, #1d4ed8 0%, #065f46 100%)',
-                  boxShadow: '0 4px 14px 0 rgba(29, 78, 216, 0.35)',
+                  color: '#020b16',
+                  backgroundColor: '#60a5fa', // Blau fluix bonic corporatiu sota les indicacions del client
+                  boxShadow: '0 4px 12px 0 rgba(96, 165, 250, 0.25)',
                   textDecoration: 'none'
                 }}
                 className="hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5"
               >
-                CAMPUS VIRTUAL 💻
+                descarrega l'APP
               </Link>
             )}
           </div>
@@ -987,83 +938,110 @@ export default function PaginaMossos({ onTornar, onEntrarCampus }: PropsPaginaMo
         </div>
       </header>
 
-      {/* SUB-HEADER O BARRA DE NAVEGACIÓ SECUNDÀRIA (SUBNAV) */}
+      {/* SUB-HEADER O BARRA DE NAVEGACIÓ SECUNDÀRIA (SUBNAV) EN FORMA DE MENÚ DESPLEGABLE */}
       {/* Explicació per a no-programadors: 
-          Aquest bloc és una barra de botons d'accés ràpid que se situa just a sota de la capçalera principal.
-          Permet a l'estudiant desplaçar-se ràpidament de dalt a baix de la pàgina de forma suau i elegant (scroll suau)
-          sense haver de fer lliscar el dit o la roda del ratolí contínuament.
-          La barra és intel·ligent i adaptativa, i en mòbils permet lliscar cap als costats (scroll horitzontal) sense trencar la graella. */}
+          Aquest bloc s'ha redissenyat totalment seguint les instruccions. Ara és un menú net flotant amb 2 columnes (3 esquerra i 3 dreta) que s'activa fàcilment en picar el botó de color groc amb les 6 àrees temàtiques de l'oposició. */}
       <div 
-        className="w-full bg-[#030712]/90 backdrop-blur-md border-b border-slate-800/80 sticky top-[74px] z-50 py-2.5 px-4 overflow-x-auto scrollbar-none whitespace-nowrap dynamic-subnav"
-        style={{
-          boxSizing: 'border-box',
-        }}
+        className="w-full bg-[#030712]/95 backdrop-blur-md border-b border-slate-800/80 sticky top-[74px] z-50 py-3 px-6 flex flex-col items-center"
+        style={{ boxSizing: 'border-box' }}
       >
-        <div className="max-w-6xl mx-auto flex items-center justify-start md:justify-center gap-2 sm:gap-4">
-          <button 
-            onClick={() => {
-              const el = document.getElementById('perque-nosaltres');
-              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-            className="text-[10px] sm:text-[11px] font-black tracking-widest text-[#FFDF00] uppercase px-3 py-1.5 rounded-lg hover:bg-slate-800/40 active:bg-slate-800/80 transition-all duration-200 cursor-pointer"
-          >
-            ⭐ Perquè OposiCAT
-          </button>
-          
-          <span className="text-slate-700 select-none">|</span>
+        <button 
+          onClick={() => setMenuObert(!menuObert)}
+          style={{
+            backgroundColor: '#FFDF00',
+            color: '#020b16',
+            width: '100%',
+            maxWidth: '380px',
+            padding: '11px 20px',
+            borderRadius: '12px',
+            fontWeight: '950',
+            fontSize: '11px',
+            letterSpacing: '1.2px',
+            textTransform: 'uppercase',
+            border: 'none',
+            cursor: 'pointer',
+            boxShadow: '0 4px 14px rgba(255, 223, 0, 0.25)',
+          }}
+          className="hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 font-sans"
+        >
+          <span>📋</span> Seccions de l'oposició {menuObert ? '▲' : '▼'}
+        </button>
 
-          <button 
-            onClick={() => {
-              const el = document.getElementById('detall-prova-teorica');
-              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-            className="text-[10px] sm:text-[11px] font-black tracking-widest text-slate-300 hover:text-white uppercase px-3 py-1.5 rounded-lg hover:bg-slate-800/40 active:bg-slate-800/80 transition-all duration-200 cursor-pointer"
-          >
-            📚 Prova Teòrica
-          </button>
+        {menuObert && (
+          <div className="w-full max-w-2xl mt-4 grid grid-cols-1 md:grid-cols-2 gap-3" id="menu-desplegable-seccions-mossos">
+            {/* Columna Esquerra (3 opcions) */}
+            <div className="flex flex-col gap-2.5 w-full">
+              <button 
+                onClick={() => {
+                  setMenuObert(false);
+                  const el = document.getElementById('perque-nosaltres');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="text-left bg-slate-900/95 border border-slate-800 hover:border-slate-700 text-slate-200 hover:text-white px-4 py-3 rounded-xl transition-all font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer w-full"
+              >
+                <span>⭐</span> Perquè OposiCAT
+              </button>
+              
+              <button 
+                onClick={() => {
+                  setMenuObert(false);
+                  const el = document.getElementById('detall-prova-teorica');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="text-left bg-slate-900/95 border border-slate-800 hover:border-slate-700 text-slate-200 hover:text-white px-4 py-3 rounded-xl transition-all font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer w-full"
+              >
+                <span>📚</span> Prova Teòrica
+              </button>
 
-          <button 
-            onClick={() => {
-              const el = document.getElementById('detall-prova-fisica');
-              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-            className="text-[10px] sm:text-[11px] font-black tracking-widest text-slate-300 hover:text-white uppercase px-3 py-1.5 rounded-lg hover:bg-slate-800/40 active:bg-slate-800/80 transition-all duration-200 cursor-pointer"
-          >
-            🏃 Prova Física
-          </button>
+              <button 
+                onClick={() => {
+                  setMenuObert(false);
+                  const el = document.getElementById('detall-prova-fisica');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="text-left bg-slate-900/95 border border-slate-800 hover:border-slate-700 text-slate-200 hover:text-white px-4 py-3 rounded-xl transition-all font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer w-full"
+              >
+                <span>🏃</span> Prova Física
+              </button>
+            </div>
 
-          <button 
-            onClick={() => {
-              const el = document.getElementById('detall-prova-psicoprofessional');
-              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-            className="text-[10px] sm:text-[11px] font-black tracking-widest text-slate-300 hover:text-white uppercase px-3 py-1.5 rounded-lg hover:bg-slate-800/40 active:bg-slate-800/80 transition-all duration-200 cursor-pointer"
-          >
-            🧠 Prova Psico
-          </button>
+            {/* Columna Dreta (3 opcions) */}
+            <div className="flex flex-col gap-2.5 w-full">
+              <button 
+                onClick={() => {
+                  setMenuObert(false);
+                  const el = document.getElementById('detall-prova-psicoprofessional');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="text-left bg-slate-900/95 border border-slate-800 hover:border-slate-700 text-slate-200 hover:text-white px-4 py-3 rounded-xl transition-all font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer w-full"
+              >
+                <span>🧠</span> Prova Psico
+              </button>
 
-          <span className="text-slate-700 select-none">|</span>
+              <button 
+                onClick={() => {
+                  setMenuObert(false);
+                  const el = document.getElementById('detall-comunitat-motivacio');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="text-left bg-[#111827]/95 border border-slate-800 hover:border-slate-700 text-slate-200 hover:text-[#10b981] px-4 py-3 rounded-xl transition-all font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer w-full"
+              >
+                <span>🤝</span> Comunitat i Motivació
+              </button>
 
-          <button 
-            onClick={() => {
-              const el = document.getElementById('detall-comunitat-motivacio');
-              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-            className="text-[10px] sm:text-[11px] font-black tracking-widest text-slate-300 hover:text-[#10b981] uppercase px-3 py-1.5 rounded-lg hover:bg-slate-800/40 active:bg-slate-800/80 transition-all duration-200 cursor-pointer"
-          >
-            🤝 Comunitat i Motivació
-          </button>
-
-          <button 
-            onClick={() => {
-              const el = document.getElementById('plans-preus-oposicat');
-              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-            className="text-[10px] sm:text-[11px] font-black tracking-widest text-slate-300 hover:text-[#FFDF00] uppercase px-3 py-1.5 rounded-lg hover:bg-slate-800/40 active:bg-slate-800/80 transition-all duration-200 cursor-pointer"
-          >
-            🎟️ Plans i Preus
-          </button>
-        </div>
+              <button 
+                onClick={() => {
+                  setMenuObert(false);
+                  const el = document.getElementById('plans-preus-oposicat');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="text-left bg-[#111827]/95 border border-slate-800 hover:border-slate-700 text-slate-200 hover:text-[#FFDF00] px-4 py-3 rounded-xl transition-all font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer w-full"
+              >
+                <span>🎟️</span> Plans i Preus
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* SECCIÓ HERO PRINCIPAL ESTIL PREMIUM (SEGONS WIREFRAME DE LA IMATGE image_44dcc4.png) */}

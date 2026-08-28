@@ -5,9 +5,8 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import { createServer as createViteServer } from "vite";
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { initializeFirestore, collection, getDocs, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 
 /**
  * SERVIDOR PRINCIPAL (BACKEND)
@@ -16,24 +15,30 @@ import { getFirestore, collection, getDocs, doc, updateDoc, serverTimestamp } fr
 
 let firebaseApp: any = null;
 let db: any = null;
-let firebaseConfig: any = null;
 
-try {
-  // Explicació per a no-programadors: Carreguem de forma segura el fitxer de configuració de Firebase, protegint el servidor de qualsevol fallida en cas de no existència o descàrrega asíncrona.
-  const pathConfig = path.join(process.cwd(), "firebase-applet-config.json");
-  if (fs.existsSync(pathConfig)) {
-    const configRaw = fs.readFileSync(pathConfig, "utf8");
-    firebaseConfig = JSON.parse(configRaw);
-    
-    // Explicació per a no-programadors: Inicialitzem el motor de Firebase clàssic utilitzant la mateixa API de client que l'aplicació web per evitar problemes residencials de permisos en servidors de previsualització.
-    firebaseApp = initializeApp(firebaseConfig);
-    db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId || "(default)");
-    console.log("[BACKEND] Firebase i Firestore inicialitzats correctament via client web per a la base de dades:", firebaseConfig.firestoreDatabaseId);
-  } else {
-    console.warn("[BACKEND ATENCIÓ] El fitxer firebase-applet-config.json no s'ha trobat al disc, treballant en mode segur i offline.");
+// Explicació per a no-programadors: Aquesta és una funció "mandrosa" (lazy). No connecta ni inicialitza Firebase i Firestore quan s'engega el servidor, sinó que s'espera fins que realment l'aplicació o el vigilant en segon pla ho necessiti. Això ajuda a que el servidor d'Express arrenqui de forma ultra-ràpida a Google Cloud Run en menys d'un segon i passi el control de salut de ports correctament de forma instantània.
+function getDb() {
+  if (!db) {
+    try {
+      const pathConfig = path.join(process.cwd(), "firebase-applet-config.json");
+      if (fs.existsSync(pathConfig)) {
+        const configRaw = fs.readFileSync(pathConfig, "utf8");
+        const firebaseConfig = JSON.parse(configRaw);
+        
+        firebaseApp = initializeApp(firebaseConfig);
+        db = initializeFirestore(firebaseApp, {
+          experimentalForceLongPolling: true,
+        }, firebaseConfig.firestoreDatabaseId || "(default)");
+        
+        console.log("[BACKEND] Firebase i Firestore inicialitzats de forma mandrosa correctament per a la base de dades:", firebaseConfig.firestoreDatabaseId);
+      } else {
+        console.warn("[BACKEND ATENCIÓ] El fitxer firebase-applet-config.json no s'ha trobat al disc sota demanada.");
+      }
+    } catch (error) {
+      console.error("[BACKEND ERROR] Error en carregar la configuració o inicialitzar Firebase sota demanada:", error);
+    }
   }
-} catch (error) {
-  console.error("[BACKEND ERROR] Error en carregar la configuració o inicialitzar Firebase:", error);
+  return db;
 }
 
 // Explicació per a no-programadors: No ens cal cap connexió REST ni mètode HTTP feixuc perquè utilitzem l'SDK oficial de client de Firebase.
@@ -42,7 +47,8 @@ try {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  // Explicació per a no-programadors: En l'entorn local d'AI Studio utilitzem el port 3000 fix perquè la infraestructura d'nginx de fons ho requereix, però quan publiquem l'aplicació en producció real a Google Cloud Run, Google ens assigna un port de forma completament dinàmica a través de la variable 'process.env.PORT' (habitualment el port 8080). Si deixem el port 3000 hardcodat a producció, Google no podrà canalitzar les connexions (la comprovació de salut de Cloud Run fallarà) i ens sortirà el temut "Applet error". Per això, utilitzem de forma intel·ligent el port que Google ens demani i, en el seu defecte, el 3000.
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   // Explicació per a no-programadors: Middleware indispensable que permet al servidor comprendre de forma immediata informació enviada des del formulari de la web en format JSON (com el títol o cos de notificació).
   app.use(express.json());
@@ -91,11 +97,12 @@ async function startServer() {
     try {
       console.log(`[EXECUTA PUSH] Començant emissió del missatge: "${titol}"`);
 
-      // Recuperem en calent de la base de dades global la col·lecció de tokens postals utilitzant l'SDK oficial de Firebase
+      // Recuperem en calent de la base de dades global la col·lecció de tokens postals utilitzant l'SDK oficial de Firebase i la connexió mandrosa
       let documentsTokens: any[] = [];
-      if (db) {
+      const currentDb = getDb();
+      if (currentDb) {
         try {
-          const snapshot = await getDocs(collection(db, "fcm_tokens"));
+          const snapshot = await getDocs(collection(currentDb, "fcm_tokens"));
           documentsTokens = snapshot.docs;
         } catch (errDocs) {
           console.error("[EXECUTA PUSH ERROR] No s'han pogut llegir els tokens de fcm_tokens des de l'SDK:", errDocs);
@@ -186,11 +193,12 @@ async function startServer() {
   // la passa a acció 'ENVIAR' per arxivar-la lliure de duplicitats, movent-se de la "cua de programades" al llistat històric d'emissions efectuades.
   async function processarNotificacionsProgramades() {
     try {
-      if (!db) return;
+      const currentDb = getDb();
+      if (!currentDb) return;
       
       let documentsNotificacions: any[] = [];
       try {
-        const snapshot = await getDocs(collection(db, "notificacions"));
+        const snapshot = await getDocs(collection(currentDb, "notificacions"));
         documentsNotificacions = snapshot.docs;
       } catch (errDocs) {
         console.error("[CUA ERROR] No s'han pogut llegir les notificacions programades des de l'SDK:", errDocs);
@@ -249,7 +257,7 @@ async function startServer() {
 
             // 2. Modifiquem el document en seguretat a Firestore de acció 'PROGRAMAR' a 'ENVIAR' per moure'l al llistat dels arxius tancats utilitzant l'SDK nativa de Firebase
             try {
-              const docRef = doc(db, "notificacions", docSnap.id);
+              const docRef = doc(currentDb, "notificacions", docSnap.id);
               await updateDoc(docRef, {
                 accio: "ENVIAR",
                 retransmesaEl: serverTimestamp(),
@@ -296,6 +304,8 @@ async function startServer() {
   });
 
   if (process.env.NODE_ENV !== "production") {
+    // Explicació per a no-programadors: Carreguem el motor de desenvolupament local de Vite en entorn de desenvolupament per servir els fitxers dinàmics en viu amb el servidor d'Express.
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

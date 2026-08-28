@@ -12,7 +12,7 @@ export interface PerfilUsuari {
   email: string;          // El correu electrònic de l'usuari
   displayName: string;    // El nom complet, nom públic o sobrenom de l'opositor
   photoURL?: string;       // Una adreça on està guardada la seva foto de perfil (si n'hi ha)
-  rol: string;            // El rang d'accés que té (ex: 'admin_master', 'admin', 'usuari_free_trial', 'opositor')
+  rol: string;            // El rang d'accés que té (ex: 'admin_master', 'admin', 'usuari_alpha', 'usuari_free_trial', 'opositor')
   
   // Seguiment de l'estat del pagament de l'aplicació (Accessible per a control)
   haPagat: boolean;       // Ens diu de forma immediata si l'usuari ha pagat l'accés o no

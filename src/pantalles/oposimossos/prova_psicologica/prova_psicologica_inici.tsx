@@ -5,6 +5,8 @@ import { ca } from 'date-fns/locale';
 import { GuiaBiodata } from "./biodata_guia";
 import { CompetenciesClau } from "./competencies_clau";
 import { EntrevistaGuia } from "./entrevista_guia";
+import GestioBiodata from "./gestio_biodata";
+import { ConsisteixEntrevista } from "./ConsisteixEntrevista";
 
 // Explicació per a no-programadors: Importem la mateixa imatge que fem servir a la pàgina de la web de les proves psicològiques per mantenir una línia estètica idèntica
 // @ts-ignore
@@ -21,7 +23,7 @@ export default function ProvaPsicologicaInici({
   onTornar: () => void;
   onAnarSeccio?: (seccio: 'home' | 'forum' | 'noticies' | 'perfil') => void;
 }) {
-  const [seccio, setSeccio] = useState<'principal' | 'biodata' | 'competencies' | 'menu_entrevista' | 'entrevista' | 'cita'>('principal');
+  const [seccio, setSeccio] = useState<'principal' | 'biodata' | 'competencies' | 'menu_entrevista' | 'consisteix_entrevista' | 'entrevista' | 'cita' | 'gestio_biodata'>('principal');
   const [seccioBiodata, setSeccioBiodata] = useState<'menu' | 'personals' | 'laborals' | 'pgme' | 'test'>('menu');
   // Estat per a controlar la subsecció activa de la guia del test de biodata (evitant salts dobles d'enrere)
   const [subSeccioTest, setSubSeccioTest] = useState<'menu' | 'que_es' | 'practica'>('menu');
@@ -324,10 +326,31 @@ export default function ProvaPsicologicaInici({
           <HeaderTeorica onBackClick={() => setSeccio('principal')} />
         </header>
 
-        <main className="w-full max-w-md flex flex-col gap-6 flex-1 justify-center">
-          {/* Opció 1: Pràctica d'examen */}
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col items-center gap-2 px-2">
+        <main className="w-full max-w-md flex flex-col gap-5 flex-1 justify-center py-4">
+          {/* Opció 1: En què consisteix l'entrevista */}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col items-center gap-1.5 px-2">
+              <span className="text-[9px] text-[#00f296] font-black uppercase tracking-[0.3em] italic text-center">
+                Guia Oficial i Criteris d'Avaluació
+              </span>
+              <p className="text-white/40 text-[10px] font-medium text-center leading-relaxed max-w-[300px] italic">
+                Descobreix com es puntua, què valoren els psicòlegs, com calcular la nota i quines són les 3 vies de preguntes.
+              </p>
+            </div>
+            <button 
+              onClick={() => setSeccio('consisteix_entrevista')}
+              className="w-full bg-[#00f296] hover:bg-emerald-400 text-slate-950 rounded-2xl py-4 flex flex-col items-center justify-center transition-all active:scale-95 shadow-xl group px-6 text-center cursor-pointer"
+            >
+              <span className="font-black italic uppercase tracking-widest text-lg">En què consisteix l'entrevista</span>
+            </button>
+          </div>
+
+          {/* Separador visual tipus línia */}
+          <div className="h-[1px] bg-white/10 w-full my-1" />
+
+          {/* Opció 2: Pràctica d'examen */}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col items-center gap-1.5 px-2">
               <span className="text-[9px] text-red-500 font-black uppercase tracking-[0.3em] italic drop-shadow-[0_0_8px_rgba(239,68,68,0.3)] text-center">
                 practica amb les preguntes de l'examen
               </span>
@@ -337,30 +360,30 @@ export default function ProvaPsicologicaInici({
             </div>
             <button 
               onClick={() => setSeccio('entrevista')}
-              className="w-full bg-[#1a3a5a]/40 hover:bg-[#1a3a5a]/60 border border-white/10 rounded-2xl py-4 flex flex-col items-center justify-center transition-all active:scale-95 shadow-xl group px-6 text-center"
+              className="w-full bg-[#FFDF00] hover:bg-[#ffe633] text-slate-950 rounded-2xl py-4 flex flex-col items-center justify-center transition-all active:scale-95 shadow-xl group px-6 text-center cursor-pointer"
             >
-              <span className="text-white font-[900] italic uppercase tracking-widest text-xl">Practicar l'entrevista</span>
+              <span className="font-black italic uppercase tracking-widest text-lg">Practicar l'entrevista</span>
             </button>
           </div>
 
-          {/* Separador visual tipus línia gris */}
-          <div className="h-[1px] bg-white/10 w-full my-4" />
+          {/* Separador visual tipus línia */}
+          <div className="h-[1px] bg-white/10 w-full my-1" />
 
-          {/* Opció 2: Demana cita */}
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col items-center gap-2 px-2">
-              <span className="text-[9px] text-emerald-500 font-black uppercase tracking-[0.3em] italic text-center">
-                Practica amb psicolegs d'oposicions
+          {/* Opció 3: Demana cita */}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col items-center gap-1.5 px-2">
+              <span className="text-[9px] text-emerald-400 font-black uppercase tracking-[0.3em] italic text-center">
+                Practica amb psicòlegs d'oposicions
               </span>
               <p className="text-white/40 text-[10px] font-medium text-center leading-relaxed max-w-[300px] italic">
-                Posa en pràctica un cop hagis vist les preguntes de l'apartat anterior, a amés a més de haver fet el test del biodata per a conèixer-te millor, amb els nostres psicòlegs especialitzats en oposicions!
+                Posa en pràctica un cop hagis vist les preguntes de l'apartat anterior, a més a més d'haver fet el test del biodata per a conèixer-te millor, amb els nostres psicòlegs especialitzats en oposicions!
               </p>
             </div>
             <button 
               onClick={() => setSeccio('cita')}
-              className="w-full bg-[#1a3a5a]/40 hover:bg-[#1a3a5a]/60 border border-white/10 rounded-2xl py-4 flex flex-col items-center justify-center transition-all active:scale-95 shadow-xl group px-6 text-center"
+              className="w-full bg-[#1a3a5a]/60 hover:bg-[#1a3a5a]/80 border border-white/10 rounded-2xl py-4 flex flex-col items-center justify-center transition-all active:scale-95 shadow-xl group px-6 text-center cursor-pointer"
             >
-              <span className="text-white font-[900] italic uppercase tracking-widest text-xl leading-tight">Demana cita</span>
+              <span className="text-white font-[900] italic uppercase tracking-widest text-lg leading-tight">Demana cita</span>
               <span className="text-white/60 font-black italic uppercase text-[10px] tracking-widest mt-1">( Psicòlegs especialitzats )</span>
             </button>
           </div>
@@ -368,6 +391,25 @@ export default function ProvaPsicologicaInici({
 
         <footer className="w-full max-w-xs flex flex-col items-center gap-4 pb-10 mt-12 shrink-0 px-6">
         </footer>
+      </WrapperPsicologica>
+    );
+  }
+
+  if (seccio === 'consisteix_entrevista') {
+    return (
+      <WrapperPsicologica>
+        <header className="pt-6 w-full flex flex-col items-center shrink-0">
+          <HeaderTeorica onBackClick={() => setSeccio('menu_entrevista')} />
+        </header>
+
+        <main className="w-full max-w-4xl flex flex-col items-center pb-8">
+          <ConsisteixEntrevista 
+            onTornar={() => setSeccio('menu_entrevista')}
+            onTornarMenuPrincipal={() => setSeccio('principal')}
+            onPracticarEntrevista={() => setSeccio('entrevista')}
+            onAnarCompetencies={() => setSeccio('competencies')}
+          />
+        </main>
       </WrapperPsicologica>
     );
   }
@@ -432,6 +474,12 @@ export default function ProvaPsicologicaInici({
           </p>
         </footer>
       </WrapperPsicologica>
+    );
+  }
+
+  if (seccio === 'gestio_biodata') {
+    return (
+      <GestioBiodata onTornar={() => setSeccio('principal')} />
     );
   }
 
