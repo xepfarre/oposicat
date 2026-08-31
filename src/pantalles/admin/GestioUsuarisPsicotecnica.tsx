@@ -351,11 +351,13 @@ export default function GestioUsuarisPsicotecnica({ darkMode, usuarisInicials = 
       if (snap.exists()) {
         const d = snap.data();
         setLiveCompetenciesAlumne(Array.isArray(d.competenciesMarcades) ? d.competenciesMarcades : []);
+        setLiveProfessorCompetencies(Array.isArray(d.professorCompetencies) ? d.professorCompetencies : []);
         setLivePreguntaActual(d.preguntaActualText || '');
         setLiveUltimClic(d.ultimClic || '');
         setLiveUltimaActualitzacio(new Date());
       } else {
         setLiveCompetenciesAlumne([]);
+        setLiveProfessorCompetencies([]);
         setLivePreguntaActual('');
         setLiveUltimClic('');
         setLiveUltimaActualitzacio(null);
@@ -376,6 +378,7 @@ export default function GestioUsuarisPsicotecnica({ darkMode, usuarisInicials = 
       await setDoc(docRef, {
         preguntaActualText: liveInputPregunta.trim(),
         competenciesMarcades: [],
+        professorCompetencies: [],
         ultimaActualitzacio: serverTimestamp(),
         ultimClic: 'nova_pregunta'
       }, { merge: true });
@@ -396,6 +399,7 @@ export default function GestioUsuarisPsicotecnica({ darkMode, usuarisInicials = 
       const docRef = doc(db, 'usuaris', usuariSeleccionat.id, 'entrevista_live_state', 'actual');
       await setDoc(docRef, {
         competenciesMarcades: [],
+        professorCompetencies: [],
         preguntaActualText: '',
         ultimaActualitzacio: serverTimestamp(),
         ultimClic: 'netejar'
@@ -408,11 +412,28 @@ export default function GestioUsuarisPsicotecnica({ darkMode, usuarisInicials = 
     }
   };
 
-  const handleToggleProfessorComp = (codi: string) => {
+  // Funció per marcar/desmarcar competències per part del professor (es pinten en COLOR BLAU)
+  const handleToggleProfessorComp = async (codi: string) => {
+    let novesDocent: string[] = [];
     if (liveProfessorCompetencies.includes(codi)) {
-      setLiveProfessorCompetencies(liveProfessorCompetencies.filter(c => c !== codi));
+      novesDocent = liveProfessorCompetencies.filter(c => c !== codi);
     } else {
-      setLiveProfessorCompetencies([...liveProfessorCompetencies, codi]);
+      novesDocent = [...liveProfessorCompetencies, codi];
+    }
+    setLiveProfessorCompetencies(novesDocent);
+
+    // Persistim en temps real a Firestore perquè l'alumne ho vegi en color blau al seu dispositiu
+    if (usuariSeleccionat?.id && db) {
+      try {
+        const docRef = doc(db, 'usuaris', usuariSeleccionat.id, 'entrevista_live_state', 'actual');
+        await setDoc(docRef, {
+          professorCompetencies: novesDocent,
+          ultimaActualitzacio: serverTimestamp(),
+          ultimClic: `docent_${codi}`
+        }, { merge: true });
+      } catch (err) {
+        console.error("Error sincronitzant competència docent:", err);
+      }
     }
   };
 
@@ -1548,7 +1569,7 @@ export default function GestioUsuarisPsicotecnica({ darkMode, usuarisInicials = 
                           10 Competències Clau (Pissarra en Directe 1v1)
                         </h4>
                         <p className="text-[11px] text-slate-400">
-                          Fes clic a qualsevol competència per marcar-la o desmarcar-la com a pauta docent (es posarà en verd).
+                          Fes clic a qualsevol competència per marcar-la com a pauta docent (s'il·luminarà en <strong className="text-blue-400">color blau</strong> aquí i al mòbil de l'alumne).
                         </p>
                       </div>
 
@@ -1558,19 +1579,18 @@ export default function GestioUsuarisPsicotecnica({ darkMode, usuarisInicials = 
                           Alumne: {liveCompetenciesAlumne.length} / 10
                         </span>
                         {liveProfessorCompetencies.length > 0 && (
-                          <span className="text-xs font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full">
-                            Docent: {liveProfessorCompetencies.length}
+                          <span className="text-xs font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 px-3 py-1 rounded-full">
+                            Docent (Blau): {liveProfessorCompetencies.length}
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* LLISTA VERTICAL DE LES 10 COMPETÈNCIES LITERALS (SENSE ACLARACIONS, COLOR VERD) */}
+                    {/* LLISTA VERTICAL DE LES 10 COMPETÈNCIES (ALUMNE = VERD, DOCENT = BLAU) */}
                     <div className="flex flex-col gap-2">
                       {COMPETENCIES_ENTREVISTA_LIVE_10.map((comp) => {
                         const esMarcadaAlumne = liveCompetenciesAlumne.includes(comp.id);
                         const esMarcadaDocent = liveProfessorCompetencies.includes(comp.id);
-                        const esActiva = esMarcadaAlumne || esMarcadaDocent;
                         const esCoincident = esMarcadaAlumne && esMarcadaDocent;
 
                         return (
@@ -1579,10 +1599,12 @@ export default function GestioUsuarisPsicotecnica({ darkMode, usuarisInicials = 
                             id={`card-live-comp-${comp.id}`}
                             onClick={() => handleToggleProfessorComp(comp.id)}
                             className={`w-full p-3.5 sm:p-4 rounded-xl border flex items-center justify-between gap-3 transition-all duration-150 cursor-pointer select-none ${
-                              esMarcadaAlumne
-                                ? "bg-emerald-500 text-slate-950 font-black border-emerald-400 shadow-md shadow-emerald-500/25 ring-2 ring-emerald-400/60"
+                              esCoincident
+                                ? "bg-gradient-to-r from-emerald-500 via-emerald-600 to-blue-600 text-slate-950 font-black border-blue-400 shadow-lg shadow-blue-500/25 ring-2 ring-blue-400"
                                 : esMarcadaDocent
-                                ? "bg-emerald-950/60 border-emerald-500 text-emerald-300 font-bold ring-2 ring-emerald-500/50 shadow-sm"
+                                ? "bg-blue-600 text-white font-black border-blue-400 shadow-md shadow-blue-500/30 ring-2 ring-blue-400/80"
+                                : esMarcadaAlumne
+                                ? "bg-emerald-500 text-slate-950 font-black border-emerald-400 shadow-md shadow-emerald-500/25 ring-2 ring-emerald-400/60"
                                 : darkMode
                                 ? "bg-slate-900/60 border-slate-800 text-slate-200 hover:border-slate-700 hover:bg-slate-900"
                                 : "bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50"
@@ -1590,10 +1612,12 @@ export default function GestioUsuarisPsicotecnica({ darkMode, usuarisInicials = 
                           >
                             <div className="flex items-center gap-3">
                               <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-mono font-black shrink-0 ${
-                                esMarcadaAlumne
-                                  ? "bg-slate-950 text-emerald-400"
+                                esCoincident
+                                  ? "bg-slate-950 text-amber-300"
                                   : esMarcadaDocent
-                                  ? "bg-emerald-500 text-slate-950"
+                                  ? "bg-slate-950 text-blue-300"
+                                  : esMarcadaAlumne
+                                  ? "bg-slate-950 text-emerald-400"
                                   : darkMode
                                   ? "bg-slate-800 text-slate-400"
                                   : "bg-slate-100 text-slate-600"
@@ -1603,7 +1627,7 @@ export default function GestioUsuarisPsicotecnica({ darkMode, usuarisInicials = 
 
                               {/* Títol literal sense aclaracions */}
                               <span className={`text-xs sm:text-sm tracking-wide ${
-                                esMarcadaAlumne ? "font-black text-slate-950" : esMarcadaDocent ? "font-bold text-emerald-300" : "font-semibold"
+                                esCoincident ? "font-black text-slate-950" : esMarcadaDocent ? "font-black text-white" : esMarcadaAlumne ? "font-black text-slate-950" : "font-semibold"
                               }`}>
                                 {comp.titol}
                               </span>
@@ -1611,32 +1635,32 @@ export default function GestioUsuarisPsicotecnica({ darkMode, usuarisInicials = 
 
                             {/* Indicadors d'estat a la dreta */}
                             <div className="flex items-center gap-2 shrink-0">
-                              {esMarcadaAlumne && (
-                                <span 
-                                  className="flex items-center gap-1 text-[10px] font-black uppercase bg-slate-950 text-emerald-400 px-2 py-1 rounded-md shadow-sm"
-                                  title="Marcat per l'alumne al seu mòbil"
-                                >
-                                  <Activity size={12} className="animate-pulse text-emerald-400" />
-                                  Alumne
+                              {esCoincident ? (
+                                <span className="flex items-center gap-1 text-[10px] font-black uppercase bg-slate-950 text-amber-300 px-2 py-1 rounded-md shadow-sm">
+                                  <CheckCircle size={12} className="text-amber-300" />
+                                  Coincident
                                 </span>
-                              )}
-                              {esMarcadaDocent && (
-                                <span 
-                                  className={`flex items-center gap-1 text-[10px] font-black uppercase px-2 py-1 rounded-md border ${
-                                    esMarcadaAlumne 
-                                      ? "bg-slate-950/80 text-emerald-300 border-emerald-400" 
-                                      : "bg-emerald-500 text-slate-950 border-emerald-400"
-                                  }`}
-                                  title="Pauta docent del professor"
-                                >
-                                  <CheckSquare size={12} />
-                                  Pauta
-                                </span>
-                              )}
-                              {esCoincident && (
-                                <span className="hidden sm:flex items-center gap-1 text-[10px] font-black uppercase bg-emerald-400 text-slate-950 px-2 py-1 rounded-md shadow-sm">
-                                  <CheckCircle size={12} /> Coincident
-                                </span>
+                              ) : (
+                                <>
+                                  {esMarcadaAlumne && (
+                                    <span 
+                                      className="flex items-center gap-1 text-[10px] font-black uppercase bg-slate-950 text-emerald-400 px-2 py-1 rounded-md shadow-sm"
+                                      title="Marcat per l'alumne al seu mòbil (Verd)"
+                                    >
+                                      <Activity size={12} className="animate-pulse text-emerald-400" />
+                                      Alumne (Verd)
+                                    </span>
+                                  )}
+                                  {esMarcadaDocent && (
+                                    <span 
+                                      className="flex items-center gap-1 text-[10px] font-black uppercase bg-slate-950 text-blue-300 border border-blue-400/40 px-2 py-1 rounded-md shadow-sm"
+                                      title="Pauta docent del professor (Blau)"
+                                    >
+                                      <CheckSquare size={12} className="text-blue-400" />
+                                      Docent (Blau)
+                                    </span>
+                                  )}
+                                </>
                               )}
                             </div>
                           </div>
