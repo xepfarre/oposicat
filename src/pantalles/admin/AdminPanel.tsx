@@ -38,6 +38,10 @@ import {
   Filter,
   BarChart3,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  CheckCheck,
   Moon,
   Sun,
   Eye,
@@ -94,6 +98,7 @@ import GestioDietes from "./GestioDietes";
 import FeedbackUsuarisDieta from "./FeedbackUsuarisDieta";
 import FeedbackGimnasos from "./FeedbackGimnasos";
 import GimnasosExistents from "./GimnasosExistents";
+import GestioUsuarisPsicotecnica from "./GestioUsuarisPsicotecnica";
 
 // Comentari planer per a no-programadors:
 // Definim els tipus d'operacions possibles a la base de dades
@@ -253,6 +258,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
   
   const [psicolegs, setPsicolegs] = useState<any[]>([]);
   const [usuaris, setUsuaris] = useState<any[]>([]);
+  const [loadingUsuaris, setLoadingUsuaris] = useState<boolean>(false);
   
   // Determinació de la secció activa segons URL
   const activeTab = location.pathname.split('/').pop() || 'dashboard';
@@ -372,10 +378,10 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
 
   useEffect(() => {
     // Comentari planer per a no-programadors:
-    // Aquest vigilant de seguretat es posa en marxa un cop l'administrador obre la pàgina.
+    // Aquest vigilant de seguretat s'executa quan s'inicia el component.
     // Analitza la sessió en temps real per garantir que només els usuaris amb privilegis de
     // gestor o administradors autoritzats puguin visualitzar el contingut privat del Backoffice.
-    // No fem servir cap llista de correus electrònics escrita al codi font per motius de seguretat.
+    // L'escoltador no s'ha de reiniciar cada cop que canviem de pestanya o ruta per evitar desconnexions o parpellejos.
     const unsub = auth.onAuthStateChanged(async (currentUser) => {
       setCheckingAuth(true);
       if (currentUser) {
@@ -405,11 +411,21 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
           setUserPermisos(actualPermisos);
 
           const rolsPermesosBackoffice = ["admin_master", "admin", "treballador_nivell_1", "treballador_nivell_2", "treballador_nivell_3"];
-          if (rolsPermesosBackoffice.includes(rolActual)) {
+          
+          // Comprovació de seguretat addicional: si el correu és dels administradors principals d'OposiCAT
+          const adminEmailsDirectes = ["xepfarre@gmail.com", "xepfarre7@gmail.com", "sergivinu@gmail.com"];
+          const userEmail = (currentUser.email || "").toLowerCase();
+
+          if (rolsPermesosBackoffice.includes(rolActual) || adminEmailsDirectes.includes(userEmail)) {
             teRolAdmin = true;
           }
         } catch (e) {
           console.error("Error durant la consulta del rol d'administrador a la base de dades:", e);
+          // Si hi ha hagut un error temporal de xarxa o Firestore però el correu és d'un admin reconegut, no el desconnectem
+          const adminEmailsDirectes = ["xepfarre@gmail.com", "xepfarre7@gmail.com", "sergivinu@gmail.com"];
+          if (adminEmailsDirectes.includes((currentUser.email || "").toLowerCase())) {
+            teRolAdmin = true;
+          }
         }
 
         if (teRolAdmin) {
@@ -428,7 +444,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     });
 
     return () => unsub();
-  }, [activeTab, navigate]);
+  }, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -587,6 +603,23 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     } finally {
       clearTimeout(timeout);
       setLoading(false);
+    }
+  };
+
+  // Comentari planer per a no-programadors:
+  // Funció dedicada exclusivament a carregar i refrescar en temps real la llista d'usuaris des de Firestore.
+  // Es connecta directament a la col·lecció 'usuaris' i actualitza l'estat ràpidament sense haver de recarregar totes les altres col·leccions del panell.
+  const handleRefreshUsuaris = async () => {
+    setLoadingUsuaris(true);
+    try {
+      const snap = await getDocs(collection(db, "usuaris"));
+      const llista: any[] = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setUsuaris(llista);
+    } catch (err: any) {
+      console.error("Error refrescant usuaris de Firestore:", err);
+      handleFirestoreError(err, OperationType.LIST, "usuaris");
+    } finally {
+      setLoadingUsuaris(false);
     }
   };
 
@@ -1936,7 +1969,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
               <Route path="/" element={<WelcomeView darkMode={darkMode} />} />
               <Route path="prova-teorica" element={<ProvaTeoricaView darkMode={darkMode} />} />
               <Route path="prova-fisica" element={<ProvaFisicaView darkMode={darkMode} />} />
-              <Route path="prova-psicotecnica" element={<ProvaPsicotecnicaView darkMode={darkMode} />} />
+              <Route path="prova-psicotecnica" element={<ProvaPsicotecnicaView darkMode={darkMode} usuaris={usuaris} />} />
               <Route path="exercicis-fisics" element={
                 <ExercicisFisicsView 
                   exercicis={exercicisFisics}
@@ -2202,6 +2235,8 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
             <Route path="usuaris" element={
               <UsuarisView 
                 usuaris={usuaris}
+                onRefresh={handleRefreshUsuaris}
+                loadingRefresh={loadingUsuaris}
                 onUpdateUser={async (uid: string, data: any) => {
                   setLoading(true);
                   try {
@@ -2786,61 +2821,109 @@ function PreguntesBiodataView({ preguntes, type, onAdd, onDelete, onLoadMock, da
 }
 
 /**
- * VIEW: Prova Psicotècnica (Menú de 3 columnes)
+ * VIEW: Prova Psicotècnica (Amb selector superior entre "Gestió de la Prova" i "Gestió d'Usuaris")
  */
-function ProvaPsicotecnicaView({ darkMode }: { darkMode: boolean }) {
+function ProvaPsicotecnicaView({ darkMode, usuaris = [] }: { darkMode: boolean, usuaris?: any[] }) {
+  // Comentari planer per a no-programadors:
+  // Guardem en aquest estat quina de les 2 àrees vol consultar el professor o admin:
+  // 1. 'prova': Mostra les 3 columnes de banc de preguntes i configuració (Biodata, Entrevista, Gestió Clients).
+  // 2. 'usuari': Mostra el nou espai de seguiment psicopedagògic, entrevistes individuals i preparació de classes.
+  const [seccioPsico, setSeccioPsico] = useState<'prova' | 'usuari'>('prova');
+
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-10">
-      <header className="relative flex items-center justify-center mb-16">
+    <div className="max-w-6xl mx-auto flex flex-col gap-8">
+      <header className="relative flex items-center justify-center mb-8">
         <div className="absolute left-0 top-1/2 -translate-y-1/2">
           <BackButton darkMode={darkMode} />
         </div>
         <div className="text-center flex flex-col items-center">
-          <h1 className={`text-6xl md:text-7xl font-black tracking-tighter italic uppercase mb-2 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+          <h1 className={`text-5xl md:text-6xl font-black tracking-tighter italic uppercase mb-2 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
             Prova <span className="text-purple-500">psicotècnica</span>
           </h1>
-          <div className="h-1.5 w-32 bg-purple-500 rounded-full mb-4" />
-          <p className={`text-[10px] font-black uppercase tracking-[0.5em] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-            Què vols gestionar?
+          <div className="h-1.5 w-28 bg-purple-500 rounded-full mb-3" />
+          <p className={`text-[10px] font-black uppercase tracking-[0.4em] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+            Panell d'Avaluació i Gestió Backoffice
           </p>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-0 relative border-y border-slate-200 dark:border-slate-800 py-10">
-        {/* COLUMNA 1: BIODATA */}
-        <div className="flex flex-col px-8 gap-8">
-          <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Biodata</h3>
-          <div className="flex flex-col gap-4">
-            <MenuActionLink to="/admin/biodata/oficial" label="Gestió Biodata (Banc de Preguntes BBDD)" icon={<Brain size={18} />} darkMode={darkMode} color="purple" />
-            <MenuActionLink to="/admin/biodata/personals" label="Gestió preguntes personals" icon={<ClipboardList size={18} />} darkMode={darkMode} color="purple" />
-            <MenuActionLink to="/admin/biodata/laborals" label="Gestió preguntes laborals" icon={<Briefcase size={18} />} darkMode={darkMode} color="purple" />
-            <MenuActionLink to="/admin/biodata/pgme" label="Gestió preguntes PGME" icon={<FileText size={18} />} darkMode={darkMode} color="purple" />
-          </div>
-        </div>
+      {/* 2 BOTONS SUPERIORS: GESTIÓ DE LA PROVA VS GESTIÓ D'USUARIS */}
+      <div className="flex items-center justify-center">
+        <div className={`p-1.5 rounded-2xl border flex items-center gap-2 shadow-sm ${
+          darkMode ? 'bg-slate-800/90 border-slate-700' : 'bg-white border-slate-200'
+        }`}>
+          <button
+            onClick={() => setSeccioPsico('prova')}
+            className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2.5 transition-all ${
+              seccioPsico === 'prova'
+                ? 'bg-purple-600 text-white shadow-md'
+                : darkMode
+                ? 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Brain size={16} />
+            Gestió de la Prova
+          </button>
 
-        {/* LÍNIA DIVISÒRIA */}
-        <div className="hidden md:block w-px bg-slate-200 dark:bg-slate-800 absolute left-1/3 top-0 bottom-0" />
-
-        {/* COLUMNA 2: ENTREVISTA */}
-        <div className="flex flex-col px-8 gap-8">
-          <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Entrevista</h3>
-          <div className="flex flex-col gap-4">
-            <MenuActionLink to="/admin/entrevista" label="Gestió de preguntes d'entrevista" icon={<MessageSquare size={18} />} darkMode={darkMode} color="purple" />
-          </div>
-        </div>
-
-        {/* LÍNIA DIVISÒRIA */}
-        <div className="hidden md:block w-px bg-slate-200 dark:bg-slate-800 absolute left-2/3 top-0 bottom-0" />
-
-        {/* COLUMNA 3: GESTIÓ CLIENTS */}
-        <div className="flex flex-col px-8 gap-8">
-          <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Gestió Clients</h3>
-          <div className="flex flex-col gap-4">
-            <MenuActionLink to="/admin/cites" label="Gestió de cites d'usuari" icon={<Calendar size={18} />} darkMode={darkMode} color="emerald" />
-            <MenuActionLink to="/admin/psicolegs" label="Gestió de psicòlegs i assignacions" icon={<Users2 size={18} />} darkMode={darkMode} color="blue" />
-          </div>
+          <button
+            onClick={() => setSeccioPsico('usuari')}
+            className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2.5 transition-all ${
+              seccioPsico === 'usuari'
+                ? 'bg-purple-600 text-white shadow-md'
+                : darkMode
+                ? 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Users2 size={16} />
+            Gestió d'Usuari
+          </button>
         </div>
       </div>
+
+      {/* CONTINGUT SEGONS LA SELECCIÓ */}
+      {seccioPsico === 'prova' ? (
+        /* VISTA 1: MENÚ DE 3 COLUMNES DE LA PROVA */
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-0 relative border-y border-slate-200 dark:border-slate-800 py-10">
+          {/* COLUMNA 1: BIODATA */}
+          <div className="flex flex-col px-8 gap-8">
+            <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Biodata</h3>
+            <div className="flex flex-col gap-4">
+              <MenuActionLink to="/admin/biodata/oficial" label="Gestió Biodata (Banc de Preguntes BBDD)" icon={<Brain size={18} />} darkMode={darkMode} color="purple" />
+              <MenuActionLink to="/admin/biodata/personals" label="Gestió preguntes personals" icon={<ClipboardList size={18} />} darkMode={darkMode} color="purple" />
+              <MenuActionLink to="/admin/biodata/laborals" label="Gestió preguntes laborals" icon={<Briefcase size={18} />} darkMode={darkMode} color="purple" />
+              <MenuActionLink to="/admin/biodata/pgme" label="Gestió preguntes PGME" icon={<FileText size={18} />} darkMode={darkMode} color="purple" />
+            </div>
+          </div>
+
+          {/* LÍNIA DIVISÒRIA */}
+          <div className="hidden md:block w-px bg-slate-200 dark:bg-slate-800 absolute left-1/3 top-0 bottom-0" />
+
+          {/* COLUMNA 2: ENTREVISTA */}
+          <div className="flex flex-col px-8 gap-8">
+            <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Entrevista</h3>
+            <div className="flex flex-col gap-4">
+              <MenuActionLink to="/admin/entrevista" label="Gestió de preguntes d'entrevista" icon={<MessageSquare size={18} />} darkMode={darkMode} color="purple" />
+            </div>
+          </div>
+
+          {/* LÍNIA DIVISÒRIA */}
+          <div className="hidden md:block w-px bg-slate-200 dark:bg-slate-800 absolute left-2/3 top-0 bottom-0" />
+
+          {/* COLUMNA 3: GESTIÓ CLIENTS */}
+          <div className="flex flex-col px-8 gap-8">
+            <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Gestió Clients</h3>
+            <div className="flex flex-col gap-4">
+              <MenuActionLink to="/admin/cites" label="Gestió de cites d'usuari" icon={<Calendar size={18} />} darkMode={darkMode} color="emerald" />
+              <MenuActionLink to="/admin/psicolegs" label="Gestió de psicòlegs i assignacions" icon={<Users2 size={18} />} darkMode={darkMode} color="blue" />
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* VISTA 2: GESTIÓ D'USUARIS, SEGUIMENT I ENTREVISTES */
+        <GestioUsuarisPsicotecnica darkMode={darkMode} usuarisInicials={usuaris} />
+      )}
     </div>
   );
 }
@@ -7121,11 +7204,28 @@ function SubscripcionsView({ subscripcions, onUpdateStatus, darkMode }: any) {
 /**
  * VIEW: Gestió d'Usuaris i Opositors
  */
-function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
+function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode, onRefresh, loadingRefresh }: any) {
   const [filterName, setFilterName] = useState("");
   const [filterRol, setFilterRol] = useState("all");
   const [filterEstatSubscripcio, setFilterEstatSubscripcio] = useState("all");
   const [filterPagament, setFilterPagament] = useState("all");
+
+  // Estat per gestionar quines fitxes d'usuaris estan expandides
+  // Comentari planer per a no-programadors:
+  // Guardem els identificadors dels usuaris dels quals volem veure la fitxa ampliada amb tots els detalls.
+  const [expandedUserIds, setExpandedUserIds] = useState<Set<string>>(new Set());
+
+  const toggleExpandUser = (userId: string) => {
+    setExpandedUserIds(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+      return next;
+    });
+  };
 
   // Estat per visualitzar els resultats de Biodata per part dels psicòlegs / administradors d'OposiCAT
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
@@ -7177,6 +7277,22 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
     usuari_bannejat: "Usuari Bannejat",
     usuari_sospitos: "Usuari Sospitós",
     opositor: "Usuari Opositor"
+  };
+
+  // Descripcions didàctiques de cada rol per a la fitxa detallada
+  const ROLS_DESCRIPCIONS_CAT: any = {
+    admin_master: "Accés complet i absolut a tot el panell d'administració, creació de socis i gestió total de la base de dades.",
+    admin: "Administrador d'OposiCAT. Pot gestionar preguntes, temaris, actualitat, psicotècnics i revisar els resultats dels alumnes.",
+    tester: "Usuari de proves per avaluar noves funcionalitats i mòduls abans de l'obertura general.",
+    treballador_nivell_1: "Equip de treball Nivell 1: gestió de suport i atenció a consultes bàsiques d'alumnes.",
+    treballador_nivell_2: "Equip de treball Nivell 2: creació i supervisió de continguts teòrics i exercicis.",
+    treballador_nivell_3: "Equip de treball Nivell 3: revisió avançada de temaris, entrevistes i simulacres.",
+    usuari_alpha: "Opositor amb accés prioritari a la versió Alpha per reportar millores.",
+    usuari: "Alumne matriculat a la plataforma preparant les oposicions oficials.",
+    opositor: "Alumne matriculat a la plataforma preparant les oposicions oficials.",
+    usuari_free_trial: "Compte temporal en període de prova gratuïta.",
+    usuari_bannejat: "Accés suspès i blocat per incompliment de les condicions d'ús.",
+    usuari_sospitos: "Compte sota vigilància per accessos simultanis o comportament irregular."
   };
 
   // Comentari planer per a no-programadors:
@@ -7264,7 +7380,7 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
   // Comentari planer per a no-programadors:
   // Processem i purguem la llista en memòria per detectar quins usuaris tenen correus duplicats.
   // Quan en detectem de duplicats (p. ex., mateix mail via Google i contrasenya clàssica), ens quedem
-  // amb la fitxa que té un rang d'administrador o que ha pagat / és activa, mantenint el darrer estat i conexió.
+  // amb la fitxa que té un rang d'administrador o que ha pagat / és activa, mantenint el darrer estat i connexió.
   const usuarisNetejatsDeDuplicats = useMemo(() => {
     const map = new Map<string, any>();
     
@@ -7364,14 +7480,33 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
           </div>
         </div>
 
-        {/* Accions de prova de la base de dades */}
-        <button
-          onClick={onAddMockUser}
-          className="flex items-center justify-center gap-2 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-slate-900 font-extrabold text-xs uppercase tracking-wider py-4 px-6 rounded-2xl shadow-xl shadow-yellow-500/10 transition-all hover:-translate-y-0.5"
-        >
-          <Plus size={16} />
-          <span>Generar Usuari Prova</span>
-        </button>
+        {/* Accions de control de la base de dades i generació d'usuaris de prova */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Botó per forçar el refresc en directe amb la BBDD Firestore */}
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              disabled={loadingRefresh}
+              className={`flex items-center justify-center gap-2.5 font-black text-xs uppercase tracking-wider py-4 px-6 rounded-2xl shadow-xl transition-all cursor-pointer border ${
+                darkMode 
+                  ? 'bg-slate-900/90 border-slate-700 hover:border-yellow-500 text-slate-200 hover:text-yellow-400' 
+                  : 'bg-white border-slate-200 hover:border-yellow-500 text-slate-700 hover:text-yellow-600'
+              } disabled:opacity-50`}
+              title="Refresca la llista d'usuaris directament des de la base de dades Firestore"
+            >
+              <RefreshCw size={16} className={loadingRefresh ? "animate-spin text-yellow-500" : "text-yellow-500"} />
+              <span>{loadingRefresh ? "Actualitzant..." : "Refrescar BBDD"}</span>
+            </button>
+          )}
+
+          <button
+            onClick={onAddMockUser}
+            className="flex items-center justify-center gap-2 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-slate-900 font-extrabold text-xs uppercase tracking-wider py-4 px-6 rounded-2xl shadow-xl shadow-yellow-500/10 transition-all hover:-translate-y-0.5 cursor-pointer"
+          >
+            <Plus size={16} />
+            <span>Generar Usuari Prova</span>
+          </button>
+        </div>
       </header>
 
       {/* Bloc de Filtres */}
@@ -7399,7 +7534,7 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
           </div>
 
           {/* Filtre Rol - Comentari planer per a no-programadors:
-              Ara hem afegit tots els 10 rols de l'organigrama als filtres. 
+              Hem afegit tots els 10 rols de l'organigrama als filtres. 
               D'aquesta manera es pot buscar o filtrar de cop quins usuaris són testers,
               quants tenen l'accés banejat o quins són treballadors de nivell 1, 2 o 3. */}
           <div className="flex flex-col gap-2">
@@ -7467,15 +7602,19 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
           {usuaris.length > usuarisNetejatsDeDuplicats.length && (
             <span className="text-emerald-500">✔ S'han unificat i netejat {usuaris.length - usuarisNetejatsDeDuplicats.length} duplicacions.</span>
           )}
+          <span className="text-slate-400 italic">💡 Fes clic sobre qualsevol usuari per desplegar la seva fitxa completa amb totes les dades i registre RGPD.</span>
         </div>
       </div>
 
       {/* Comentari planer per a no-programadors:
           Aquesta és la secció on dibuixem la llista de tots els nostres opositors.
-          En lloc d'estar dividits en columnes verticals de targetes de mida petita, ara cadascun és una línia horitzontal àmplia de punta a punta.
-          Això organitza la informació en un format molt més net per a monitors amples on es pot veure tot de manera directa, facilitant la feina! */}
+          Cadascun és una fila interactiva. En fer-hi clic, s'expandeix cap avall mostrant la fitxa
+          completa amb tota la informació acadèmica, tècnica i dades de facturació. */}
       <div className="flex flex-col gap-4">
         {usuarisFiltrats.map((u: any) => {
+          const uId = u.id || u.uid;
+          const isExpanded = expandedUserIds.has(uId);
+
           const estatLabels: any = {
             activa: "Activa (Al dia)",
             caducada: "Caducada",
@@ -7487,163 +7626,156 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
           
           return (
             <div 
-              key={u.id || u.uid} 
-              className={`p-5 md:py-4 md:pl-8 md:pr-6 rounded-[1.5rem] border relative overflow-hidden transition-all duration-300 hover:shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-5 ${
-                darkMode ? 'bg-slate-800/60 border-slate-800/80 hover:bg-slate-800' : 'bg-white border-slate-150 hover:bg-slate-50/50 shadow-sm'
+              key={uId} 
+              className={`rounded-[1.5rem] border relative overflow-hidden transition-all duration-300 ${
+                isExpanded
+                  ? (darkMode ? 'bg-slate-800/90 border-yellow-500/50 shadow-xl' : 'bg-white border-yellow-500/60 shadow-lg ring-2 ring-yellow-500/10')
+                  : (darkMode ? 'bg-slate-800/60 border-slate-800/80 hover:bg-slate-800' : 'bg-white border-slate-150 hover:bg-slate-50/50 shadow-sm')
               }`}
             >
               {/* Comentari planer per a no-programadors:
                   Aquest indicador vertical pintat al perfil esquerre ens diu el pols d'un cop d'ull:
-                  verd si tot és correcte, taronja si està esperant validació o vermell si l'accés s'ha llimitat. */}
+                  verd si tot és correcte, taronja si està esperant validació o vermell si l'accés s'ha limitat. */}
               <div className={`absolute top-0 bottom-0 left-0 w-2 h-full ${
                 u.estatSubscripcio === 'activa' ? 'bg-emerald-500' : 
                 u.estatSubscripcio === 'pendent_de_pagament' ? 'bg-amber-500' : 'bg-rose-500'
               }`}></div>
 
-              {/* Bloc 1 (Esquerra): Perfil complet general de l'usuari/estudiant */}
-              <div className="flex items-center gap-4 min-w-0 md:w-[28%] pl-2 md:pl-0">
-                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm select-none flex-shrink-0 ${
-                  u.rol === 'admin' 
-                    ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' 
-                    : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
-                }`}>
-                  {u.rol === 'admin' ? <Shield size={18} /> : <span className="font-sans">{inicial}</span>}
+              {/* Fila Principal de l'Usuari - Fes clic per expandir/col·lapsar */}
+              <div 
+                onClick={() => toggleExpandUser(uId)}
+                className="p-5 md:py-4 md:pl-8 md:pr-6 flex flex-col md:flex-row md:items-center justify-between gap-5 cursor-pointer select-none"
+              >
+                {/* Bloc 1 (Esquerra): Perfil complet general de l'usuari/estudiant */}
+                <div className="flex items-center gap-4 min-w-0 md:w-[28%] pl-2 md:pl-0">
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm select-none flex-shrink-0 ${
+                    u.rol === 'admin' 
+                      ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' 
+                      : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
+                  }`}>
+                    {u.rol === 'admin' ? <Shield size={18} /> : <span className="font-sans">{inicial}</span>}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className={`font-black text-xs md:text-sm truncate ${darkMode ? 'text-white' : 'text-slate-800'}`} title={u.displayName || "Novell Opositor"}>
+                        {u.displayName || "Novell Opositor"}
+                      </h3>
+                      
+                      <span className={`px-2 py-0.5 rounded-full text-[7.5px] font-black uppercase tracking-wider ${getRolBadgeStyle(u.rol)}`}>
+                        {ROLS_NOMS_CAT[u.rol] || u.rol || "Usuari Opositor"}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">{u.email}</p>
+                    <span className="text-[8px] font-mono text-slate-500 block mt-0.5">ID: {u.uid || u.id}</span>
+                  </div>
                 </div>
 
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className={`font-black text-xs md:text-sm truncate ${darkMode ? 'text-white' : 'text-slate-800'}`} title={u.displayName || "Novell Opositor"}>
-                      {u.displayName || "Novell Opositor"}
-                    </h3>
-                    
-                    <span className={`px-2 py-0.5 rounded-full text-[7.5px] font-black uppercase tracking-wider ${getRolBadgeStyle(u.rol)}`}>
-                      {ROLS_NOMS_CAT[u.rol] || u.rol || "Usuari Opositor"}
+                {/* Bloc 2 (Centre): Detalls acadèmics organitzats en línia de dalt a baix mitjançant columnes horitzontals */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-x-6 min-w-0 md:flex-1 md:px-6 md:border-l md:border-r border-slate-200/40 dark:border-slate-700/40 py-3.5 md:py-0">
+                  
+                  {/* Estat d'accés curs */}
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px]">Estat d'accés:</span>
+                    <span className={`font-black uppercase text-[10px] truncate ${
+                      u.estatSubscripcio === 'activa' ? 'text-emerald-400' : 
+                      u.estatSubscripcio === 'pendent_de_pagament' ? 'text-amber-500' : 'text-rose-500'
+                    }`}>
+                      {estatLabels[u.estatSubscripcio] || u.estatSubscripcio || "SENSE SUB"}
                     </span>
                   </div>
 
-                  <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">{u.email}</p>
-                  <span className="text-[8px] font-mono text-slate-500 block mt-0.5">ID: {u.uid || u.id}</span>
-                </div>
-              </div>
+                  {/* Estat de rebut o pagament */}
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px]">Rebut de Curs:</span>
+                    <span className={`font-bold text-[10px] flex items-center gap-1.5 ${u.haPagat ? 'text-emerald-400' : 'text-rose-400'} truncate`}>
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${u.haPagat ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+                      {u.haPagat ? 'Certificat Pagat' : 'Pendent'}
+                    </span>
+                  </div>
 
-              {/* Bloc 2 (Centre): Detalls acadèmics organitzats en línia de dalt a baix mitjançant col·legues horitzontals */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-x-6 min-w-0 md:flex-1 md:px-6 md:border-l md:border-r border-slate-200/40 dark:border-slate-700/40 py-3.5 md:py-0">
-                
-                {/* Estat d'accés curs */}
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px]">Estat d'accés:</span>
-                  <span className={`font-black uppercase text-[10px] truncate ${
-                    u.estatSubscripcio === 'activa' ? 'text-emerald-400' : 
-                    u.estatSubscripcio === 'pendent_de_pagament' ? 'text-amber-500' : 'text-rose-500'
-                  }`}>
-                    {estatLabels[u.estatSubscripcio] || u.estatSubscripcio || "SENSE SUB"}
-                  </span>
-                </div>
+                  {/* Data que es va registrar l'estudiant */}
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px]">Data de Registre:</span>
+                    <span className={`text-slate-400 font-mono text-[10px] truncate ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                      {renderFormatDate(u.creatEl || u.creatElTimestamp)}
+                    </span>
+                  </div>
 
-                {/* Estat de rebut o pagament */}
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px]">Rebut de Curs:</span>
-                  <span className={`font-bold text-[10px] flex items-center gap-1.5 ${u.haPagat ? 'text-emerald-400' : 'text-rose-400'} truncate`}>
-                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${u.haPagat ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
-                    {u.haPagat ? 'Certificat Pagat' : 'Pendent'}
-                  </span>
-                </div>
-
-                {/* Data que es va registrar l'estudiant */}
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px]">Data de Registre:</span>
-                  <span className={`text-slate-400 font-mono text-[10px] truncate ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                    {renderFormatDate(u.creatEl || u.creatElTimestamp)}
-                  </span>
+                  {/* Última connexió efectuada per l'alumnat */}
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px] flex items-center gap-1">
+                      <span className="w-1 h-1 bg-yellow-500 rounded-full animate-pulse flex-shrink-0"></span>
+                      Última connexió:
+                    </span>
+                    <span className="text-yellow-500 font-bold text-[10px] truncate" title={u.ultimAccesEl}>
+                      {renderFormatDate(u.ultimAccesEl || u.ultimaConnexio || u.lastLogin, true)}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Última connexió efectuada per l'alumnat */}
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-slate-500 font-bold uppercase tracking-wider text-[8px] flex items-center gap-1">
-                    <span className="w-1 h-1 bg-yellow-500 rounded-full animate-pulse flex-shrink-0"></span>
-                    Última connexió:
-                  </span>
-                  <span className="text-yellow-500 font-bold text-[10px] truncate" title={u.ultimAccesEl}>
-                    {renderFormatDate(u.ultimAccesEl || u.ultimaConnexio || u.lastLogin, true)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Bloc 3 (Dreta): Accions i controls ràpids d'administració de l'aula de l'acadèmia */}
-              <div className="flex flex-row md:flex-col lg:flex-row gap-2 shrink-0 md:w-[22%]">
-                {/* Botó per obrir o tancar l'aixeta de l'accés */}
-                <button
-                  onClick={() => onUpdateUser(u.id || u.uid, { 
-                    estatSubscripcio: u.estatSubscripcio === 'activa' ? 'caducada' : 'activa',
-                    haPagat: u.estatSubscripcio !== 'activa' // Si l'activem manualment, marquem com a pagat per coherència
-                  })}
-                  className={`flex-1 py-2 px-3 rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all truncate text-center cursor-pointer ${
-                    u.estatSubscripcio !== 'activa' 
-                      ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white hover:shadow-md' 
-                      : 'bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white'
-                  }`}
+                {/* Bloc 3 (Dreta): Accions ràpides i indicador d'expansió */}
+                <div 
+                  onClick={(e) => e.stopPropagation()} 
+                  className="flex flex-row md:flex-col lg:flex-row gap-2 shrink-0 md:w-[24%] items-center"
                 >
-                  {u.estatSubscripcio === 'activa' ? 'Anul·lar Accés' : 'Autoritzar Accés'}
-                </button>
-
-                {/* Botó per veure els resultats del test de Biodata del alumne (per part del psicòleg) */}
-                <button
-                  onClick={() => setSelectedUser(u)}
-                  className="flex-1 py-2 px-3 rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all truncate text-center cursor-pointer bg-purple-500/10 text-purple-400 border border-purple-500/25 hover:bg-purple-500 hover:text-white hover:shadow-md"
-                >
-                  Veure Biodata 📊
-                </button>
-
-                {/* Botó per commutar el càrrec/rol (Opositor clàssic o Administrador de control) */}
-                {/* Selector Dropdown de Rol - Comentari planer per a no-programadors:
-                    En lloc d'un botó simple de si/no admin, ara l'Admin Master pot triar manualment
-                    qualsevol dels 10 rols predefinits a la base de dades. Només cal obrir el desplegable
-                    i fer-hi un clic; Firestore es sincronitza i es desa automàticament sense haver d'escriure res. */}
-                <div className="flex-1 flex flex-col gap-1 min-w-0">
-                  <select
-                    value={u.rol || "opositor"}
-                    onChange={(e) => onUpdateUser(u.id || u.uid, { rol: e.target.value })}
-                    className={`w-full py-2.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border outline-none focus:ring-2 focus:ring-yellow-500 cursor-pointer ${
-                      darkMode 
-                        ? 'bg-slate-900 border-slate-700 text-slate-300' 
-                        : 'bg-slate-50 border-slate-200 text-slate-700'
+                  {/* Botó per obrir o tancar l'aixeta de l'accés */}
+                  <button
+                    onClick={() => onUpdateUser(u.id || u.uid, { 
+                      estatSubscripcio: u.estatSubscripcio === 'activa' ? 'caducada' : 'activa',
+                      haPagat: u.estatSubscripcio !== 'activa'
+                    })}
+                    className={`flex-1 py-2 px-2.5 rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all truncate text-center cursor-pointer ${
+                      u.estatSubscripcio !== 'activa' 
+                        ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white hover:shadow-md' 
+                        : 'bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white'
                     }`}
                   >
-                    {(() => {
-                      // Comentari planer per a no-programadors:
-                      // Mitjançant l'email de l'usuari en línia de Firebase Auth (auth.currentUser),
-                      // mirem si és el Master d'OposiCAT ("xepfarre@gmail.com").
-                      // Només ell pot promoure usuaris a Administrador / Soci o Admin Master.
-                      const emailLower = (auth.currentUser?.email || "").toLowerCase().trim();
-                      const ésMaster = emailLower === "xepfarre@gmail.com";
-                      
-                      const options = [
-                        { val: "admin_master", text: "★ Admin Master" },
-                        { val: "admin", text: "♛ Administrador / Soci" },
-                        { val: "tester", text: "✈ Tester / Provador" },
-                        { val: "treballador_nivell_1", text: "✎ Treballador Nivell 1" },
-                        { val: "treballador_nivell_2", text: "✎ Treballador Nivell 2" },
-                        { val: "treballador_nivell_3", text: "✎ Treballador Nivell 3" },
-                        { val: "usuari", text: "✔ Usuari Opositor (usuari)" },
-                        { val: "opositor", text: "✔ Usuari Opositor (opositor)" },
-                        { val: "usuari_alpha", text: "🎯 Usuari Alpha (Tester)" },
-                        { val: "usuari_free_trial", text: "⏳ Usuari Prova (Free trial)" },
-                        { val: "usuari_bannejat", text: "✖ Usuari Bannejat" },
-                        { val: "usuari_sospitos", text: "⚠ Usuari Sospitós" }
-                      ];
+                    {u.estatSubscripcio === 'activa' ? 'Anul·lar' : 'Autoritzar'}
+                  </button>
 
-                      return options
-                        .filter(opt => ésMaster || (opt.val !== "admin_master" && opt.val !== "admin"))
-                        .map(opt => (
-                          <option key={opt.val} value={opt.val}>
-                            {opt.text}
-                          </option>
-                        ));
-                    })()}
-                  </select>
+                  {/* Botó per veure els resultats del test de Biodata del alumne */}
+                  <button
+                    onClick={() => setSelectedUser(u)}
+                    className="flex-1 py-2 px-2.5 rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all truncate text-center cursor-pointer bg-purple-500/10 text-purple-400 border border-purple-500/25 hover:bg-purple-500 hover:text-white hover:shadow-md"
+                  >
+                    Biodata 📊
+                  </button>
+
+                  {/* Botó visual per expandir / col·lapsar la fitxa detallada */}
+                  <button
+                    onClick={() => toggleExpandUser(uId)}
+                    className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center ${
+                      isExpanded 
+                        ? 'bg-yellow-500 text-slate-950 border-yellow-500 shadow-md' 
+                        : (darkMode ? 'bg-slate-900 border-slate-700 text-slate-300 hover:text-yellow-400' : 'bg-slate-100 border-slate-200 text-slate-600 hover:text-yellow-600')
+                    }`}
+                    title={isExpanded ? "Plegar detalls" : "Desplegar fitxa completa"}
+                  >
+                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </button>
                 </div>
               </div>
 
+              {/* FITXA AMPLIADA I EXPANDIDA DE L'USUARI */}
+              {isExpanded && (
+                <div className={`p-6 md:p-8 border-t transition-all animate-in fade-in duration-200 ${
+                  darkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-50/90 border-slate-200'
+                }`}>
+                  <FitxaUsuariExpandida
+                    usuari={u}
+                    darkMode={darkMode}
+                    onUpdateUser={onUpdateUser}
+                    onVeureBiodata={() => setSelectedUser(u)}
+                    getRolBadgeStyle={getRolBadgeStyle}
+                    ROLS_NOMS_CAT={ROLS_NOMS_CAT}
+                    ROLS_DESCRIPCIONS_CAT={ROLS_DESCRIPCIONS_CAT}
+                    renderFormatDate={renderFormatDate}
+                    onCol·lapsar={() => toggleExpandUser(uId)}
+                  />
+                </div>
+              )}
             </div>
           );
         })}
@@ -7654,7 +7786,7 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
           <User size={56} className="text-slate-200 dark:text-slate-800 mb-8" />
           <h4 className="text-xl font-black uppercase italic tracking-tighter text-slate-500 mb-2">No s'ha obtingut cap usuari</h4>
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 max-w-sm leading-relaxed">
-            La col·lecció de la BBDD a Firestore està deserta, o bé cap usuari compleix els filtres de cerca aplicats. Pots prémer el botó superior per generar un usuari de prova a la BBDD i testar!
+            La col·lecció de la BBDD a Firestore està deserta, o bé cap usuari compleix els filtres de cerca aplicats. Pots prémer el botó superior "Refrescar BBDD" per tornar a consultar Firestore o "Generar Usuari Prova" per testejar!
           </p>
         </div>
       )}
@@ -7805,10 +7937,10 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
                                         {valor.toFixed(1)} / 10
                                       </span>
                                     </div>
-                                    <div className="w-full bg-slate-700/20 h-2 rounded-full overflow-hidden">
+                                    <div className="w-full bg-black/20 rounded-full h-1.5 overflow-hidden">
                                       <div 
-                                        className={`h-full rounded-full transition-all duration-500 ${colorBarra}`} 
-                                        style={{ width: `${valor * 10}%` }}
+                                        className={`h-full rounded-full ${colorBarra}`} 
+                                        style={{ width: `${Math.min(100, Math.max(0, valor * 10))}%` }} 
                                       />
                                     </div>
                                   </div>
@@ -7822,19 +7954,6 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
                   </>
                 )}
               </div>
-
-              {/* Consells Didàctics del Psicòleg - A Futur segons la norma 6 d'AGENTS.md */}
-              <div className={`mt-6 p-4 rounded-2xl border text-left ${
-                darkMode ? 'bg-[#1a3a5a]/20 border-white/5' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <h4 className="text-yellow-500 font-black uppercase text-[10px] tracking-wider mb-1 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
-                  Et recomano, modificaria i/o recorda que pot passar... a futur (Rol del Psicòleg)
-                </h4>
-                <p className="text-[10px] md:text-[11px] text-slate-450 leading-relaxed italic">
-                  Com a psicòleg de l'acadèmia, utilitza el perfil anterior per focalitzar l'entrevista personal en les competències on l'alumne hagi obtingut puntuacions baixes (menys de 5.0) o incoherents (perfectes de 10). Revisa si l'alumne mostra contradiccions o si s'ha posat nerviós davant de les situacions de dany o adaptabilitat. Això estalviarà temps valuós de sessió individual.
-                </p>
-              </div>
             </div>
           </div>
         )}
@@ -7842,4 +7961,339 @@ function UsuarisView({ usuaris, onUpdateUser, onAddMockUser, darkMode }: any) {
     </div>
   );
 }
+
+/**
+ * COMPONENT: Fitxa Detallada i Desplegada de l'Usuari
+ * 
+ * Comentari planer per a no-programadors:
+ * Aquest component es mostra quan es fa clic sobre una fila d'usuari a la llista.
+ * Presenta de manera ordenada tots els camps de seguretat, identificació, sessió, subscripció
+ * i es connecta a Firestore per consultar sota demanda les dades de facturació i domicili RGPD.
+ */
+function FitxaUsuariExpandida({
+  usuari,
+  darkMode,
+  onUpdateUser,
+  onVeureBiodata,
+  getRolBadgeStyle,
+  ROLS_NOMS_CAT,
+  ROLS_DESCRIPCIONS_CAT,
+  renderFormatDate,
+  onCol·lapsar
+}: any) {
+  const [dadesPrivades, setDadesPrivades] = useState<any>(null);
+  const [carregantPrivades, setCarregantPrivades] = useState<boolean>(true);
+  const [copiatUID, setCopiatUID] = useState<boolean>(false);
+
+  const uId = usuari.uid || usuari.id || "";
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!uId) {
+      setCarregantPrivades(false);
+      return;
+    }
+
+    // Comentari planer per a no-programadors:
+    // Carreguem les dades del calaix privat de facturació situat a 'usuaris/{uId}/dades_privades/perfil_sensible'.
+    const carregarPrivades = async () => {
+      setCarregantPrivades(true);
+      try {
+        const docRef = doc(db, "usuaris", uId, "dades_privades", "perfil_sensible");
+        const snap = await getDoc(docRef);
+        if (isMounted) {
+          if (snap.exists()) {
+            setDadesPrivades(snap.data());
+          } else {
+            setDadesPrivades(null);
+          }
+        }
+      } catch (err) {
+        console.warn("No s'han pogut carregar les dades privades de facturació:", err);
+      } finally {
+        if (isMounted) setCarregantPrivades(false);
+      }
+    };
+
+    carregarPrivades();
+    return () => { isMounted = false; };
+  }, [uId]);
+
+  const copiarUID = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!uId) return;
+    navigator.clipboard.writeText(uId);
+    setCopiatUID(true);
+    setTimeout(() => setCopiatUID(false), 2500);
+  };
+
+  return (
+    <div className="flex flex-col gap-6 text-left">
+      {/* Capçalera de la fitxa detallada */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/40 dark:border-slate-700/40">
+        <div className="flex items-center gap-3">
+          <div className="w-2 h-7 bg-yellow-500 rounded-full" />
+          <div>
+            <h4 className={`text-base font-black uppercase tracking-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+              Fitxa Integral de l'Opositor
+            </h4>
+            <p className="text-[10px] text-slate-400 font-medium">Identificació de compte, seguretat de sessió i registre de facturació RGPD</p>
+          </div>
+        </div>
+
+        <button
+          onClick={onCol·lapsar}
+          className={`self-start sm:self-auto py-1.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider border cursor-pointer transition-all ${
+            darkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white' : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          Tancar Fitxa ▲
+        </button>
+      </div>
+
+      {/* Graella de 3 columnes amb tota la informació de l'usuari */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* Columna 1: Credencials i Identificació Tècnica */}
+        <div className={`p-5 rounded-2xl border flex flex-col gap-3.5 ${
+          darkMode ? 'bg-slate-950/40 border-slate-800' : 'bg-white border-slate-200'
+        }`}>
+          <div className="flex items-center gap-2 text-yellow-500">
+            <User size={15} />
+            <span className="text-[10px] font-black uppercase tracking-wider">Identificació & Credencials</span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Nom Complet:</span>
+            <span className={`text-xs font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+              {usuari.displayName || "Novell Opositor"}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Correu Electrònic:</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`text-xs font-medium ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                {usuari.email || "Sense correu"}
+              </span>
+              <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase ${
+                usuari.correuVerificat ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-500'
+              }`}>
+                {usuari.correuVerificat ? '✔ Verificat' : '⏳ Pendent'}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Identificador Únic de Firebase (UID):</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded-lg truncate flex-1 select-all">
+                {uId}
+              </span>
+              <button
+                onClick={copiarUID}
+                className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:border-yellow-500 text-slate-400 hover:text-yellow-500 transition-all cursor-pointer shrink-0"
+                title="Copiar UID al porta-retalls"
+              >
+                {copiatUID ? <CheckCheck size={14} className="text-emerald-500" /> : <Copy size={14} />}
+              </button>
+            </div>
+            {copiatUID && <span className="text-[8px] text-emerald-500 font-bold">UID copiat al porta-retalls!</span>}
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Rol assignat:</span>
+            <div className="flex items-center gap-2">
+              <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${getRolBadgeStyle(usuari.rol)}`}>
+                {ROLS_NOMS_CAT[usuari.rol] || usuari.rol || "Usuari Opositor"}
+              </span>
+            </div>
+            <p className="text-[9px] text-slate-400 leading-relaxed mt-1 italic">
+              {ROLS_DESCRIPCIONS_CAT[usuari.rol] || "Alumne regular de l'acadèmia OposiCAT."}
+            </p>
+          </div>
+        </div>
+
+        {/* Columna 2: Seguretat, Sessió i Estat Acadèmic */}
+        <div className={`p-5 rounded-2xl border flex flex-col gap-3.5 ${
+          darkMode ? 'bg-slate-950/40 border-slate-800' : 'bg-white border-slate-200'
+        }`}>
+          <div className="flex items-center gap-2 text-yellow-500">
+            <Clock size={15} />
+            <span className="text-[10px] font-black uppercase tracking-wider">Sessions & Estat de Curs</span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Estat d'Accés al Campus:</span>
+            <span className={`text-xs font-black uppercase ${
+              usuari.estatSubscripcio === 'activa' ? 'text-emerald-400' :
+              usuari.estatSubscripcio === 'pendent_de_pagament' ? 'text-amber-500' : 'text-rose-400'
+            }`}>
+              {usuari.estatSubscripcio === 'activa' ? '✔ Accés Autoritzat (Actiu)' :
+               usuari.estatSubscripcio === 'pendent_de_pagament' ? '⏳ Pendent d\'activació' : '✖ Accés Caducat / Revocat'}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Rebut de Quota:</span>
+            <span className={`text-xs font-bold ${usuari.haPagat ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {usuari.haPagat ? '✔ Pagat Certificat' : '✖ Rebut Pendent'}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Data i Hora de Registre:</span>
+            <span className="text-xs font-mono text-slate-300 dark:text-slate-300">
+              {renderFormatDate(usuari.creatEl || usuari.creatElTimestamp, true)}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Darrer Accés al Campus:</span>
+            <span className="text-xs font-mono text-yellow-500 font-bold">
+              {renderFormatDate(usuari.ultimAccesEl || usuari.ultimaConnexio || usuari.lastLogin, true)}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Control de Dispositiu (ID Sessió):</span>
+            <span className="text-[9px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded-lg truncate" title={usuari.idSessioActiva || "Cap sessió oberta"}>
+              {usuari.idSessioActiva ? `Dispositiu: ${usuari.idSessioActiva.substring(0, 24)}...` : "Cap sessió activa oberta"}
+            </span>
+          </div>
+        </div>
+
+        {/* Columna 3: Dades Privades i Facturació RGPD */}
+        <div className={`p-5 rounded-2xl border flex flex-col gap-3.5 ${
+          darkMode ? 'bg-slate-950/40 border-slate-800' : 'bg-white border-slate-200'
+        }`}>
+          <div className="flex items-center gap-2 text-yellow-500">
+            <CreditCard size={15} />
+            <span className="text-[10px] font-black uppercase tracking-wider">Facturació & Domicili (RGPD)</span>
+          </div>
+
+          {carregantPrivades ? (
+            <div className="py-6 flex items-center justify-center gap-2 text-slate-400 text-xs">
+              <RefreshCw size={14} className="animate-spin text-yellow-500" />
+              <span>Carregant dades RGPD...</span>
+            </div>
+          ) : dadesPrivades ? (
+            <div className="flex flex-col gap-2.5 text-xs">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Nom Facturació:</span>
+                <span className="font-bold text-slate-200">
+                  {dadesPrivades.nomCompletFacturacio || dadesPrivades.nom || ""} {dadesPrivades.cognomsFacturacio || dadesPrivades.cognoms || ""}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">DNI / NIE:</span>
+                <span className="font-mono font-bold text-yellow-400">{dadesPrivades.dniFacturacio || dadesPrivades.dni || "No registrat"}</span>
+              </div>
+
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Telèfon Contacte:</span>
+                <span className="font-mono text-slate-300">{dadesPrivades.telefonContacte || dadesPrivades.telefon || "No registrat"}</span>
+              </div>
+
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Adreça Postal:</span>
+                <span className="text-slate-300">{dadesPrivades.adrecaPostal || dadesPrivades.adreca || "Sense adreça"}, {dadesPrivades.codiPostal || ""} ({dadesPrivades.provincia || "Catalunya"})</span>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1 border-t border-slate-700/40">
+                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Sol·licitud Factura:</span>
+                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
+                  dadesPrivades.facturaSol·licitada || dadesPrivades.facturaSollicitada ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-700/30 text-slate-400'
+                }`}>
+                  {dadesPrivades.facturaSol·licitada || dadesPrivades.facturaSollicitada ? 'Sí, Factura Requerida' : 'No'}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="py-4 px-3 rounded-xl border border-dashed border-slate-700/40 text-center flex flex-col items-center gap-2">
+              <Info size={18} className="text-slate-400" />
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                L'opositor encara no ha emplenat el formulari de facturació i domicili al seu perfil personal.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Barra d'Accions Ràpides de la fitxa */}
+      <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 ${
+        darkMode ? 'bg-slate-950/60 border-slate-800' : 'bg-white border-slate-200'
+      }`}>
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Botó per commutar accés */}
+          <button
+            onClick={() => onUpdateUser(uId, { 
+              estatSubscripcio: usuari.estatSubscripcio === 'activa' ? 'caducada' : 'activa',
+              haPagat: usuari.estatSubscripcio !== 'activa'
+            })}
+            className={`py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+              usuari.estatSubscripcio !== 'activa' 
+                ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400 shadow-md font-bold' 
+                : 'bg-rose-500/10 text-rose-500 border border-rose-500/30 hover:bg-rose-500 hover:text-white'
+            }`}
+          >
+            {usuari.estatSubscripcio === 'activa' ? 'Anul·lar Accés al Curs' : 'Autoritzar Accés al Curs'}
+          </button>
+
+          {/* Botó per veure biodata */}
+          <button
+            onClick={onVeureBiodata}
+            className="py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer bg-purple-500/10 text-purple-400 border border-purple-500/30 hover:bg-purple-500 hover:text-white"
+          >
+            Examinar Biodata 📊
+          </button>
+        </div>
+
+        {/* Canvi ràpid de Rol */}
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">Canviar Rol:</span>
+          <select
+            value={usuari.rol || "opositor"}
+            onChange={(e) => onUpdateUser(uId, { rol: e.target.value })}
+            className={`py-2 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider border outline-none focus:ring-2 focus:ring-yellow-500 cursor-pointer ${
+              darkMode 
+                ? 'bg-slate-900 border-slate-700 text-slate-300' 
+                : 'bg-slate-50 border-slate-200 text-slate-700'
+            }`}
+          >
+            {(() => {
+              const emailLower = (auth.currentUser?.email || "").toLowerCase().trim();
+              const ésMaster = emailLower === "xepfarre@gmail.com";
+              
+              const options = [
+                { val: "admin_master", text: "★ Admin Master" },
+                { val: "admin", text: "♛ Administrador / Soci" },
+                { val: "tester", text: "✈ Tester / Provador" },
+                { val: "treballador_nivell_1", text: "✎ Treballador Nivell 1" },
+                { val: "treballador_nivell_2", text: "✎ Treballador Nivell 2" },
+                { val: "treballador_nivell_3", text: "✎ Treballador Nivell 3" },
+                { val: "usuari", text: "✔ Usuari Opositor (usuari)" },
+                { val: "opositor", text: "✔ Usuari Opositor (opositor)" },
+                { val: "usuari_alpha", text: "🎯 Usuari Alpha (Tester)" },
+                { val: "usuari_free_trial", text: "⏳ Usuari Prova (Free trial)" },
+                { val: "usuari_bannejat", text: "✖ Usuari Bannejat" },
+                { val: "usuari_sospitos", text: "⚠ Usuari Sospitós" }
+              ];
+
+              return options
+                .filter(opt => ésMaster || (opt.val !== "admin_master" && opt.val !== "admin"))
+                .map(opt => (
+                  <option key={opt.val} value={opt.val}>
+                    {opt.text}
+                  </option>
+                ));
+            })()}
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 

@@ -1,28 +1,47 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MessageSquare, CheckCircle2, Wrench, Sparkles, ExternalLink, Brain, ArrowRight } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isSameMonth } from 'date-fns';
 import { ca } from 'date-fns/locale';
+import { MAP_COMPETENCIES } from './preguntes_biodata';
+import { EinesEntrevistaLiveWeb } from './EinesEntrevistaLiveWeb';
 
 /* =============================================================================
  * COMPONENT: DemanarCitaWeb
  * -----------------------------------------------------------------------------
  * Reserva de cita individual amb psicòlegs especialitzats en oposicions.
- * Inclou calendari interactiu, selecció de torn i hora, i reserva directa per WhatsApp.
+ * Inclou calendari interactiu, selecció de torn i hora, reserva directa per WhatsApp
+ * i accés directe a la nova pantalla "Eines de l'entrevista en directe" (10 Competències).
  * ============================================================================= */
 
 interface DemanarCitaWebProps {
   onTornar: () => void;
   onTornarMenuPrincipal: () => void;
+  onObrirEinesDirecte?: () => void;
 }
 
 export const DemanarCitaWeb: React.FC<DemanarCitaWebProps> = ({
   onTornar,
   onTornarMenuPrincipal,
+  onObrirEinesDirecte,
 }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [torn, setTorn] = useState<'mati' | 'tarda'>('mati');
   const [hora, setHora] = useState<string>('10:00');
+
+  // Comentari planer per a no-programadors:
+  // Estat per canviar a la nova pantalla dedicada d'"Eines de l'entrevista en directe"
+  // de manera que en el mòbil només es vegin les 10 competències clau netes.
+  const [mostrantPantallaLive, setMostrantPantallaLive] = useState(false);
+
+  // Si l'usuari ha premut el botó d'Eines en directe, mostrem la pantalla exclusiva
+  if (mostrantPantallaLive) {
+    return (
+      <EinesEntrevistaLiveWeb 
+        onTornar={() => setMostrantPantallaLive(false)} 
+      />
+    );
+  }
 
   const days = eachDayOfInterval({
     start: startOfMonth(currentMonth),
@@ -247,7 +266,34 @@ export const DemanarCitaWeb: React.FC<DemanarCitaWebProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 4. BOTONS DE NAVEGACIÓ INFERIOR */}
+      {/* 4. SECCIÓ D'EINES DE L'ENTREVISTA EN DIRECTE */}
+      {/* ========================================================================= */}
+      {/* Comentari planer per a no-programadors:
+          Aquest botó condueix l'aspirant directament a la nova pantalla neta de la classe,
+          on només veurà les 10 competències clau oficials preparades per al seu mòbil. */}
+      <div className="pt-4 flex flex-col items-center justify-center space-y-2">
+        <button
+          onClick={() => {
+            if (onObrirEinesDirecte) {
+              onObrirEinesDirecte();
+            } else {
+              setMostrantPantallaLive(true);
+            }
+          }}
+          id="btn-eines-entrevista-directe"
+          className="group inline-flex items-center justify-center gap-3 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 px-8 py-4 rounded-2xl font-black italic uppercase tracking-[0.15em] text-sm shadow-xl shadow-amber-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer w-full max-w-md border border-amber-300/40"
+        >
+          <Wrench className="w-5 h-5 text-slate-950" />
+          <span>Eines de l'entrevista en directe</span>
+          <ArrowRight className="w-5 h-5 ml-auto text-slate-950 group-hover:translate-x-1 transition-transform" />
+        </button>
+        <p className="text-[11px] text-amber-400/80 font-medium text-center">
+          Pissarra interactiva amb les 10 competències clau per a la teva sessió 1v1
+        </p>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 5. BOTONS DE NAVEGACIÓ INFERIOR */}
       {/* ========================================================================= */}
       <div className="flex flex-wrap items-center justify-center gap-3 pt-6">
         <button

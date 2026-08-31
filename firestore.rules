@@ -108,8 +108,8 @@ service cloud.firestore {
                        isValidId(userId) &&
                        incoming().uid == request.auth.uid &&
                        incoming().email is string &&
-                       incoming().displayName is string &&
-                       (incoming().rol == "opositor" || incoming().rol == "usuari_free_trial" || incoming().rol == "admin" || incoming().rol == "admin_master") &&
+                       (!("displayName" in incoming()) || incoming().displayName is string) &&
+                       (incoming().rol is string && incoming().rol.size() <= 64) &&
                        (incoming().haPagat == true || incoming().haPagat == false) &&
                        incoming().estatSubscripcio is string &&
                        (incoming().correuVerificat == true || incoming().correuVerificat == false);
@@ -204,6 +204,37 @@ service cloud.firestore {
         allow read, write: if isOwner(userId);
         allow read: if isAdmin();
       }
+
+      // 1.9 Subcol·lecció de sessions d'entrevista i seguiment psicopedagògic de l'alumne
+      // Comentari planer per a no-programadors: Permet als professors i psicòlegs enregistrar el contingut de les entrevistes, punts tractats, notes per a altres docents i preparació de classes.
+      match /sessions_entrevista/{docId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isAdmin();
+      }
+
+      // 1.10 Subcol·lecció de plantilles personalitzades de classe per a aquest alumne concret
+      match /plantilles_personalitzades/{docId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isAdmin();
+      }
+
+      // 1.11 Subcol·lecció de preparació de classes i esborranys per a aquest alumne
+      match /preparacio_classes/{docId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isAdmin();
+      }
+
+      // 1.12 Estat de la pissarra d'entrevista en directe 1v1 (10 Competències Clau)
+      // Comentari planer per a no-programadors: Permet a l'alumne i al professor interactuar de forma sincronitzada i en temps real durant una classe.
+      match /entrevista_live_state/{docId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    // 1.13 Col·lecció global de plantilles genèriques de classes i simulacres per als professors (plantilles_classes)
+    match /plantilles_classes/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
 
     // 2. Col·lecció de Rols i configuracions de permisos per a l'organització interna

@@ -368,7 +368,11 @@ export default function App() {
         // Comprovació crucial: si a la BBDD hi ha una clau de sessió i no és la nostra, algú més ha entrat!
         // Comentari planer per a no-programadors: Només fem aquesta comprovació si el nostre propi dispositiu ja s'ha
         // registrat amb èxit (sessioRegistradaCorrectament === true), per evitar tancaments per dades antigues.
-        if (sessioRegistradaCorrectament && sessioABBDD && sessioABBDD !== laMevaSessio) {
+        // Els comptes d'administrador d'OposiCAT queden exclosos d'aquest tancament brusc per permetre treballar al Backoffice
+        // i supervisar la plataforma des de múltiples pantalles o pestanyes sense ser expulsats.
+        const esAdmin = dades.rol === 'admin' || dades.rol === 'admin_master' || user.email === 'xepfarre@gmail.com' || user.email === 'xepfarre7@gmail.com' || user.email === 'sergivinu@gmail.com';
+        
+        if (!esAdmin && sessioRegistradaCorrectament && sessioABBDD && sessioABBDD !== laMevaSessio) {
           console.warn("Doble sessió detectada! Desconnectant aquest dispositiu per evitar l'ús fraudulent de comptes.");
           setErrorSessioDuplicada(true);
           tancarSessio().then(() => {

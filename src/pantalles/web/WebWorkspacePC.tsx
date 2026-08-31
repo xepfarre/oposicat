@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { auth, db } from '../../lib/firebase';
 import { doc, getDoc, collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { determinarRolSegonsEmail, tancarSessio } from '../../lib/authService';
+import { determinarRolSegonsEmail, tancarSessio, garantirFitxaPerfilFirestore } from '../../lib/authService';
 import { TEMARI_DETALL } from '../../constants/temari';
 import { CONTINGUT_TEMARI_TEXTS } from '../../constants/contingut_textos';
 import WebWorkspacePCEstudiPersonal from './WebWorkspacePCEstudiPersonal';
@@ -672,27 +672,21 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
   const [horaActual, setHoraActual] = useState(new Date());
   const [animationState, setAnimationState] = useState<'base' | 'color1' | 'color2'>('base');
 
-  // Explicació per a no-programadors: Aquest efecte s'executa tant a l'inici com quan hi ha canvis en la sessió de l'estudiant. S'encarrega d'agafar l'identificador de l'usuari en línia (UID), consultar directament la fitxa d'usuari oficial 'usuaris' a la base de dades Firestore de Firebase i estirar-ne el camp 'displayName' i 'rol'. D'aquesta manera s'evita totalment inventar noms i s'ensenyen les dades reals que s'hagin posat en registrar-se.
+  // Explicació per a no-programadors: Aquest efecte s'executa tant a l'inici com quan hi ha canvis en la sessió de l'estudiant. S'encarrega d'agafar l'identificador de l'usuari en línia (UID), consultar directament la fitxa d'usuari oficial 'usuaris' a la base de dades Firestore de Firebase i estirar-ne el camp 'displayName' i 'rol'. Si el document no existís a Firestore, el garanteix i crea automàticament de forma silenciosa.
   useEffect(() => {
     const carregarPerfilReal = async () => {
       const usuariAutenticat = auth.currentUser;
       if (usuariAutenticat) {
         try {
-          // Busquem el document d'aquest estudiant a la col·lecció 'usuaris'
-          const docRef = doc(db, 'usuaris', usuariAutenticat.uid);
-          const snapshotDoc = await getDoc(docRef);
+          // Assegurem que la fitxa a Firestore existeixi de debò
+          const perfilGarantit = await garantirFitxaPerfilFirestore(usuariAutenticat);
           
-          if (snapshotDoc.exists()) {
-            const dades = snapshotDoc.data();
-            if (dades) {
-              if (dades.displayName) {
-                setNomEstudiantReal(`👤 ${dades.displayName}`);
-              }
-              if (dades.rol) {
-                setRolUsuari(dades.rol);
-                return;
-              }
-            }
+          if (perfilGarantit.displayName) {
+            setNomEstudiantReal(`👤 ${perfilGarantit.displayName}`);
+          }
+          if (perfilGarantit.rol) {
+            setRolUsuari(perfilGarantit.rol);
+            return;
           }
           
           // Deducció automàtica de rol per email si no venia a Firestore
@@ -708,7 +702,7 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
             setNomEstudiantReal(`👤 ${nomNet.charAt(0).toUpperCase() + nomNet.slice(1)}`);
           }
         } catch (err) {
-          console.error("No s'ha pogut obtenir el perfil de l'estudiant des de Firestore:", err);
+          console.error("No s'ha pogut obtenir o garantir el perfil de l'estudiant des de Firestore:", err);
           const rolFallback = determinarRolSegonsEmail(usuariAutenticat.email, 'usuari_alpha');
           setRolUsuari(rolFallback);
           setNomEstudiantReal('👤 Estudiant');

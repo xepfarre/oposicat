@@ -92,7 +92,8 @@ export async function desarProgresLectura(
   // Generem una clau única i constant per a aquest punt del temari, evitant duplicats.
   // Exemple d'ID de document: oficial_A_0_4
   const docId = `${tipus}_${ambit}_${temaIndex}_${subIndex}`;
-  const docRef = doc(db, 'usuaris', userId, 'progres_lectura', docId);
+  if (!db) return;
+  const docRef = doc(db, `usuaris/${userId}/progres_lectura/${docId}`);
 
   try {
     await setDoc(docRef, {
@@ -122,7 +123,8 @@ export async function desarProgresTemaSencer(
   completat: boolean
 ) {
   const docId = `tema_${tipus}_${ambit}_${temaIndex}`;
-  const docRef = doc(db, 'usuaris', userId, 'progres_lectura', docId);
+  if (!db) return;
+  const docRef = doc(db, `usuaris/${userId}/progres_lectura/${docId}`);
 
   try {
     await setDoc(docRef, {
@@ -156,7 +158,8 @@ export async function desarSubratllat(
 ) {
   // Clau constant per cercar de manera eficient
   const docId = `${ambit}_${temaIndex}_${subIndex}`;
-  const docRef = doc(db, 'usuaris', userId, 'subratllats', docId);
+  if (!db) return;
+  const docRef = doc(db, `usuaris/${userId}/subratllats/${docId}`);
 
   try {
     await setDoc(docRef, {
@@ -190,7 +193,8 @@ export async function desarNotesEstudiant(
   notes: string
 ) {
   const docId = `${ambit}_${temaIndex}_${subIndex}`;
-  const docRef = doc(db, 'usuaris', userId, 'resums_estudiant', docId);
+  if (!db) return;
+  const docRef = doc(db, `usuaris/${userId}/resums_estudiant/${docId}`);
 
   try {
     await setDoc(docRef, {
@@ -242,7 +246,7 @@ export async function carregarProgresEstudis(userId: string) {
   // Abans de demanar les dades dels subratllats i de les notes a Firestore (base de dades de Google),
   // ens hem d'assegurar d'estar 100% connectats i loguejats. Si iniciem la consulta abans de tenir la sessió
   // apuntada a Firebase, el servidor ens farà fora donant un error de "Missing or insufficient permissions".
-  if (!auth.currentUser || auth.currentUser.uid !== userId) {
+  if (!db || !auth.currentUser || auth.currentUser.uid !== userId) {
     console.warn(`[Firestore càrrega] Avís: S'ha evitat l'accés a dades perquè la sessió d'usuari encara no està activa al motor de Firebase (UserId demanat: ${userId}, actual: ${auth.currentUser?.uid || 'cap'}). Retornem l'esquelet inicial.`);
     return r;
   }
@@ -251,84 +255,74 @@ export async function carregarProgresEstudis(userId: string) {
     console.log(`[Firestore càrrega] Començant de manera segura lectura global dels progressos de l'estudiant: ${userId}`);
 
     // Partió 1: Llegim progres de lectura des de Firestore amb gestió d'errors granular.
-    let snapLectura;
     try {
-      snapLectura = await getDocs(collection(db, 'usuaris', userId, 'progres_lectura'));
-    } catch (e) {
-      handleFirestoreError(e, OperationType.LIST, `usuaris/${userId}/progres_lectura`);
-      throw e;
-    }
-
-    snapLectura.forEach((docSnap) => {
-      const d = docSnap.data();
-      const id = docSnap.id;
-      
-      if (id.startsWith('tema_')) {
-        // Marcador superior del tema global
-        const t = d.tipus; // 'oficial' | 'oposimossos'
-        const amb = d.ambit as 'A' | 'B' | 'C';
-        const idx = d.tema;
-        if (t === 'oficial') {
-          r[amb][idx] = d.completat ?? false;
-        } else {
-          r.oposimossos[amb][idx] = d.completat ?? false;
-        }
-      } else {
-        // Detall de subtema
-        const t = d.tipus; // 'oficial' | 'oposimossos'
-        const amb = d.ambit as 'A' | 'B' | 'C';
-        const idx = d.tema;
-        const sub = d.subtema;
+      const snapLectura = await getDocs(collection(db, `usuaris/${userId}/progres_lectura`));
+      snapLectura.forEach((docSnap) => {
+        const d = docSnap.data();
+        const id = docSnap.id;
         
-        if (t === 'oficial') {
-          if (r.detall[amb] && r.detall[amb][idx]) {
-            r.detall[amb][idx][sub] = d.completat ?? false;
+        if (id.startsWith('tema_')) {
+          // Marcador superior del tema global
+          const t = d.tipus; // 'oficial' | 'oposimossos'
+          const amb = d.ambit as 'A' | 'B' | 'C';
+          const idx = d.tema;
+          if (t === 'oficial') {
+            r[amb][idx] = d.completat ?? false;
+          } else {
+            r.oposimossos[amb][idx] = d.completat ?? false;
           }
         } else {
-          if (r.oposimossos.detall[amb] && r.oposimossos.detall[amb][idx]) {
-            r.oposimossos.detall[amb][idx][sub] = d.completat ?? false;
+          // Detall de subtema
+          const t = d.tipus; // 'oficial' | 'oposimossos'
+          const amb = d.ambit as 'A' | 'B' | 'C';
+          const idx = d.tema;
+          const sub = d.subtema;
+          
+          if (t === 'oficial') {
+            if (r.detall[amb] && r.detall[amb][idx]) {
+              r.detall[amb][idx][sub] = d.completat ?? false;
+            }
+          } else {
+            if (r.oposimossos.detall[amb] && r.oposimossos.detall[amb][idx]) {
+              r.oposimossos.detall[amb][idx][sub] = d.completat ?? false;
+            }
           }
         }
-      }
-    });
+      });
+    } catch (e) {
+      console.warn(`[Firestore càrrega] No s'ha pogut carregar progres_lectura per a l'usuari ${userId}:`, e);
+    }
 
     // Partió 2: Llegim subratllats (highlights) des de Firestore de forma adaptativa.
-    let snapSubratllats;
     try {
-      snapSubratllats = await getDocs(collection(db, 'usuaris', userId, 'subratllats'));
+      const snapSubratllats = await getDocs(collection(db, `usuaris/${userId}/subratllats`));
+      snapSubratllats.forEach((docSnap) => {
+        const d = docSnap.data();
+        const id = docSnap.id; // Format: A_0_4
+        // El mapegem de tornada al format de clau usat en memòria: A-0-4
+        const clauMemoria = id.replace(/_/g, '-');
+        r.contingutPersonalitzat[clauMemoria] = d.html || "";
+      });
     } catch (e) {
-      handleFirestoreError(e, OperationType.LIST, `usuaris/${userId}/subratllats`);
-      throw e;
+      console.warn(`[Firestore càrrega] No s'han pogut carregar subratllats per a l'usuari ${userId}:`, e);
     }
-
-    snapSubratllats.forEach((docSnap) => {
-      const d = docSnap.data();
-      const id = docSnap.id; // Formato: A_0_4
-      // El mapegem de tornada al format de clau usat en memòria: A-0-4
-      const clauMemoria = id.replace(/_/g, '-');
-      r.contingutPersonalitzat[clauMemoria] = d.html || "";
-    });
 
     // Partió 3: Llegim notes i resums personals redactats des de Firestore.
-    let snapNotes;
     try {
-      snapNotes = await getDocs(collection(db, 'usuaris', userId, 'resums_estudiant'));
+      const snapNotes = await getDocs(collection(db, `usuaris/${userId}/resums_estudiant`));
+      snapNotes.forEach((docSnap) => {
+        const d = docSnap.data();
+        const id = docSnap.id; // Format: A_0_4
+        const clauMemoria = id.replace(/_/g, '-');
+        r.notesEstudiant[clauMemoria] = d.notes || "";
+      });
     } catch (e) {
-      handleFirestoreError(e, OperationType.LIST, `usuaris/${userId}/resums_estudiant`);
-      throw e;
+      console.warn(`[Firestore càrrega] No s'han pogut carregar resums_estudiant per a l'usuari ${userId}:`, e);
     }
-
-    snapNotes.forEach((docSnap) => {
-      const d = docSnap.data();
-      const id = docSnap.id; // Formato: A_0_4
-      const clauMemoria = id.replace(/_/g, '-');
-      r.notesEstudiant[clauMemoria] = d.notes || "";
-    });
 
     console.log(`[Firestore càrrega] S'ha carregat i reconstruït el progrés unificat per a l'usuari ${userId} de forma impecable.`);
   } catch (err) {
     console.error(`[Firestore error] Error durant la recuperació integral del progrés d'estudis:`, err);
-    throw err;
   }
 
   return r;

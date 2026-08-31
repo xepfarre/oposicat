@@ -40,3 +40,23 @@ export const MAP_COMPETENCIES = [
   { id: 'RDP', nomCurt: 'Resolució de Problemes', nom: 'Resolució de problemes', descripcio: 'Habilitat per analitzar situacions complexes i trobar solucions eficients i realistes.', resum: 'Anàlisi de conflictes i solucions ràpides' },
   { id: 'IAA', nomCurt: 'Iniciativa i Autonomia', nom: 'Iniciativa i autonomia', descripcio: 'Proactivitat i resolució sense necessitar supervisió constant, actuant amb criteri.', resum: 'Proactivitat sense necessitar supervisió' }
 ] as const;
+
+// 10 Competències Clau literals per a l'eina d'entrevista en directe 1v1
+export interface CompetenciaLive10 {
+  id: string;
+  num: number;
+  titol: string;
+}
+
+export const COMPETENCIES_ENTREVISTA_LIVE_10: CompetenciaLive10[] = [
+  { id: '1', num: 1, titol: "1- Habilitats socials i comunicatives." },
+  { id: '2', num: 2, titol: "2- Oirentació i servei a les persones." },
+  { id: '3', num: 3, titol: "3- Treball en equip." },
+  { id: '4', num: 4, titol: "4- Adaptabilitat i flexibilitat." },
+  { id: '5', num: 5, titol: "5- Autocontrol i resistencia a la presió." },
+  { id: '6', num: 6, titol: "6- Gestió personal i al fracas." },
+  { id: '7', num: 7, titol: "7- Motivació i identificació amb l'organització." },
+  { id: '8', num: 8, titol: "8- Resolució de problemes." },
+  { id: '9', num: 9, titol: "9- Responsabilitat i orientació a la qualitat." },
+  { id: '10', num: 10, titol: "10- Autonomia i iniciciativa." }
+];
