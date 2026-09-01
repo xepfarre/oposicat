@@ -229,6 +229,12 @@ service cloud.firestore {
       match /entrevista_live_state/{docId} {
         allow read, write: if isOwner(userId) || isAdmin();
       }
+
+      // 1.13 Subcol·lecció de l'estat en curs / esborrany del Test Competencial i Biodata
+      // Comentari planer per a no-programadors: Permet a l'alumne (com Marc Betriu i qualsevol altre) reprendre el seu examen en curs des d'on l'havia deixat amb totes les respostes i temps conservats.
+      match /esborrany_test_competencial/{docId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
     }
 
     // 1.13 Col·lecció global de plantilles genèriques de classes i simulacres per als professors (plantilles_classes)

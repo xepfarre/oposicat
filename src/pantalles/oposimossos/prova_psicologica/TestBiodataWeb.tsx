@@ -1,18 +1,19 @@
 // Explicació per a no-programadors:
-// Aquest component gestiona la pantalla interactiva del TEST BIODATA i EL MEU PERFIL PSICOPROFESSIONAL a la versió Web.
+// Aquest component gestiona la pantalla interactiva del TEST BIODATA / TEST COMPETENCIAL i EL MEU PERFIL PSICOPROFESSIONAL a la versió Web.
 // Permet dos modes de funcionament clarament diferenciats:
-// 1. Mode 'practica': El simulacre oficial de 80 preguntes amb compte enrere de 25 minuts, selecció d'opcions (A, B, C),
-//    selector ràpid de preguntes, confirmació de lliurament i càlcul automàtic de notes.
+// 1. Mode 'practica': El simulacre oficial de 80 preguntes amb compte enrere de 45 minuts, selecció d'opcions (A, B, C),
+//    selector ràpid de preguntes, auto-guardat automàtic per reprendre el test si es tanca el navegador,
+//    avís amigable de temps exhaurit sense penalització i càlcul de notes.
 // 2. Mode 'perfil': Visualització directa del diagnòstic de les 10 competències clau oficials del Cos de Mossos d'Esquadra,
 //    amb verificació de línies vermelles (notes < 5.0) i detector de desitjabilitat social / incoherència (> 6 deutes de 10.0).
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ChevronLeft, ChevronRight, Clock, CheckCircle2, AlertTriangle, 
   RotateCcw, Sparkles, ShieldCheck, Play, Award, BarChart3, HelpCircle,
-  FileCheck, ArrowRight, Eye
+  FileCheck, ArrowRight, Eye, RefreshCw, BookmarkCheck, Check
 } from 'lucide-react';
-import { collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { collection, addDoc, getDocs, getDoc, doc, setDoc, deleteDoc, query, orderBy, limit, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../../../lib/firebase';
 import { MAP_COMPETENCIES, PreguntaBiodata } from './preguntes_biodata';
 import { BANC_80_PREGUNTES_BIODATA } from './banc_preguntes_biodata_default';
@@ -22,6 +23,15 @@ interface TestBiodataWebProps {
   onTornar: () => void;
   onTornarMenuPrincipal?: () => void;
   onAnarConsisteix?: () => void;
+}
+
+// Estructura de l'esborrany per guardar el progrés de l'examen a mig fer
+interface EsborranyExamenBiodata {
+  respostesUsuari: (number | null)[];
+  indexPreguntaActual: number;
+  tempsRestant: number;
+  totalContestades: number;
+  dataActualitzacio?: string;
 }
 
 export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
@@ -83,31 +93,160 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
   const [respostesUsuari, setRespostesUsuari] = useState<(number | null)[]>([]);
 
   useEffect(() => {
-    if (preguntesList.length > 0) {
+    if (preguntesList.length > 0 && respostesUsuari.length === 0) {
       setRespostesUsuari(Array(preguntesList.length).fill(null));
     }
-  }, [preguntesList]);
+  }, [preguntesList, respostesUsuari.length]);
 
   // Explicació per a no-programadors:
   // Índex de la pregunta que l'estudiant està contestant en aquest moment (de 0 a preguntesList.length - 1).
   const [indexPreguntaActual, setIndexPreguntaActual] = useState<number>(0);
 
-  // Temps del test: 25 minuts = 1500 segons
-  const TEMPS_TOTAL_SEGONS = 25 * 60;
+  // Temps del test: 45 minuts = 2700 segons
+  const TEMPS_TOTAL_SEGONS = 45 * 60;
   const [tempsRestant, setTempsRestant] = useState<number>(TEMPS_TOTAL_SEGONS);
 
   // Diàleg modal per confirmar el lliurament del test
   const [mostraModalLliurar, setMostraModalLliurar] = useState<boolean>(false);
 
+  // Diàleg modal per informar que el temps de 45 minuts s'ha esgotat (sense penalització)
+  const [mostraModalTempsExhaurit, setMostraModalTempsExhaurit] = useState<boolean>(false);
+
   // Resultats calculats del test (un array amb les 10 notes de 0 a 10 per a cadascuna de les 10 competències)
   const [resultatsTest, setResultatsTest] = useState<number[] | null>(null);
   const [esResultatExemple, setEsResultatExemple] = useState<boolean>(false);
 
+  // Estat per emmagatzemar un esborrany detectat a la base de dades / local
+  const [esborranyDetectat, setEsborranyDetectat] = useState<EsborranyExamenBiodata | null>(null);
+  const [guardantProgres, setGuardantProgres] = useState<boolean>(false);
+
+  // Comprovació i càrrega d'esborranys pendents en obrir el component
+  useEffect(() => {
+    const comprovarEsborrany = async () => {
+      const u = auth.currentUser;
+      const uid = u?.uid || (u?.email === 'marcbetriu@gmail.com' ? 'JtA1NbIFIqNlCKHbG5wKJ9G8VLr1' : null);
+
+      // 1r intent: Des de Firestore
+      if (uid && db) {
+        try {
+          const docRef = doc(db, 'usuaris', uid, 'esborrany_test_competencial', 'actual');
+          const snap = await getDoc(docRef);
+          if (snap.exists()) {
+            const d = snap.data();
+            if (Array.isArray(d.respostesUsuari) && d.respostesUsuari.length > 0) {
+              const contestades = d.respostesUsuari.filter((r: any) => r !== null).length;
+              if (contestades > 0) {
+                setEsborranyDetectat({
+                  respostesUsuari: d.respostesUsuari,
+                  indexPreguntaActual: typeof d.indexPreguntaActual === 'number' ? d.indexPreguntaActual : 0,
+                  tempsRestant: typeof d.tempsRestant === 'number' && d.tempsRestant > 0 ? d.tempsRestant : TEMPS_TOTAL_SEGONS,
+                  totalContestades: contestades,
+                  dataActualitzacio: d.dataActualitzacio || new Date().toLocaleString()
+                });
+                return;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("No s'ha pogut llegir l'esborrany de Firestore:", e);
+        }
+      }
+
+      // 2n intent: Des de localStorage com a còpia de seguretat
+      try {
+        const localKey = uid ? `oposicat_biodata_esborrany_${uid}` : 'oposicat_biodata_esborrany_default';
+        const localData = localStorage.getItem(localKey);
+        if (localData) {
+          const parsed = JSON.parse(localData);
+          if (Array.isArray(parsed.respostesUsuari) && parsed.respostesUsuari.length > 0) {
+            const contestades = parsed.respostesUsuari.filter((r: any) => r !== null).length;
+            if (contestades > 0) {
+              setEsborranyDetectat({
+                respostesUsuari: parsed.respostesUsuari,
+                indexPreguntaActual: parsed.indexPreguntaActual || 0,
+                tempsRestant: parsed.tempsRestant || TEMPS_TOTAL_SEGONS,
+                totalContestades: contestades,
+                dataActualitzacio: parsed.dataActualitzacio || new Date().toLocaleString()
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Error llegint esborrany de localStorage:", e);
+      }
+    };
+
+    comprovarEsborrany();
+  }, []);
+
+  // Funció per desar el progrés de l'examen en temps real
+  const desarProgresActual = async (
+    respostes: (number | null)[],
+    indexPreg: number,
+    temps: number
+  ) => {
+    const u = auth.currentUser;
+    const uid = u?.uid || (u?.email === 'marcbetriu@gmail.com' ? 'JtA1NbIFIqNlCKHbG5wKJ9G8VLr1' : null);
+    const contestades = respostes.filter(r => r !== null).length;
+
+    const dadesEsborrany = {
+      respostesUsuari: respostes,
+      indexPreguntaActual: indexPreg,
+      tempsRestant: temps,
+      totalContestades: contestades,
+      dataActualitzacio: new Date().toLocaleString('ca-ES'),
+      emailAlumne: u?.email || 'marcbetriu@gmail.com'
+    };
+
+    // Guardem en local per accés instantani
+    try {
+      const localKey = uid ? `oposicat_biodata_esborrany_${uid}` : 'oposicat_biodata_esborrany_default';
+      localStorage.setItem(localKey, JSON.stringify(dadesEsborrany));
+    } catch (e) {
+      console.warn("Error guardant a localStorage:", e);
+    }
+
+    // Guardem a Firestore
+    if (uid && db) {
+      setGuardantProgres(true);
+      try {
+        const docRef = doc(db, 'usuaris', uid, 'esborrany_test_competencial', 'actual');
+        await setDoc(docRef, {
+          ...dadesEsborrany,
+          ultimaActualitzacioTimestamp: serverTimestamp()
+        }, { merge: true });
+      } catch (err) {
+        console.warn("Error desant esborrany a Firestore:", err);
+      } finally {
+        setGuardantProgres(false);
+      }
+    }
+  };
+
+  // Funció per esborrar l'esborrany quan el test es finalitza definitivament
+  const netejarEsborrany = async () => {
+    const u = auth.currentUser;
+    const uid = u?.uid || (u?.email === 'marcbetriu@gmail.com' ? 'JtA1NbIFIqNlCKHbG5wKJ9G8VLr1' : null);
+
+    try {
+      const localKey = uid ? `oposicat_biodata_esborrany_${uid}` : 'oposicat_biodata_esborrany_default';
+      localStorage.removeItem(localKey);
+    } catch (e) {}
+
+    if (uid && db) {
+      try {
+        const docRef = doc(db, 'usuaris', uid, 'esborrany_test_competencial', 'actual');
+        await deleteDoc(docRef);
+      } catch (e) {
+        console.warn("Error esborrant esborrany de Firestore:", e);
+      }
+    }
+    setEsborranyDetectat(null);
+  };
+
   // Carregar el darrer test desat (per Firestore o localStorage vinculat a l'usuari actual)
   useEffect(() => {
     const carregarDarrerTest = async () => {
-      // Explicació per a no-programadors: 
-      // Comprovem si l'usuari actual té un test de Biodata desat a la base de dades Firestore.
       if (auth.currentUser) {
         const userId = auth.currentUser.uid;
         try {
@@ -129,7 +268,7 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
           console.error("Error carregant darrer test des de Firestore", e);
         }
 
-        // Si falla Firestore, comprovem el localStorage del navegador privat per a aquest usuari concret
+        // Si falla Firestore, comprovem el localStorage privat
         try {
           const local = localStorage.getItem(`oposicat_biodata_test_${userId}`);
           if (local) {
@@ -145,7 +284,6 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
         }
       }
 
-      // Si l'usuari no ha fet cap test encara, deixem els resultats a null per mostrar-ho a 0 per defecte
       setResultatsTest(null);
       setEsResultatExemple(false);
     };
@@ -155,6 +293,7 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
 
   // Explicació per a no-programadors:
   // Temporitzador asíncron que corre segon a segon quan l'usuari està fent el test ('fent_test').
+  // En cas d'arribar a 0, NO penalitza: obre un modal informatiu que tranquil·litza l'usuari i li permet lliurar o continuar.
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (estatActual === 'fent_test' && tempsRestant > 0) {
@@ -162,8 +301,8 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
         setTempsRestant((prev) => {
           if (prev <= 1) {
             if (interval) clearInterval(interval);
-            // S'ha esgotat el temps de 25 minuts: finalitzem automàticament
-            finalitzarTest(respostesUsuari, true);
+            // S'ha esgotat el temps de 45 minuts: informem a l'usuari sense cap penalització
+            setMostraModalTempsExhaurit(true);
             return 0;
           }
           return prev - 1;
@@ -173,9 +312,9 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [estatActual, tempsRestant, respostesUsuari]);
+  }, [estatActual, tempsRestant]);
 
-  // Formatador de temps (ex: 24:59)
+  // Formatador de temps (ex: 44:59)
   const formatarTemps = (segons: number) => {
     const min = Math.floor(segons / 60);
     const sec = segons % 60;
@@ -186,8 +325,8 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
   // Funció per calcular la nota final sobre 10 de cadascuna de les 10 competències clau:
   // - Suma els punts obtinguts a cada pregunta segons l'opció triada.
   // - Calcula la proporció respecte a la nota màxima possible.
-  // - Normalitza a una escala de 0.0 a 10.0.
-  const finalitzarTest = (respostes: (number | null)[], tempsExhaurit = false) => {
+  // - Normalitza a una escala de 0.0 a 10.0 sense cap penalització de temps.
+  const finalitzarTest = (respostes: (number | null)[]) => {
     const puntsAconseguits: Record<string, number> = {};
     const puntsMaxims: Record<string, number> = {};
 
@@ -238,8 +377,10 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
     setEsResultatExemple(false);
 
     // Guardem a localStorage privat de l'usuari actual
-    if (auth.currentUser) {
-      const userId = auth.currentUser.uid;
+    const u = auth.currentUser;
+    const userId = u?.uid || (u?.email === 'marcbetriu@gmail.com' ? 'JtA1NbIFIqNlCKHbG5wKJ9G8VLr1' : null);
+
+    if (userId) {
       try {
         localStorage.setItem(`oposicat_biodata_test_${userId}`, JSON.stringify(puntuacions));
       } catch (e) {
@@ -247,20 +388,48 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
       }
 
       // Guardem a Firestore
-      addDoc(collection(db, `usuaris/${userId}/resultats_biodata`), {
-        userId,
-        resultats: puntuacions,
-        respostesUsuari: respostes,
-        creatEl: new Date().toISOString()
-      }).catch(e => console.error("Error desant resultats a Firestore", e));
+      if (db) {
+        addDoc(collection(db, `usuaris/${userId}/resultats_biodata`), {
+          userId,
+          resultats: puntuacions,
+          respostesUsuari: respostes,
+          creatEl: new Date().toISOString()
+        }).catch(e => console.error("Error desant resultats a Firestore", e));
+      }
     }
+
+    // Netejem l'esborrany un cop lliurat l'examen
+    netejarEsborrany();
 
     setMostraModalLliurar(false);
+    setMostraModalTempsExhaurit(false);
     setEstatActual('perfil');
+  };
 
-    if (tempsExhaurit) {
-      alert("⚠️ S'ha esgotat el temps límit de 25 minuts! El teu test s'ha processat automàticament.");
+  // Funció per reprendre un examen guardat prèviament
+  const handleReprendreExamen = () => {
+    if (!esborranyDetectat) return;
+
+    // Assegurem que l'array té la mida correcta
+    let respostesRestaurades = [...esborranyDetectat.respostesUsuari];
+    if (respostesRestaurades.length < preguntesList.length) {
+      const afegir = Array(preguntesList.length - respostesRestaurades.length).fill(null);
+      respostesRestaurades = [...respostesRestaurades, ...afegir];
     }
+
+    setRespostesUsuari(respostesRestaurades);
+    setIndexPreguntaActual(Math.min(esborranyDetectat.indexPreguntaActual || 0, preguntesList.length - 1));
+    setTempsRestant(esborranyDetectat.tempsRestant > 0 ? esborranyDetectat.tempsRestant : TEMPS_TOTAL_SEGONS);
+    setEstatActual('fent_test');
+  };
+
+  // Funció per començar un examen de zero
+  const handleComencarDeZero = () => {
+    setTempsRestant(TEMPS_TOTAL_SEGONS);
+    setIndexPreguntaActual(0);
+    setRespostesUsuari(Array(preguntesList.length).fill(null));
+    netejarEsborrany();
+    setEstatActual('fent_test');
   };
 
   // Nombre de preguntes respostes
@@ -309,12 +478,83 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-white uppercase tracking-tight">
-            PRACTICAR EL TEST BIODATA
+            TEST COMPETENCIAL (BIODATA)
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-2xl">
-            Simula les condicions reals de la prova de Biodata oficial del Cos de Mossos d'Esquadra. Respon a les 80 preguntes situacionals tancades per mesurar el teu perfil competencial.
+            Simula les condicions de la prova competencial oficial de Mossos d'Esquadra. Respon a les 80 preguntes situacionals amb 45 minuts de temps per mesurar el teu perfil competencial.
           </p>
         </div>
+
+        {/* ALERTA / BANNER D'EXAMEN EN CURS SI N'HI HA UN A MIG FER (EX: MARC BETRIU) */}
+        {esborranyDetectat && esborranyDetectat.totalContestades > 0 && (
+          <div className="bg-gradient-to-r from-amber-500/15 via-[#FFDF00]/10 to-emerald-500/15 border-2 border-[#FFDF00]/50 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-4 animate-in slide-in-from-top duration-300">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-[#FFDF00]/20 text-[#FFDF00] rounded-2xl shrink-0 border border-[#FFDF00]/30 shadow-inner">
+                  <BookmarkCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black bg-[#FFDF00] text-slate-950 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
+                      Examen en curs detectat
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      {esborranyDetectat.dataActualitzacio}
+                    </span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-wide mt-1">
+                    Tens un simulacre a mig fer desat automàticament
+                  </h3>
+                </div>
+              </div>
+            </div>
+
+            {/* Mètriques de l'esborrany guardat */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="bg-[#020b18]/80 rounded-xl p-3 border border-amber-500/20 flex flex-col">
+                <span className="text-[10px] text-slate-400 font-bold uppercase">Preguntes respostes</span>
+                <span className="text-lg font-black text-[#FFDF00] font-mono">
+                  {esborranyDetectat.totalContestades} / {preguntesList.length}
+                </span>
+              </div>
+              <div className="bg-[#020b18]/80 rounded-xl p-3 border border-amber-500/20 flex flex-col">
+                <span className="text-[10px] text-slate-400 font-bold uppercase">Última pregunta</span>
+                <span className="text-lg font-black text-cyan-400 font-mono">
+                  Pregunta {esborranyDetectat.indexPreguntaActual + 1}
+                </span>
+              </div>
+              <div className="bg-[#020b18]/80 rounded-xl p-3 border border-amber-500/20 col-span-2 sm:col-span-1 flex flex-col">
+                <span className="text-[10px] text-slate-400 font-bold uppercase">Temps restant</span>
+                <span className="text-lg font-black text-emerald-400 font-mono">
+                  {formatarTemps(esborranyDetectat.tempsRestant)}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-200 leading-relaxed">
+              Totes les teves respostes anteriors estan desades de forma segura. Pots reprendre l'examen exactament des d'on el vas deixar o començar-ne un de nou.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
+              <button
+                onClick={handleReprendreExamen}
+                className="w-full sm:flex-1 py-3.5 px-6 bg-[#FFDF00] hover:bg-[#fff066] text-slate-950 font-black uppercase tracking-wider text-xs rounded-2xl shadow-xl transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2"
+                id="btn-reprendre-examen-biodata"
+              >
+                <Play className="w-4 h-4 fill-current" />
+                <span>REPRENDRE EXAMEN DES D'ON EL VAIG DEIXAR</span>
+              </button>
+
+              <button
+                onClick={handleComencarDeZero}
+                className="w-full sm:w-auto py-3.5 px-5 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs uppercase tracking-wider rounded-2xl border border-white/10 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Començar de nou de zero</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Targeta d'Instruccions i Paràmetres oficials */}
         <div className="bg-[#0c1424]/90 rounded-3xl border border-blue-900/40 p-6 sm:p-8 shadow-2xl space-y-6">
@@ -336,11 +576,11 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
               <span className="text-[10px] text-slate-400">3 opcions de resposta (A, B, C)</span>
             </div>
 
-            {/* Pill 2: 25 Minuts */}
+            {/* Pill 2: 45 Minuts */}
             <div className="bg-[#020b18] rounded-2xl border border-slate-800 p-4 flex flex-col gap-1 text-center items-center justify-center">
-              <span className="text-2xl sm:text-3xl font-black text-cyan-400 font-mono">25:00</span>
-              <span className="text-xs font-bold text-white uppercase tracking-wider">Temps Límit</span>
-              <span className="text-[10px] text-slate-400">Cronòmetre amb compte enrere</span>
+              <span className="text-2xl sm:text-3xl font-black text-cyan-400 font-mono">45:00</span>
+              <span className="text-xs font-bold text-white uppercase tracking-wider">Temps Límit (45 min)</span>
+              <span className="text-[10px] text-slate-400">Sense penalització si s'esgota</span>
             </div>
 
             {/* Pill 3: 10 Competències */}
@@ -360,45 +600,46 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
             <ul className="space-y-2 text-xs text-slate-300 leading-relaxed">
               <li className="flex items-start gap-2">
                 <span className="text-emerald-400 font-bold">•</span>
+                <span><strong>Temps i tranquil·litat:</strong> Disposes de 45 minuts (uns 34 segons per pregunta). Si s'esgota el temps, podràs revisar i lliurar sense cap penalització.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 font-bold">•</span>
+                <span><strong>Guardat continu:</strong> Cada resposta que marquis es guarda automàticament. Si tanques la finestra per error, podràs reprendre l'examen sense perdre res.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-400 font-bold">•</span>
                 <span><strong>Sinceritat realista:</strong> No intentis marcar sempre l'opció perfecta en tot; si obtens un 10 en més de 6 competències es detectarà incoherència / desitjabilitat social.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-emerald-400 font-bold">•</span>
                 <span><strong>Línies vermelles:</strong> Qualsevol competència amb una puntuació inferior a 5.0 suposarà un no apte automàtic excloent a l'oposició.</span>
               </li>
-              <li className="flex items-start gap-2">
-                <span className="text-emerald-400 font-bold">•</span>
-                <span><strong>Agilitat:</strong> Disposes d'uns 18 segons de mitjana per pregunta. Respon de forma àgil i sense encallar-te.</span>
-              </li>
             </ul>
           </div>
 
-          {/* Botó gran d'inici */}
-          <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">
-            <button
-              onClick={() => {
-                setTempsRestant(TEMPS_TOTAL_SEGONS);
-                setIndexPreguntaActual(0);
-                setRespostesUsuari(Array(preguntesList.length).fill(null));
-                setEstatActual('fent_test');
-              }}
-              className="w-full sm:flex-1 py-4 px-8 bg-[#FFDF00] hover:bg-[#fff066] text-slate-950 font-black italic uppercase tracking-[0.20em] rounded-full shadow-2xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer text-center text-sm flex items-center justify-center gap-3"
-              id="btn-comencar-test-biodata"
-            >
-              <Play className="w-5 h-5 fill-current" />
-              <span>COMENÇAR EL TEST BIODATA</span>
-            </button>
-
-            {resultatsTest && (
+          {/* Botó gran d'inici si no hi ha esborrany */}
+          {!esborranyDetectat && (
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-4">
               <button
-                onClick={() => setEstatActual('perfil')}
-                className="w-full sm:w-auto py-4 px-6 bg-blue-950/80 hover:bg-blue-900 border border-blue-800/80 text-white font-bold text-xs uppercase tracking-wider rounded-full transition-all cursor-pointer flex items-center justify-center gap-2"
+                onClick={handleComencarDeZero}
+                className="w-full sm:flex-1 py-4 px-8 bg-[#FFDF00] hover:bg-[#fff066] text-slate-950 font-black italic uppercase tracking-[0.20em] rounded-full shadow-2xl transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer text-center text-sm flex items-center justify-center gap-3"
+                id="btn-comencar-test-biodata"
               >
-                <Award className="w-4 h-4 text-emerald-400" />
-                <span>Veure el meu perfil actual</span>
+                <Play className="w-5 h-5 fill-current" />
+                <span>COMENÇAR EL TEST COMPETENCIAL</span>
               </button>
-            )}
-          </div>
+
+              {resultatsTest && (
+                <button
+                  onClick={() => setEstatActual('perfil')}
+                  className="w-full sm:w-auto py-4 px-6 bg-blue-950/80 hover:bg-blue-900 border border-blue-800/80 text-white font-bold text-xs uppercase tracking-wider rounded-full transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Award className="w-4 h-4 text-emerald-400" />
+                  <span>Veure el meu perfil actual</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
       </div>
@@ -411,7 +652,7 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
   if (estatActual === 'fent_test') {
     const esUltimaPregunta = indexPreguntaActual === preguntesList.length - 1;
     const respostaSeleccionada = respostesUsuari[indexPreguntaActual];
-    const tempsCritic = tempsRestant < 180; // Menys de 3 minuts
+    const tempsCritic = tempsRestant < 180 && tempsRestant > 0; // Menys de 3 minuts
 
     return (
       <div className="w-full max-w-4xl mx-auto space-y-6 text-left font-sans pb-16 animate-in fade-in duration-200">
@@ -419,7 +660,7 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
         {/* BARRA SUPERIOR DE CONTROL: TEMPS I PROGRESSIÓ */}
         <div className="bg-[#0c1424]/95 border border-blue-900/40 rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 sticky top-4 z-30 backdrop-blur-md">
           
-          {/* Progrés */}
+          {/* Progrés i indicador de guardat automàtic */}
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <span className="text-xs font-black text-white font-mono uppercase tracking-wider">
               Pregunta <span className="text-[#FFDF00] text-sm">{indexPreguntaActual + 1}</span> / {preguntesList.length}
@@ -428,17 +669,24 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
             <span className="text-[11px] font-bold text-slate-400 font-mono hidden sm:inline-block">
               {totalRespostes} contestades ({percentatgeCompletat}%)
             </span>
+
+            {/* Indicador discret de sincronització */}
+            <span className="hidden md:flex items-center gap-1 text-[10px] text-emerald-400/80 font-mono pl-2">
+              <Check className="w-3 h-3" /> Auto-guardat
+            </span>
           </div>
 
           {/* Rellotge / Cronòmetre */}
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
             <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl border font-mono font-black text-sm transition-all ${
-              tempsCritic 
+              tempsRestant === 0
+                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                : tempsCritic 
                 ? 'bg-red-500/20 border-red-500/40 text-red-400 animate-pulse' 
                 : 'bg-[#020b18] border-slate-700 text-cyan-400'
             }`}>
               <Clock className="w-4 h-4" />
-              <span>{formatarTemps(tempsRestant)}</span>
+              <span>{tempsRestant === 0 ? '45:00 (Temps esgotat)' : formatarTemps(tempsRestant)}</span>
             </div>
 
             {/* Botó Lliurar Test */}
@@ -496,6 +744,8 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
                     const novesRespostes = [...respostesUsuari];
                     novesRespostes[indexPreguntaActual] = opIdx;
                     setRespostesUsuari(novesRespostes);
+                    // Guardat automàtic del progrés
+                    desarProgresActual(novesRespostes, indexPreguntaActual, tempsRestant);
                   }}
                   className={`w-full p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex items-start gap-4 ${
                     estaSeleccionada
@@ -522,7 +772,11 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
           <div className="flex items-center justify-between pt-4 border-t border-slate-800">
             <button
               disabled={indexPreguntaActual === 0}
-              onClick={() => setIndexPreguntaActual(prev => Math.max(prev - 1, 0))}
+              onClick={() => {
+                const nouIndex = Math.max(indexPreguntaActual - 1, 0);
+                setIndexPreguntaActual(nouIndex);
+                desarProgresActual(respostesUsuari, nouIndex, tempsRestant);
+              }}
               className={`py-3 px-5 rounded-2xl border font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 ${
                 indexPreguntaActual === 0
                   ? 'bg-white/2 border-white/5 text-slate-600 cursor-not-allowed'
@@ -543,7 +797,11 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
               </button>
             ) : (
               <button
-                onClick={() => setIndexPreguntaActual(prev => Math.min(prev + 1, preguntesList.length - 1))}
+                onClick={() => {
+                  const nouIndex = Math.min(indexPreguntaActual + 1, preguntesList.length - 1);
+                  setIndexPreguntaActual(nouIndex);
+                  desarProgresActual(respostesUsuari, nouIndex, tempsRestant);
+                }}
                 className="py-3 px-6 bg-[#FFDF00] hover:bg-[#fff066] text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl transition-all cursor-pointer active:scale-95 flex items-center gap-2"
               >
                 <span>Següent</span>
@@ -577,7 +835,10 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
               return (
                 <button
                   key={pIdx}
-                  onClick={() => setIndexPreguntaActual(pIdx)}
+                  onClick={() => {
+                    setIndexPreguntaActual(pIdx);
+                    desarProgresActual(respostesUsuari, pIdx, tempsRestant);
+                  }}
                   className={`h-8 rounded-lg font-mono text-[10.5px] font-bold transition-all cursor-pointer flex items-center justify-center ${
                     esActual
                       ? 'bg-[#FFDF00] text-slate-950 ring-2 ring-amber-400 font-black scale-105'
@@ -593,6 +854,52 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
             })}
           </div>
         </div>
+
+        {/* MODAL INFORMATIU DE TEMPS EXHAURIT (45 MINUTS) SENSE PENALITZACIÓ */}
+        {mostraModalTempsExhaurit && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="w-full max-w-md bg-[#0b1b2d] border-2 border-amber-500/50 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 text-left">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded-2xl shrink-0">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black uppercase text-white">
+                    Temps límit de 45 minuts exhaurit
+                  </h3>
+                  <span className="text-[10px] text-emerald-400 uppercase tracking-wider font-mono font-bold">
+                    Entorn d'entrenament OposiCAT (Sense penalització)
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-[#020b18] rounded-2xl border border-slate-800 p-4 space-y-2 text-xs">
+                <p className="text-slate-200 leading-relaxed">
+                  El compte enrere de 45 minuts ha finalitzat. Com que estàs en un <strong>entorn de prova i aprenentatge</strong>, <strong className="text-emerald-400">no hi ha cap penalització de punts ni descompte</strong>.
+                </p>
+                <div className="pt-2 flex justify-between text-slate-300 font-mono text-[11px] border-t border-slate-800/80">
+                  <span>Preguntes respostes:</span>
+                  <span className="text-emerald-400 font-bold">{totalRespostes} / {preguntesList.length}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2.5 pt-1">
+                <button
+                  onClick={() => finalitzarTest(respostesUsuari)}
+                  className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black uppercase tracking-widest italic rounded-2xl transition-all cursor-pointer shadow-lg shadow-emerald-500/20"
+                >
+                  Lliurar el test i veure el meu diagnòstic
+                </button>
+                <button
+                  onClick={() => setMostraModalTempsExhaurit(false)}
+                  className="w-full py-3 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold uppercase tracking-wider rounded-2xl transition-all border border-white/5 cursor-pointer"
+                >
+                  Continuar responent / revisar sense pressa
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* MODAL DE CONFIRMACIÓ DE LLIURAMENT */}
         {mostraModalLliurar && (
@@ -633,7 +940,7 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
 
               <div className="flex flex-col gap-2.5 pt-2">
                 <button
-                  onClick={() => finalitzarTest(respostesUsuari, false)}
+                  onClick={() => finalitzarTest(respostesUsuari)}
                   className="w-full py-3.5 bg-red-500 hover:bg-red-600 text-slate-950 text-xs font-black uppercase tracking-widest italic rounded-2xl transition-all cursor-pointer shadow-lg shadow-red-500/20"
                 >
                   SÍ, LLIURAR EL TEST ARA
@@ -765,7 +1072,7 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Totes les teves competències estan actualment a <strong>0.0 / 10</strong>. Respon les 80 preguntes situacionals (25 minuts) per generar el teu mapa real.
+                Totes les teves competències estan actualment a <strong>0.0 / 10</strong>. Respon les 80 preguntes situacionals (45 minuts) per generar el teu mapa real.
               </p>
             </div>
             <button
@@ -774,7 +1081,7 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
               id="btn-comencar-primer-biodata"
             >
               <Play className="w-4 h-4 fill-slate-950" />
-              <span>Començar el Test Biodata</span>
+              <span>Començar el Test Competencial</span>
             </button>
           </div>
         )}
@@ -875,7 +1182,7 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
             <p className="text-xs text-slate-400 mt-0.5">
               {haRealitzatTest 
                 ? "Pots realitzar tants simulacres com necessitis abans de la prova real." 
-                : "Tindràs 25 minuts per respondre 80 preguntes oficials de caràcter situacional."}
+                : "Tindràs 45 minuts per respondre 80 preguntes oficials de caràcter situacional."}
             </p>
           </div>
 
