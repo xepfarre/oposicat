@@ -3662,6 +3662,207 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
 
       </div>
       </main>
+
+      {/* ========================================================================= */}
+      {/* 3. BARRA DE NAVEGACIÓ INFERIOR (BOTTOM NAV) EXCLUSIVA PER A DISPOSITIUS MÒBILS */}
+      {/* ========================================================================= */}
+      {/* Comentari per a no-programadors:
+          Aquesta barra inferior s'activa exclusivament en telèfons mòbils (amb la classe "md:hidden").
+          En ordinadors i tauletes (a partir de la mida "md:") queda completament oculta perquè 
+          s'utilitza la barra lateral esquerra tradicional.
+          Permet als opositors canviar d'àrea d'estudi amb el polze a l'instant sense haver d'estirar la mà. */}
+      <nav 
+        id="mobile-bottom-nav-bar"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#020b18]/95 backdrop-blur-xl border-t border-blue-900/40 px-2 py-1 flex items-center justify-around shadow-[0_-6px_20px_rgba(0,0,0,0.65)] select-none"
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0.5rem)' }}
+      >
+        {/* 1. Inici (Què vols fer avui?) */}
+        <button
+          type="button"
+          id="btn-mobile-nav-inici"
+          onClick={() => {
+            setSeccioActiva('avui');
+            setMostrantSubTeoria(false);
+            setMostrantSubFisica(false);
+            setMostrantSubPsicologica(false);
+            setMostrantSubBiodata(false);
+            setMostrantSubTestCompetencial(false);
+            setMostrantSubEntrevista(false);
+          }}
+          className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all cursor-pointer ${
+            seccioActiva === 'avui' && !mostrantSubTeoria && !mostrantSubFisica && !mostrantSubPsicologica
+              ? 'text-[#FFDF00] bg-blue-950/70 border border-amber-400/30 shadow-[0_0_10px_rgba(255,223,0,0.15)]'
+              : 'text-slate-400 hover:text-slate-200 border border-transparent'
+          }`}
+        >
+          <GraduationCap className="w-5 h-5 mb-0.5" />
+          <span className="text-[9px] font-black uppercase tracking-tight">Inici</span>
+        </button>
+
+        {/* 2. Fase 1: Prova Teòrica */}
+        <button
+          type="button"
+          id="btn-mobile-nav-teorica"
+          disabled={esUsuariAlpha}
+          onClick={() => {
+            if (esUsuariAlpha) return;
+            setSeccioActiva('avui');
+            setMostrantSubTeoria(true);
+            setMostrantSubFisica(false);
+            setMostrantSubPsicologica(false);
+            setMostrantSubBiodata(false);
+            setMostrantSubTestCompetencial(false);
+            setMostrantSubEntrevista(false);
+          }}
+          className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all cursor-pointer ${
+            esUsuariAlpha
+              ? 'text-slate-600 opacity-40 cursor-not-allowed border border-transparent'
+              : (seccioActiva === 'avui' && mostrantSubTeoria) || seccioActiva.startsWith('teorica_')
+              ? 'text-[#FFDF00] bg-blue-950/70 border border-amber-400/30 shadow-[0_0_10px_rgba(255,223,0,0.15)]'
+              : 'text-slate-400 hover:text-slate-200 border border-transparent'
+          }`}
+        >
+          <BookOpen className="w-5 h-5 mb-0.5" />
+          <span className="text-[9px] font-black uppercase tracking-tight">Teòrica</span>
+        </button>
+
+        {/* 3. Fase 2: Prova Física */}
+        <button
+          type="button"
+          id="btn-mobile-nav-fisica"
+          disabled={esUsuariAlpha}
+          onClick={() => {
+            if (esUsuariAlpha) return;
+            setSeccioActiva('avui');
+            setMostrantSubTeoria(false);
+            setMostrantSubFisica(true);
+            setMostrantSubPsicologica(false);
+            setMostrantSubBiodata(false);
+            setMostrantSubTestCompetencial(false);
+            setMostrantSubEntrevista(false);
+          }}
+          className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all cursor-pointer ${
+            esUsuariAlpha
+              ? 'text-slate-600 opacity-40 cursor-not-allowed border border-transparent'
+              : (seccioActiva === 'avui' && mostrantSubFisica) || seccioActiva.startsWith('fisica_')
+              ? 'text-[#FFDF00] bg-blue-950/70 border border-amber-400/30 shadow-[0_0_10px_rgba(255,223,0,0.15)]'
+              : 'text-slate-400 hover:text-slate-200 border border-transparent'
+          }`}
+        >
+          <Dumbbell className="w-5 h-5 mb-0.5" />
+          <span className="text-[9px] font-black uppercase tracking-tight">Física</span>
+        </button>
+
+        {/* 4. Fase 3: Prova Psicològica / Biodata */}
+        <button
+          type="button"
+          id="btn-mobile-nav-psico"
+          onClick={() => {
+            setSeccioActiva('avui');
+            setMostrantSubTeoria(false);
+            setMostrantSubFisica(false);
+            setMostrantSubPsicologica(true);
+            setMostrantSubBiodata(false);
+            setMostrantSubTestCompetencial(false);
+            setMostrantSubEntrevista(false);
+          }}
+          className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all cursor-pointer ${
+            (seccioActiva === 'avui' && (mostrantSubPsicologica || mostrantSubBiodata || mostrantSubTestCompetencial || mostrantSubEntrevista)) || seccioActiva.startsWith('psico_')
+              ? 'text-[#FFDF00] bg-blue-950/70 border border-amber-400/30 shadow-[0_0_10px_rgba(255,223,0,0.15)]'
+              : 'text-slate-400 hover:text-slate-200 border border-transparent'
+          }`}
+        >
+          <Brain className="w-5 h-5 mb-0.5" />
+          <span className="text-[9px] font-black uppercase tracking-tight">Psico</span>
+        </button>
+
+        {/* 5. Notificacions / Avisos en temps real */}
+        <button
+          type="button"
+          id="btn-mobile-nav-notificacions"
+          onClick={() => setDesplegableNotificacionsObert(prev => !prev)}
+          className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all cursor-pointer relative ${
+            desplegableNotificacionsObert
+              ? 'text-[#FFDF00] bg-blue-950/70 border border-amber-400/30 shadow-[0_0_10px_rgba(255,223,0,0.15)]'
+              : 'text-slate-400 hover:text-slate-200 border border-transparent'
+          }`}
+        >
+          <div className="relative">
+            <Bell className="w-5 h-5 mb-0.5" />
+            {numNotificacions > 0 && (
+              <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-red-600 rounded-full text-[8px] font-black text-white flex items-center justify-center shadow-[0_0_6px_rgba(220,38,38,0.7)] animate-pulse">
+                {numNotificacions}
+              </span>
+            )}
+          </div>
+          <span className="text-[9px] font-black uppercase tracking-tight">Avisos</span>
+        </button>
+      </nav>
+
+      {/* MODAL / POPUP DE NOTIFICACIONS ADAPTAT PER A MÒBIL */}
+      {desplegableNotificacionsObert && (
+        <div 
+          id="mobile-notificacions-modal"
+          className="md:hidden fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 animate-in fade-in duration-200"
+          onClick={() => setDesplegableNotificacionsObert(false)}
+        >
+          <div 
+            className="w-full max-w-lg bg-slate-950 border border-blue-900/50 rounded-3xl shadow-2xl p-4 text-left flex flex-col max-h-[75vh] mb-16 animate-in slide-in-from-bottom-4 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-1 py-2 border-b border-blue-950/40 mb-3 flex justify-between items-center shrink-0">
+              <div className="flex items-center space-x-2">
+                <span className="text-[11px] uppercase tracking-wider text-[#FFDF00] font-black">Notificacions Actives</span>
+                <span className="bg-[#FFDF00]/10 text-[#FFDF00] text-[9.5px] px-2 py-0.5 rounded-full font-bold">
+                  {numNotificacions} noves
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {numNotificacions > 0 && (
+                  <button 
+                    onClick={() => marcarTotesComALlegides()}
+                    className="text-[9px] font-bold text-slate-400 hover:text-white uppercase tracking-wider transition-colors cursor-pointer border border-slate-800 px-2 py-1 rounded-lg"
+                  >
+                    Llegir totes
+                  </button>
+                )}
+                <button 
+                  onClick={() => setDesplegableNotificacionsObert(false)}
+                  className="text-xs font-black text-slate-400 hover:text-white px-2 py-1 bg-slate-900 rounded-lg"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 max-h-[50vh]">
+              {notificacions.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 text-xs">
+                  No tens cap notificació pendent.
+                </div>
+              ) : (
+                notificacions.map((item) => (
+                  <div 
+                    key={item.id}
+                    onClick={() => alternarNotificacioLlegida(item.id)}
+                    className={`p-3 rounded-xl border transition-all cursor-pointer relative ${
+                      item.llegida 
+                        ? 'bg-slate-900/20 border-slate-900/30 text-slate-500 opacity-60' 
+                        : 'bg-slate-900/70 border-blue-900/30 text-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[11px] font-black text-slate-200">{item.titol}</p>
+                      <span className="text-[8.5px] font-mono text-slate-500 shrink-0">{item.data}</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">{item.text}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   </div>
   );
