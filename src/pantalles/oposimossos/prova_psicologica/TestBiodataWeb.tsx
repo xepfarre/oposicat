@@ -365,12 +365,20 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
       for (const uid of uidsACercar) {
         try {
           const local = localStorage.getItem(`oposicat_biodata_test_${uid}`);
+          const localRespostes = localStorage.getItem(`oposicat_biodata_respostes_${uid}`);
           if (local) {
             const parsed = JSON.parse(local);
+            let parsedRespostes = undefined;
+            if (localRespostes) {
+              try {
+                parsedRespostes = JSON.parse(localRespostes);
+              } catch (e) {}
+            }
             if (Array.isArray(parsed) && parsed.length === 10) {
               setResultatsTest(parsed);
               setDarrerTestCompletat({
-                resultats: parsed
+                resultats: parsed,
+                respostesUsuari: Array.isArray(parsedRespostes) ? parsedRespostes : undefined
               });
               setEsResultatExemple(false);
               return;
@@ -472,6 +480,11 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
     });
 
     setResultatsTest(puntuacions);
+    setDarrerTestCompletat({
+      resultats: puntuacions,
+      respostesUsuari: respostes,
+      creatEl: new Date().toISOString()
+    });
     setEsResultatExemple(false);
 
     // Guardem a localStorage privat de l'usuari actual
@@ -481,6 +494,7 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
     if (userId) {
       try {
         localStorage.setItem(`oposicat_biodata_test_${userId}`, JSON.stringify(puntuacions));
+        localStorage.setItem(`oposicat_biodata_respostes_${userId}`, JSON.stringify(respostes));
       } catch (e) {
         console.error("Error desant resultats a localStorage", e);
       }
@@ -530,18 +544,48 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
     setEstatActual('fent_test');
   };
 
-  // Funció per gestionar el clic a "Revisar / Continuar test"
+  // Explicació per a no-programadors:
+  // Funció per gestionar el clic a "Revisar / Continuar test".
+  // A petició expressa de l'equip pedagògic, quan l'alumne fa clic a aquest botó, NO volem que vagi directament
+  // a la pantalla de resultats/perfil, sinó que torni a obrir el test interactiu amb les 80 preguntes (estat 'fent_test').
+  // D'aquesta manera pot veure quines preguntes té contestades, revisar les seves respostes i continuar contestant.
   const handleClicRevisarContinuar = () => {
+    // 1) Si té un esborrany en curs (test a mig fer o sense finalitzar)
     if (esborranyDetectat && esborranyDetectat.totalContestades > 0) {
-      // Reprèn el test a mig fer
       handleReprendreExamen();
-    } else if (resultatsTest || darrerTestCompletat) {
-      // Obre el perfil / diagnòstic de l'últim test completat
-      setEstatActual('perfil');
-    } else {
-      // No té cap test previ
-      setMostraAvisSenseTest(true);
+      return;
     }
+
+    // 2) Si té un darrer test prèviament enregistrat amb respostes guardades
+    if (darrerTestCompletat?.respostesUsuari && Array.isArray(darrerTestCompletat.respostesUsuari) && darrerTestCompletat.respostesUsuari.length > 0) {
+      let respostesRestaurades = [...darrerTestCompletat.respostesUsuari];
+      if (respostesRestaurades.length < preguntesList.length) {
+        const afegir = Array(preguntesList.length - respostesRestaurades.length).fill(null);
+        respostesRestaurades = [...respostesRestaurades, ...afegir];
+      }
+      setRespostesUsuari(respostesRestaurades);
+      setIndexPreguntaActual(0);
+      setTempsRestant(TEMPS_TOTAL_SEGONS);
+      setEstatActual('fent_test');
+      return;
+    }
+
+    // 3) Si té resultats enregistrats o dades prèvies de test (però sense l'array explícit de respostes)
+    if (resultatsTest || darrerTestCompletat) {
+      if (respostesUsuari.length !== preguntesList.length) {
+        setRespostesUsuari(Array(preguntesList.length).fill(null));
+      }
+      setIndexPreguntaActual(0);
+      setTempsRestant(TEMPS_TOTAL_SEGONS);
+      setEstatActual('fent_test');
+      return;
+    }
+
+    // 4) Si no té cap test ni esborrany previ, obrim directament el test interactiu de 80 preguntes
+    setRespostesUsuari(Array(preguntesList.length).fill(null));
+    setIndexPreguntaActual(0);
+    setTempsRestant(TEMPS_TOTAL_SEGONS);
+    setEstatActual('fent_test');
   };
 
   // Funció per gestionar el clic a "Començar un test nou"
@@ -658,8 +702,8 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
                   {teTestEnCurs
                     ? `Tens un examen a mig fer amb ${esborranyDetectat?.totalContestades} de ${preguntesList.length} preguntes contestades. Continua exactament des d'on el vas deixar amb el temps restant.`
                     : teTestCompletat
-                    ? "Revisa els resultats i diagnòstic psicoprofessional complet de les 10 competències del teu darrer test finalitzat."
-                    : "Revisa o reprèn el teu darrer simulacre de preguntes enregistrat."}
+                    ? `Revisa les 80 preguntes del teu test, consulta quines opcions vas triar i segueix contestant o modificant respostes lliurement.`
+                    : "Accedeix a les 80 preguntes oficials del test per començar a respondre o revisar preguntes."}
                 </p>
               </div>
             </div>
@@ -697,13 +741,13 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
                 </>
               ) : teTestCompletat ? (
                 <>
-                  <Award className="w-4 h-4" />
-                  <span>REVISAR EL MEU ÚLTIM TEST</span>
+                  <Eye className="w-4 h-4" />
+                  <span>REVISAR LES 80 PREGUNTES</span>
                 </>
               ) : (
                 <>
                   <Eye className="w-4 h-4" />
-                  <span>REVISAR / CONTINUAR TEST</span>
+                  <span>REVISAR / CONTINUAR TEST (80 PREGUNTES)</span>
                 </>
               )}
             </button>
@@ -962,6 +1006,20 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
               <Clock className="w-4 h-4" />
               <span>{tempsRestant === 0 ? '45:00 (Temps esgotat)' : formatarTemps(tempsRestant)}</span>
             </div>
+
+            {/* Botó Pausa / Sortir */}
+            <button
+              onClick={() => {
+                desarProgresActual(respostesUsuari, indexPreguntaActual, tempsRestant);
+                setEstatActual('intro_practica');
+              }}
+              className="py-2 px-3.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs uppercase tracking-wider rounded-2xl transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 border border-slate-700/60"
+              title="Guarda el progrés i torna a la pantalla d'inici del test"
+              id="btn-pausar-desar-test"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Pausar</span>
+            </button>
 
             {/* Botó Lliurar Test */}
             <button
@@ -1460,7 +1518,30 @@ export const TestBiodataWeb: React.FC<TestBiodataWebProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            {haRealitzatTest && (
+              <button
+                onClick={() => {
+                  if (darrerTestCompletat?.respostesUsuari && Array.isArray(darrerTestCompletat.respostesUsuari)) {
+                    let respostesRestaurades = [...darrerTestCompletat.respostesUsuari];
+                    if (respostesRestaurades.length < preguntesList.length) {
+                      const afegir = Array(preguntesList.length - respostesRestaurades.length).fill(null);
+                      respostesRestaurades = [...respostesRestaurades, ...afegir];
+                    }
+                    setRespostesUsuari(respostesRestaurades);
+                  }
+                  setIndexPreguntaActual(0);
+                  setTempsRestant(TEMPS_TOTAL_SEGONS);
+                  setEstatActual('fent_test');
+                }}
+                className="w-full sm:w-auto py-3.5 px-6 bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+                id="btn-revisar-80-preguntes-des-de-perfil"
+              >
+                <Eye className="w-4 h-4" />
+                <span>Revisar les 80 preguntes</span>
+              </button>
+            )}
+
             <button
               onClick={() => setEstatActual('intro_practica')}
               className="w-full sm:w-auto py-3.5 px-6 bg-[#FFDF00] hover:bg-[#fff066] text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"

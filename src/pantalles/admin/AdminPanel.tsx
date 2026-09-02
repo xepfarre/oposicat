@@ -2193,6 +2193,9 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                 darkMode={darkMode}
               />
             } />
+            <Route path="entrevistes-personals" element={
+              <GestioUsuarisPsicotecnica darkMode={darkMode} usuarisInicials={usuaris} />
+            } />
             <Route path="cites" element={
               <ReservesUsuariView 
                 reserves={reserves}
@@ -2821,15 +2824,9 @@ function PreguntesBiodataView({ preguntes, type, onAdd, onDelete, onLoadMock, da
 }
 
 /**
- * VIEW: Prova Psicotècnica (Amb selector superior entre "Gestió de la Prova" i "Gestió d'Usuaris")
+ * VIEW: Prova Psicotècnica (3 columnes d'accés: Biodata, Entrevista, Gestió Clients)
  */
-function ProvaPsicotecnicaView({ darkMode, usuaris = [] }: { darkMode: boolean, usuaris?: any[] }) {
-  // Comentari planer per a no-programadors:
-  // Guardem en aquest estat quina de les 2 àrees vol consultar el professor o admin:
-  // 1. 'prova': Mostra les 3 columnes de banc de preguntes i configuració (Biodata, Entrevista, Gestió Clients).
-  // 2. 'usuari': Mostra el nou espai de seguiment psicopedagògic, entrevistes individuals i preparació de classes.
-  const [seccioPsico, setSeccioPsico] = useState<'prova' | 'usuari'>('prova');
-
+function ProvaPsicotecnicaView({ darkMode }: { darkMode: boolean, usuaris?: any[] }) {
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-8">
       <header className="relative flex items-center justify-center mb-8">
@@ -2847,83 +2844,43 @@ function ProvaPsicotecnicaView({ darkMode, usuaris = [] }: { darkMode: boolean, 
         </div>
       </header>
 
-      {/* 2 BOTONS SUPERIORS: GESTIÓ DE LA PROVA VS GESTIÓ D'USUARIS */}
-      <div className="flex items-center justify-center">
-        <div className={`p-1.5 rounded-2xl border flex items-center gap-2 shadow-sm ${
-          darkMode ? 'bg-slate-800/90 border-slate-700' : 'bg-white border-slate-200'
-        }`}>
-          <button
-            onClick={() => setSeccioPsico('prova')}
-            className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2.5 transition-all ${
-              seccioPsico === 'prova'
-                ? 'bg-purple-600 text-white shadow-md'
-                : darkMode
-                ? 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <Brain size={16} />
-            Gestió de la Prova
-          </button>
+      {/* MENÚ DE 3 COLUMNES DE LA PROVA */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-0 relative border-y border-slate-200 dark:border-slate-800 py-10">
+        {/* COLUMNA 1: BIODATA */}
+        <div className="flex flex-col px-8 gap-8">
+          <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Biodata</h3>
+          <div className="flex flex-col gap-4">
+            <MenuActionLink to="/admin/biodata/oficial" label="Gestió Biodata (Banc de Preguntes BBDD)" icon={<Brain size={18} />} darkMode={darkMode} color="purple" />
+            <MenuActionLink to="/admin/biodata/personals" label="Gestió preguntes personals" icon={<ClipboardList size={18} />} darkMode={darkMode} color="purple" />
+            <MenuActionLink to="/admin/biodata/laborals" label="Gestió preguntes laborals" icon={<Briefcase size={18} />} darkMode={darkMode} color="purple" />
+            <MenuActionLink to="/admin/biodata/pgme" label="Gestió preguntes PGME" icon={<FileText size={18} />} darkMode={darkMode} color="purple" />
+          </div>
+        </div>
 
-          <button
-            onClick={() => setSeccioPsico('usuari')}
-            className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2.5 transition-all ${
-              seccioPsico === 'usuari'
-                ? 'bg-purple-600 text-white shadow-md'
-                : darkMode
-                ? 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <Users2 size={16} />
-            Gestió d'Usuari
-          </button>
+        {/* LÍNIA DIVISÒRIA */}
+        <div className="hidden md:block w-px bg-slate-200 dark:bg-slate-800 absolute left-1/3 top-0 bottom-0" />
+
+        {/* COLUMNA 2: ENTREVISTA */}
+        <div className="flex flex-col px-8 gap-8">
+          <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Entrevista</h3>
+          <div className="flex flex-col gap-4">
+            <MenuActionLink to="/admin/entrevista" label="Gestió de preguntes d'entrevista" icon={<MessageSquare size={18} />} darkMode={darkMode} color="purple" />
+            <MenuActionLink to="/admin/entrevistes-personals" label="Entrevistes personals" icon={<UserCheck size={18} />} darkMode={darkMode} color="purple" />
+          </div>
+        </div>
+
+        {/* LÍNIA DIVISÒRIA */}
+        <div className="hidden md:block w-px bg-slate-200 dark:bg-slate-800 absolute left-2/3 top-0 bottom-0" />
+
+        {/* COLUMNA 3: GESTIÓ CLIENTS */}
+        <div className="flex flex-col px-8 gap-8">
+          <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Gestió Clients</h3>
+          <div className="flex flex-col gap-4">
+            <MenuActionLink to="/admin/cites" label="Gestió de cites d'usuari" icon={<Calendar size={18} />} darkMode={darkMode} color="emerald" />
+            <MenuActionLink to="/admin/psicolegs" label="Gestió de psicòlegs i assignacions" icon={<Users2 size={18} />} darkMode={darkMode} color="blue" />
+          </div>
         </div>
       </div>
-
-      {/* CONTINGUT SEGONS LA SELECCIÓ */}
-      {seccioPsico === 'prova' ? (
-        /* VISTA 1: MENÚ DE 3 COLUMNES DE LA PROVA */
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-0 relative border-y border-slate-200 dark:border-slate-800 py-10">
-          {/* COLUMNA 1: BIODATA */}
-          <div className="flex flex-col px-8 gap-8">
-            <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Biodata</h3>
-            <div className="flex flex-col gap-4">
-              <MenuActionLink to="/admin/biodata/oficial" label="Gestió Biodata (Banc de Preguntes BBDD)" icon={<Brain size={18} />} darkMode={darkMode} color="purple" />
-              <MenuActionLink to="/admin/biodata/personals" label="Gestió preguntes personals" icon={<ClipboardList size={18} />} darkMode={darkMode} color="purple" />
-              <MenuActionLink to="/admin/biodata/laborals" label="Gestió preguntes laborals" icon={<Briefcase size={18} />} darkMode={darkMode} color="purple" />
-              <MenuActionLink to="/admin/biodata/pgme" label="Gestió preguntes PGME" icon={<FileText size={18} />} darkMode={darkMode} color="purple" />
-            </div>
-          </div>
-
-          {/* LÍNIA DIVISÒRIA */}
-          <div className="hidden md:block w-px bg-slate-200 dark:bg-slate-800 absolute left-1/3 top-0 bottom-0" />
-
-          {/* COLUMNA 2: ENTREVISTA */}
-          <div className="flex flex-col px-8 gap-8">
-            <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Entrevista</h3>
-            <div className="flex flex-col gap-4">
-              <MenuActionLink to="/admin/entrevista" label="Gestió de preguntes d'entrevista" icon={<MessageSquare size={18} />} darkMode={darkMode} color="purple" />
-            </div>
-          </div>
-
-          {/* LÍNIA DIVISÒRIA */}
-          <div className="hidden md:block w-px bg-slate-200 dark:bg-slate-800 absolute left-2/3 top-0 bottom-0" />
-
-          {/* COLUMNA 3: GESTIÓ CLIENTS */}
-          <div className="flex flex-col px-8 gap-8">
-            <h3 className={`text-2xl font-black uppercase tracking-tighter text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>Gestió Clients</h3>
-            <div className="flex flex-col gap-4">
-              <MenuActionLink to="/admin/cites" label="Gestió de cites d'usuari" icon={<Calendar size={18} />} darkMode={darkMode} color="emerald" />
-              <MenuActionLink to="/admin/psicolegs" label="Gestió de psicòlegs i assignacions" icon={<Users2 size={18} />} darkMode={darkMode} color="blue" />
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* VISTA 2: GESTIÓ D'USUARIS, SEGUIMENT I ENTREVISTES */
-        <GestioUsuarisPsicotecnica darkMode={darkMode} usuarisInicials={usuaris} />
-      )}
     </div>
   );
 }
