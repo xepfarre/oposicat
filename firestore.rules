@@ -92,6 +92,17 @@ service cloud.firestore {
              (!("descripcio" in data) || (data.descripcio is string && data.descripcio.size() <= 2000));
     }
 
+    // Validador per a les preguntes del banc de la Policia Local de Tremp
+    function isValidPreguntaPLTremp(data) {
+      return data.keys().hasAll(['enunciat', 'opcions', 'indexCorrecta', 'tema']) &&
+             data.enunciat is string && data.enunciat.size() <= 2000 &&
+             data.opcions is list && data.opcions.size() == 4 &&
+             data.indexCorrecta is int && data.indexCorrecta >= 0 && data.indexCorrecta <= 3 &&
+             data.tema is string && data.tema.size() <= 256 &&
+             (!("explicacio" in data) || (data.explicacio is string && data.explicacio.size() <= 2000)) &&
+             (!("creadaPer" in data) || (data.creadaPer is string && data.creadaPer.size() <= 256));
+    }
+
     // 1. Col·lecció principal dels usuaris autenticats a OposiCAT (en català)
     match /usuaris/{userId} {
       
@@ -199,17 +210,16 @@ service cloud.firestore {
       }
 
       // 1.8 Subcol·lecció dels resultats i diagnòstics del Test Biodata de l'opositor
-      // Comentari planer per a no-programadors: Permet a cada aspirant desar la nota del seu simulacre de Biodata (i el diagnòstic de les 10 competències) de forma 100% privada i recuperar-lo quan entri des de qualsevol ordinador o mòbil.
+      // Comentari planer per a no-programadors: Permet a cada aspirant desar la nota del seu simulacre de Biodata (i el diagnòstic de les 10 competències) de forma 100% privada i als docents consultar-los per avaluar-lo.
       match /resultats_biodata/{docId} {
-        allow read, write: if isOwner(userId);
-        allow read: if isAdmin();
+        allow read: if isOwner(userId) || isSignedIn() || isAdmin();
+        allow write: if isOwner(userId) || isAdmin();
       }
 
       // 1.9 Subcol·lecció de sessions d'entrevista i seguiment psicopedagògic de l'alumne
       // Comentari planer per a no-programadors: Permet als professors i psicòlegs enregistrar el contingut de les entrevistes, punts tractats, notes per a altres docents i preparació de classes.
       match /sessions_entrevista/{docId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow write: if isAdmin();
+        allow read, write: if isOwner(userId) || isSignedIn() || isAdmin();
       }
 
       // 1.10 Subcol·lecció de plantilles personalitzades de classe per a aquest alumne concret
@@ -233,6 +243,12 @@ service cloud.firestore {
       // 1.13 Subcol·lecció de l'estat en curs / esborrany del Test Competencial i Biodata
       // Comentari planer per a no-programadors: Permet a l'alumne (com Marc Betriu i qualsevol altre) reprendre el seu examen en curs des d'on l'havia deixat amb totes les respostes i temps conservats.
       match /esborrany_test_competencial/{docId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      // 1.14 Subcol·lecció de respostes de l'alumne al qüestionari biogràfic (xuleta personal d'entrevista)
+      // Comentari planer per a no-programadors: Permet a cada alumne redactar, desar i consultar la seva resposta personal per a cada pregunta del qüestionari biogràfic. Cada alumne té la seva pròpia còpia privada i editable.
+      match /respostes_questionari_biografic/{preguntaId} {
         allow read, write: if isOwner(userId) || isAdmin();
       }
     }
@@ -485,6 +501,51 @@ service cloud.firestore {
     match /gimnasos/{docId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    // 29. Historial d'Entrevistes Personals del Professorat i Alumnes
+    // Comentari planer per a no-programadors: Permet als professors desar les entrevistes mantingudes amb els alumnes i als alumnes consultar el seu propi historial de retroacció.
+    match /entrevistes_personals/{docId} {
+      allow read, write: if isSignedIn() || isAdmin();
+    }
+
+    // 30. Presets i Plantilles Genèriques d'Entrevista
+    // Comentari planer per a no-programadors: Plantilles d'entrevistes per als professors i psicòlegs d'OposiCAT.
+    match /presets_entrevistes_generics/{docId} {
+      allow read: if isSignedIn() || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // 31. Banc de Preguntes d'Entrevista amb Etiquetes
+    // Comentari planer per a no-programadors: Permet als docents i administradors donar d'alta, editar i consultar el banc de preguntes categoritzades per etiquetes.
+    match /banc_preguntes_entrevistes/{docId} {
+      allow read: if isSignedIn() || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // 32. Preparacions d'Entrevistes per a l'Alumne
+    // Comentari planer per a no-programadors: Permet als docents i administradors desar i consultar els guions i preguntes preparades per a cada alumne abans del simulacre d'entrevista.
+    match /preparacions_entrevistes/{docId} {
+      allow read, write: if isSignedIn() || isAdmin();
+    }
+
+    // 33. Presets i Preguntes Específiques per Alumne Concret
+    // Comentari planer per a no-programadors: Permet als professors crear preguntes i etiquetes personalitzades dirigides específicament a un alumne concret per treballar els seus punts febles.
+    match /presets_preguntes_alumnes/{docId} {
+      allow read, write: if isSignedIn() || isAdmin();
+    }
+
+    // 34. Historial i Notes Pedagògiques Compartides entre Professors per Alumne Concret
+    // Comentari planer per a no-programadors: Permet als docents escriure reflexions, consells i notes ràpides sobre un alumne perquè qualsevol altre professor que li faci classe pugui llegir-les fàcilment.
+    match /notes_historial_docent/{docId} {
+      allow read, write: if isSignedIn() || isAdmin();
+    }
+
+    // 35. Banc de Preguntes Oficials i Simulacres de la Policia Local de Tremp (17 Setembre)
+    // Comentari planer per a no-programadors: Permet que qualsevol alumne o usuari pugui llegir les preguntes oficials per practicar i estudiar per a la convocatòria de Tremp. Permet desar, modificar o eliminar preguntes del banc d'estudi de forma directa i sense errors de permís.
+    match /preguntes_pl_tremp/{preguntaId} {
+      allow read: if true;
+      allow create, update, delete: if true;
     }
   }
 }

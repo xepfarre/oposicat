@@ -25,6 +25,7 @@ import { PracticarEntrevistaWeb } from '../oposimossos/prova_psicologica/Practic
 import { DemanarCitaWeb } from '../oposimossos/prova_psicologica/DemanarCitaWeb';
 import { CalculadoraPressWeb } from '../../components/CalculadoraPressWeb';
 import { CercadorGimnasosWeb } from '../../components/CercadorGimnasosWeb';
+import { ProvaPLTrempWeb } from '../oposimossos/ProvaPLTrempWeb';
 import { 
   BookOpen, ShieldCheck, Dumbbell, UserCheck, Play, Video, 
   ListTodo, FileText, Brain, GraduationCap, ArrowRight, ArrowLeft, ChevronLeft,
@@ -1972,6 +1973,36 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
               )}
             </div>
 
+            {/* ====== BLOC 4: PROVA PL TREMP (17 SETEMBRE) ====== */}
+            <div className="pt-2">
+              <button
+                type="button"
+                id="btn-sidebar-pl-tremp"
+                onClick={() => {
+                  setSeccioActiva('pl_tremp_panell');
+                  setMostrantSubTeoria(false);
+                  setMostrantSubFisica(false);
+                  setMostrantSubPsicologica(false);
+                  setMostrantSubBiodata(false);
+                  setMostrantSubTestCompetencial(false);
+                  setMostrantSubEntrevista(false);
+                }}
+                className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all cursor-pointer group border ${
+                  seccioActiva === 'pl_tremp_panell'
+                    ? 'bg-gradient-to-r from-amber-500/30 to-amber-600/20 border-amber-400 text-[#FFDF00] shadow-lg shadow-amber-500/10'
+                    : 'bg-slate-900/60 hover:bg-slate-800/80 border-amber-500/40 text-amber-300 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-2 font-black italic uppercase text-xs">
+                  <span className="text-sm">⭐</span>
+                  <span>4. Prova PL Tremp</span>
+                </div>
+                <span className="text-[9px] bg-red-600 text-white font-black uppercase px-2 py-0.5 rounded-full animate-pulse">
+                  17 Set
+                </span>
+              </button>
+            </div>
+
           </div>
 
         </div>
@@ -2046,8 +2077,29 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
             </span>
           </div>
 
-          {/* Dreta: Botó amb el nom de l'alumne per anar a la seva zona personal */}
-          <div ref={perfilContenidorRef} className="w-52 flex justify-end relative">
+          {/* Dreta: Accés Directe PL Tremp + Botó Perfil */}
+          <div ref={perfilContenidorRef} className="flex items-center gap-3 relative">
+            
+            {/* OPCIÓ B: ACCÉS DIRECTE PL TREMP A LA CAPÇALERA SUPERIOR */}
+            {/* Explicació per a no-programadors: Aquest botó és visible permanentment a dalt de tot a la dreta per accedir directament a Tremp amb 1 sol clic */}
+            <button
+              id="btn-header-directe-pl-tremp"
+              type="button"
+              onClick={() => {
+                setSeccioActiva('pl_tremp_panell');
+                setMostrantSubTeoria(false);
+                setMostrantSubFisica(false);
+                setMostrantSubPsicologica(false);
+                setMostrantSubBiodata(false);
+                setMostrantSubTestCompetencial(false);
+                setMostrantSubEntrevista(false);
+              }}
+              className="py-1.5 px-3 rounded-full text-[10.5px] font-black italic uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shrink-0 cursor-pointer flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20"
+            >
+              <span>⭐ PL Tremp</span>
+              <span className="bg-red-600 text-white text-[8.5px] font-black px-1.5 py-0.2 rounded-full">17 Set</span>
+            </button>
+
             {/* Explicació per a no-programadors: Aquest botó obre o tanca un menú flotant d'opcions personals (perfil de l'estudiant). Mostra en temps real el nom de l'usuari/estudiant llegit des de la base de dades. */}
             <button 
               id="btn-perfil-personal-alumne"
@@ -2306,6 +2358,24 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
                     className="group relative w-full bg-[#FFDF00] hover:bg-[#fff066] text-slate-950 font-black italic uppercase tracking-[0.22em] py-5 px-10 rounded-full shadow-2xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] active:translate-y-0 active:scale-98 cursor-pointer text-center text-sm border-2 border-transparent"
                   >
                     Prova psicològica
+                  </button>
+
+                  {/* Botó 4: Prova PL Tremp (Mòdul específic convocatòria 17 de Setembre) */}
+                  {/* Explicació per a no-programadors: Aquest botó apareix just a sota de Prova Psicològica al centre de la pantalla d'inici per poder entrar al temari i banc de preguntes de Tremp directament. */}
+                  <button
+                    id="btn-index-prova-pl-tremp"
+                    onClick={() => {
+                      setSeccioActiva('pl_tremp_panell');
+                      setMostrantSubTeoria(false);
+                      setMostrantSubFisica(false);
+                      setMostrantSubPsicologica(false);
+                    }}
+                    className="group relative w-full bg-gradient-to-r from-amber-400 via-amber-300 to-[#FFDF00] hover:from-amber-300 hover:to-yellow-200 text-slate-950 font-black italic uppercase tracking-[0.22em] py-5 px-10 rounded-full shadow-2xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] active:translate-y-0 active:scale-98 cursor-pointer text-center text-sm border-2 border-amber-500/50 flex items-center justify-center gap-2"
+                  >
+                    <span>⭐ Prova PL Tremp</span>
+                    <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full animate-pulse">
+                      17 Set
+                    </span>
                   </button>
  
                 </div>
@@ -3657,6 +3727,25 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
               setMostrantSubEntrevista(false);
               setMostrantSubPsicologica(false);
             }}
+          />
+        )}
+
+        {/* ========================================================================= */}
+        {/* D. CONVOCATÒRIA POLICIA LOCAL DE TREMP (17 DE SETEMBRE)                  */}
+        {/* ========================================================================= */}
+        {/* Explicació per a no-programadors:
+            Aquest bloc mostra el banc complet de preguntes, creació de noves qüestions i 
+            simulacres de test tipus oficials per a l'examen del 17 de setembre de Tremp.
+            S'obre quan l'alumne fa clic a "PL Tremp" des de qualsevol punt de la pantalla. */}
+        {seccioActiva === 'pl_tremp_panell' && (
+          <ProvaPLTrempWeb
+            onTornar={() => {
+              setSeccioActiva('avui');
+              setMostrantSubTeoria(false);
+              setMostrantSubFisica(false);
+              setMostrantSubPsicologica(false);
+            }}
+            usuariEmail={auth.currentUser?.email || 'xepfarre@gmail.com'}
           />
         )}
 

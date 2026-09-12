@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Youtube, ChevronLeft, User, Shield, FileText, Play, Info, PencilLine, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { Youtube, ChevronLeft, User, Shield, FileText, Play, Info, PencilLine, ChevronDown, ChevronUp, AlertCircle, Sparkles, RotateCcw } from 'lucide-react';
 import { collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db, auth } from '../../../lib/firebase';
 import { MAP_COMPETENCIES } from './preguntes_biodata';
@@ -308,57 +308,157 @@ export const GuiaBiodata = ({
   const preguntesPersonals = [
     {
       p: "Digui'm els seus 3 majors defectes i 3 majors virtuts.",
-      r: "Resposta pendent de definir..."
+      r: `3 Virtuts
+
+Autocontrol: Mantinc la calma sota pressió, actuant amb racionalitat i criteri en situacions de conflicte.
+
+Empatia i fermesa: Capacitat per deescalar tensions amb la ciutadania mitjançant la comunicació assertiva.
+
+Treball en equip: Disposició total a la cooperació, la disciplina operativa i la coordinació amb els companys.
+
+3 Defectes
+
+Autoexigència alta: Em costa desconnectar quan un treball és millorable; aprenc a ajustar expectatives de manera realista.
+
+Incomoditat davant la imprevisió: M'agrada tenir les tasques estructurades i em requereix un esforç extra adaptar-me quan els plans canvien de cop.
+
+Rigidesa amb els terminis: Poso molta pressió en complir els temps marcats, la qual cosa m'obliga a treballar la paciència amb els ritmes externs.`
     },
     {
       p: "És el primer cop que es presenta? Si no ho és, per què es presenta un altre cop?",
-      r: "Resposta pendent de definir..."
+      r: `Si és la primera vegada
+
+Vocació clara: És la meva primera convocatòria perquè és ara quan he completat la meva preparació teòrica, física i personal per afrontar el procés amb garanties.
+
+Determinació: Reuneixo el perfil i les competències necessàries per assumir la responsabilitat del servei policial des del primer dia.
+
+Si ja s'hi ha presentat abans
+
+Perseverança i vocació: Em torno a presentar perquè la meva prioritat professional és ser policia; el no haver-ho aconseguit abans reafirma el meu compromís.
+
+Aprenentatge i millora: He analitzat els punts febles de la convocatòria anterior, he reforçat la meva preparació i em presento amb més maduresa i millor capacitat de resposta.`
     },
     {
       p: "Per què creu que vostè ha d'aprovar aquesta oposició aquest any?",
-      r: "Resposta pendent de definir..."
+      r: "Perquè disposo de la maduresa vital, l'estabilitat emocional i la preparació teòrica i física necessàries per assumir el deure policial. El meu projecte professional està plenament alineat amb els valors de servei, proximitat i respecte de la PG-ME."
     },
     {
-      p: "Descrigui breument la situació que mais por ha passat a la seva vida.",
-      r: "Resposta pendent de definir..."
+      p: "Descrigui breument la situació que més por ha passat a la seva vida.",
+      r: `Situació: Conduint de nit de la ciutat cap al poble a uns 80 km/h, em va irrompre de cop un porc senglar a la calçada.
+
+Reacció i control: Gràcies a circular a una velocitat moderada i atenta, vaig poder fer una maniobra d'esquiva segura sense perdre el control del vehicle.
+
+Gestió posterior: Em vaig aturar un moment al voral per assimilar l'impacte emocional de l'ensurt, em vaig recuperar i vaig reprendre la marxa amb normalitat.`
+    },
+    {
+      p: "Expliqueu algun error personal important realitzat en el passat i quina conducta vau rectificar.",
+      r: `Error d'assumpció: Voler resoldre una tasca complexa de manera individual per no carregar els altres, provocant un retard en el resultat final.
+
+Rectificació i aprenentatge: Vaig reconèixer la situació a temps, vaig demanar suport i vaig canviar el meu enfocament cap a una comunicació més fluida i una delegació eficient.
+
+Impacte actual: Ara m'asseguro de coordinar-me millor des del primer moment per optimitzar els recursos i l'equip.`
+    },
+    {
+      p: "Parli'm de vostè. Quin tipus de persona és i com el defineix el seu entorn familiar i d'amics?",
+      r: `Definició personal: Em considero una persona equilibrada, treballadora, adaptable i amb un alt sentit de la responsabilitat.
+
+Visió de l'entorn: Els meus familiars i amics em defineixen com algú de confiança, serè davant els problemes i accessible quan cal ajudar.
+
+Relació social: Mantenir un entorn estable i sa demostra la meva capacitat de convivència, empatia i compromís amb les persones del meu voltant.`
     }
   ];
 
   const preguntesLaborals = [
     {
-      p: "Quants anys ha treballat vostè i on?",
-      r: "Resposta pendent de definir..."
+      p: "Quants anys ha treballat vostè i en quins sectors o empreses?",
+      r: `Resum de trajectòria: [X] anys d'experiència laboral en sectors com [ex: serveis, atenció al públic, seguretat privada o administració].
+
+Transferència de competències: Cada experiència m'ha permès desenvolupar habilitats clau com el tracte amb la ciutadania, el treball sota pressió i la resolució d'incidències.
+
+Orientació al cos: Tota la meva trajectòria ha estat un camí d'aprenentatge constant per consolidar el meu perfil cap a la funció policial.`
     },
     {
-      p: "Quin és el càrrec més important que vostè ha desenvolupat?",
-      r: "Resposta pendent de definir..."
+      p: "Quin és el càrrec o responsabilitat més important que vostè ha desenvolupat?",
+      r: `Càrrec i funcions: [Nom del lloc de treball, ex: Responsable d'equip / Atenció a incidències], on gestionava [gestió d'equips, atenció directa a clients, coordinació de tasques].
+
+Habilitats demostrades: Assumir aquesta responsabilitat em va exigir un alt nivell d'organització, presa de decisions ràpides i gestió de situacions complexes.
+
+Aprenentatge: Em va permetre comprovar la meva capacitat per liderar amb l'exemple i respondre amb rigor davant compromisos d'alta exigència.`
     },
     {
-      p: "Si tornés a néixer, estudiaria el mateix?",
-      r: "Resposta pendent de definir..."
+      p: "Si tornés a néixer, estudiaria i treballaria en el mateix?",
+      r: `Valoració del camí: Sí, perquè les experiències acadèmiques i laborals que he tingut m'han format com a persona i m'han donat eines molt útils.
+
+Vocació clara: Tanmateix, hagués orientat la meva preparació cap a la professió policial de forma encara més primerenca per haver-hi accedit abans.
+
+Coherència: Estic satisfet del meu recorregut perquè m'ha aportat la maduresa necessària per afrontar aquest oposició amb garanties.`
+    },
+    {
+      p: "Ha tingut mai cap discrepància o conflicte amb un company o un superior? Com ho va resoldre?",
+      r: `Discrepància professional: Sí, hem tingut diferències d'criteri puntuals sobre com abordar una tasca o organitzar un torn de treball.
+
+Resolució assertiva: Ho vaig resoldre parlant-ho directament de forma privada, escoltant la seva postura i buscant un punt d'entesa basat en el bé comú de l'equip.
+
+Respecte a la jerarquia: Si la diferència era amb un superior, vaig exposar el meu punt de vista amb respecte i vaig assumir i executar la seva decisió final sense dubtar.`
+    },
+    {
+      p: "Heu pres mai una decisió d'alta transcendència a la vostra feina sense aval directe de caps?",
+      r: `Alineació amb el protocol: En situacions operatives imprevistes i d'urgència on no hi havia temps de consultar, vaig actuar seguint estrictament els procediments marcats.
+
+Criteri i responsabilitat: Vaig prendre la decisió de forma racional, prioritzant la seguretat i el correcte funcionament del servei.
+
+Rendició de comptes: Immediatament després de resoldre la situació, vaig informar detalladament al meu superior sobre les accions preses i el motiu de la decisió.`
     }
   ];
 
   const preguntesPGME = [
     {
-      p: "Per què vostè vol ser policia?",
-      r: "Voldria ser policia perquè considero que sóc una persona que vol ajudar a la societat de forma altruista i professional. Desenvoluparé la feina amb gran professionalitat i responsabilitat per a donar el màxim nivell del servei. Estic preparat per a fer el que sigui necessari per als ciutadans i el cos de PGME, pero amb els peus a terra, sense creure'm un superheroi."
+      p: "Per què vostè vol ser policia / Mosso d'Esquadra?",
+      r: `Vocació de servei: Per la voluntat d'ajudar i protegir la ciutadania de manera directa, garantint la seguretat i la convivència en la meva comunitat.
+
+Dinamisme i valors: Busco una professió on el treball en equip, la disciplina, la millora contínua i el sentit del deure siguin la base del dia a dia.
+
+Realització personal: Considero que el servei policial m'ofereix un projecte de vida professional ple i amb un impacte positiu real en la societat.`
     },
     {
-      p: "Per què ha decidit ser mosso i no policia local?",
-      r: "Resposta pendent de definir..."
+      p: "Per què ha decidit ser Mosso d'Esquadra i no Policia Local, Guàrdia Civil o Policia Nacional?",
+      r: `Competència integral: La Policia de la Generalitat - Mossos d'Esquadra és la policia integral de Catalunya, amb desplegament total en seguretat ciutadana, investigació i trànsit.
+
+Proximitat territorial: Em permet servir a la ciutadania del meu propi entorn des d'una organització moderna, arrelada al territori i d'alta proximitat.
+
+Desenvolupament professional: El cos m'ofereix un ventall d'especialitats i opcions de promoció interna molt ampli sense haver de canviar de model policial.`
     },
     {
-      p: "Què espera de la feina de mosso?",
-      r: "Resposta pendent de definir..."
+      p: "Què espera de la feina de Mosso d'Esquadra durant el seu primer any de servei a comissaria?",
+      r: `Aprenentatge i integració: Conèixer a fons el funcionament de la comissaria, la realitat del districte i integrar-me de forma disciplina i activa en el meu equip de treball.
+
+Seguretat ciutadana: Consolidar les competències bàsiques de patrullatge, atenció directa al ciutadà, resolució d'incidències i aplicació rigorosa dels procediments.
+
+Humilitat i rigor: Escoltar els companys més veterans, aprendre de la seva experiència i complir cada tasca assignada amb el màxim compromís.`
     },
     {
-      p: "Què creu vostè que la ciutadania espera de vostè?",
-      r: "Resposta pendent de definir..."
+      p: "Què creu vostè que la ciutadania espera d'un agent de Mossos d'Esquadra?",
+      r: `Professionalitat i eficàcia: Una resposta ràpida, serena i resolutiva davant de qualsevol problema de seguretat o convivència.
+
+Tracte humà i empatia: Una actitud d'escolta, respecte, educació i fermesa, tractant les persones amb la consideració que mereixen en situacions vulnerables.
+
+Exemplaritat: Un comportament ètic impecable, tant de servei com fora d'ell, transmetent confiança i neutralitat.`
     },
     {
-      p: "Quina especialitat és la que més li agradaria treballar dins del cos?",
-      r: "Resposta pendent de definir..."
+      p: "Quina especialitat és la que més li agradaria treballar dins del cos a llarg termini?",
+      r: `Prioritat actual: Ara mateix la meva prioritat absoluta és ser un bon agent de seguretat ciutadana i dominar el servei bàsic a comissaria.
+
+Especialitat futura: A llarg termini, m'atrau l'àrea d'Investigació / Trànsit / Seguretat Ciutadana de Proximitat (tria una segons el teu perfil) per la complexitat analítica i el seguiment dels casos.
+
+Evolució natural: Assumiré l'opció d'especialitzar-me quan tingui l'experiència de carrer necessària i hagi demostrat la meva solidesa en el cos.`
+    },
+    {
+      p: "Què faria si patrullant en un binomi el seu company comet una irregularitat greu o un intent de suborn?",
+      r: `Aturar l'acció: Intervenir immediatament de forma ferma per tallar la conducta il·legal o rebutjar de ple el suborn en el mateix moment.
+
+Imperatiu legal i ètic: Recordar que l'interès públic i el compliment de la llei estan per sobre de qualsevol camaderia o corporativisme.
+
+Rendició de comptes: Informar de forma immediata i detallada al superior jeràrquic del que ha succeït, complint amb el Codi Deontològic i el deure d'agent de l'autoritat.`
     }
   ];
 
@@ -450,10 +550,65 @@ export const GuiaBiodata = ({
                 </button>
 
                 {preguntaOberta === i && (
-                  <div className="bg-black/20 border border-white/5 rounded-xl md:rounded-3xl p-4 md:p-10 mb-2 animate-in fade-in slide-in-from-top-1 duration-300">
-                    <p className="text-[11px] md:text-lg text-white/60 leading-relaxed italic text-center">
-                      {item.r}
-                    </p>
+                  <div className="bg-black/20 border border-white/5 rounded-xl md:rounded-3xl p-4 md:p-8 mb-2 animate-in fade-in slide-in-from-top-1 duration-300 text-left">
+                    {/* Renderització estructurada amb subratllats i opcions boniques */}
+                    <div className="space-y-3 text-xs md:text-sm text-white/90">
+                      {item.r.split(/\n\s*\n/).map((bloc, bIdx) => {
+                        const bTrim = bloc.trim();
+                        if (bTrim.toLowerCase() === '3 virtuts' || bTrim.startsWith('3 Virtuts')) {
+                          return (
+                            <div key={bIdx} className="pt-1">
+                              <span className="text-emerald-400 font-black uppercase tracking-wider text-xs md:text-sm underline underline-offset-4 decoration-emerald-400 decoration-2">
+                                3 Virtuts
+                              </span>
+                            </div>
+                          );
+                        }
+                        if (bTrim.toLowerCase() === '3 defectes' || bTrim.startsWith('3 Defectes')) {
+                          return (
+                            <div key={bIdx} className="pt-3 border-t border-white/10">
+                              <span className="text-amber-400 font-black uppercase tracking-wider text-xs md:text-sm underline underline-offset-4 decoration-amber-400 decoration-2">
+                                3 Defectes
+                              </span>
+                            </div>
+                          );
+                        }
+                        if (bTrim.toLowerCase().includes('si és la primera vegada') || bTrim.toLowerCase().includes('si es la primera vegada')) {
+                          return (
+                            <div key={bIdx} className="pt-1">
+                              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 font-bold text-xs">
+                                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                                <span className="underline underline-offset-4 decoration-cyan-400 decoration-2">Si és la primera vegada</span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        if (bTrim.toLowerCase().includes("si ja s'hi ha presentat abans")) {
+                          return (
+                            <div key={bIdx} className="pt-3 border-t border-white/10">
+                              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-purple-950/60 border border-purple-500/40 text-purple-300 font-bold text-xs">
+                                <RotateCcw className="w-3.5 h-3.5 text-purple-400" />
+                                <span className="underline underline-offset-4 decoration-purple-400 decoration-2">Si ja s'hi ha presentat abans</span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        const dosPunts = bTrim.indexOf(':');
+                        if (dosPunts > 0 && dosPunts < 40) {
+                          return (
+                            <div key={bIdx} className="bg-white/5 border border-white/10 rounded-xl p-3">
+                              <strong className="text-white font-bold">{bTrim.substring(0, dosPunts)}:</strong>
+                              <span className="text-white/80 ml-1.5">{bTrim.substring(dosPunts + 1).trim()}</span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <p key={bIdx} className="leading-relaxed text-white/80">
+                            {bTrim}
+                          </p>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </li>
@@ -496,10 +651,26 @@ export const GuiaBiodata = ({
                 </button>
 
                 {preguntaOberta === i && (
-                  <div className="bg-black/20 border border-white/5 rounded-xl md:rounded-3xl p-4 md:p-10 mb-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                    <p className="text-[11px] md:text-lg text-white/60 leading-relaxed italic text-center">
-                      {item.r}
-                    </p>
+                  <div className="bg-black/20 border border-white/5 rounded-xl md:rounded-3xl p-4 md:p-8 mb-2 animate-in fade-in slide-in-from-top-1 duration-300 text-left">
+                    <div className="space-y-3 text-xs md:text-sm text-white/90">
+                      {item.r.split(/\n\s*\n/).map((bloc, bIdx) => {
+                        const bTrim = bloc.trim();
+                        const dosPunts = bTrim.indexOf(':');
+                        if (dosPunts > 0 && dosPunts < 40) {
+                          return (
+                            <div key={bIdx} className="bg-white/5 border border-white/10 rounded-xl p-3">
+                              <strong className="text-white font-bold">{bTrim.substring(0, dosPunts)}:</strong>
+                              <span className="text-white/80 ml-1.5">{bTrim.substring(dosPunts + 1).trim()}</span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <p key={bIdx} className="leading-relaxed text-white/80">
+                            {bTrim}
+                          </p>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </li>
@@ -546,10 +717,26 @@ export const GuiaBiodata = ({
                 </button>
 
                 {preguntaOberta === i && (
-                  <div className="bg-black/20 border border-white/5 rounded-xl md:rounded-3xl p-4 md:p-10 mb-2 animate-in fade-in slide-in-from-top-1 duration-300">
-                    <p className="text-[11px] md:text-lg text-white/60 leading-relaxed italic text-center">
-                      {item.r}
-                    </p>
+                  <div className="bg-black/20 border border-white/5 rounded-xl md:rounded-3xl p-4 md:p-8 mb-2 animate-in fade-in slide-in-from-top-1 duration-300 text-left">
+                    <div className="space-y-3 text-xs md:text-sm text-white/90">
+                      {item.r.split(/\n\s*\n/).map((bloc, bIdx) => {
+                        const bTrim = bloc.trim();
+                        const dosPunts = bTrim.indexOf(':');
+                        if (dosPunts > 0 && dosPunts < 40) {
+                          return (
+                            <div key={bIdx} className="bg-white/5 border border-white/10 rounded-xl p-3">
+                              <strong className="text-white font-bold">{bTrim.substring(0, dosPunts)}:</strong>
+                              <span className="text-white/80 ml-1.5">{bTrim.substring(dosPunts + 1).trim()}</span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <p key={bIdx} className="leading-relaxed text-white/80">
+                            {bTrim}
+                          </p>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </li>

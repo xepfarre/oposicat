@@ -248,6 +248,38 @@
       },
       "required": ["userId", "email", "token", "plataforma", "creadaEl"]
     },
+    "RespostaQuestionariBiografic": {
+      "title": "Resposta de l'Alumne al Qüestionari Biogràfic",
+      "description": "Xuleta i resposta personal redactada per l'aspirant per preparar l'entrevista personal a partir de les preguntes del qüestionari biogràfic.",
+      "type": "object",
+      "properties": {
+        "preguntaId": {
+          "type": "string",
+          "description": "Identificador únic de la pregunta del qüestionari biogràfic"
+        },
+        "respostaAlumne": {
+          "type": "string",
+          "description": "Text redactat per l'alumne com a resposta personal d'entrenament"
+        },
+        "competenciesSeleccionades": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Llista de competències clau de l'ISPC que l'alumne ha seleccionat com a involucrades en aquesta pregunta"
+        },
+        "actualitzatEl": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Data i hora de l'última modificació o desat de la resposta"
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID de l'estudiant"
+        }
+      },
+      "required": ["preguntaId", "respostaAlumne", "actualitzatEl"]
+    },
     "Pregunta": {
       "title": "Pregunta de l'Examen Teòric",
       "description": "Model detallat per emmagatzemar qualsevol pregunta d'oposicions, en concret Mossos d'Esquadra.",
@@ -597,9 +629,355 @@
         }
       },
       "required": ["nom", "setmana", "descripcio", "tipus", "exercicisIds", "actiu"]
+    },
+    "EntrevistaPersonal": {
+      "title": "Sessió d'Entrevista Personal",
+      "description": "Registre detallat de la sessió d'entrevista personal mantinguda entre el professorat i l'alumne opositor.",
+      "type": "object",
+      "properties": {
+        "alumneId": {
+          "type": "string",
+          "description": "Identificador únic (UID) de l'alumne entrevistat"
+        },
+        "alumneNom": {
+          "type": "string",
+          "description": "Nom complet de l'alumne entrevistat"
+        },
+        "alumneEmail": {
+          "type": "string",
+          "description": "Correu electrònic de l'alumne"
+        },
+        "professorId": {
+          "type": "string",
+          "description": "Identificador únic o correu del professor responsable"
+        },
+        "professorNom": {
+          "type": "string",
+          "description": "Nom complet o identificació del docent que fa l'entrevista"
+        },
+        "data": {
+          "type": "string",
+          "description": "Data de la realització de l'entrevista"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Anotacions i contingut complet redactat pel professor durant la sessió"
+        },
+        "estat": {
+          "type": "string",
+          "enum": ["en_curs", "finalitzada"],
+          "description": "Estat actual de la sessió d'entrevista"
+        },
+        "einaSeleccionada": {
+          "type": "string",
+          "description": "Última eina o modalitat del carrusel utilitzada durant la sessió"
+        },
+        "creatEl": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Instant de registre de l'entrevista"
+        }
+      },
+      "required": ["alumneId", "alumneNom", "professorNom", "data", "notes", "estat", "creatEl"]
+    },
+    "PresetEntrevista": {
+      "title": "Preset d'Entrevista",
+      "description": "Plantilles i guies d'entrevista predefinides genèriques o per alumne.",
+      "type": "object",
+      "properties": {
+        "titol": {
+          "type": "string",
+          "description": "Títol del preset o plantilla"
+        },
+        "tipus": {
+          "type": "string",
+          "enum": ["generic", "alumne"],
+          "description": "Àmbit del preset (genèric o assignat a un alumne)"
+        },
+        "alumneId": {
+          "type": "string",
+          "description": "Identificador d'alumne si el preset és específic"
+        },
+        "contingut": {
+          "type": "string",
+          "description": "Guió o preguntes base del preset"
+        },
+        "preguntesIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Llista d'identificadors de preguntes del banc incloses en el preset"
+        },
+        "etiquetes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Etiquetes o tags temàtics associats"
+        },
+        "creatEl": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Instant de creació del preset"
+        }
+      },
+      "required": ["titol", "tipus", "contingut", "creatEl"]
+    },
+    "PreguntaBancEntrevista": {
+      "title": "Pregunta del Banc d'Entrevistes",
+      "description": "Pregunta estructurada amb la formulació, què es busca avaluar, resposta esperada i etiquetes temàtiques.",
+      "type": "object",
+      "properties": {
+        "pregunta": {
+          "type": "string",
+          "description": "Enunciat complet de la pregunta formulada pel professor"
+        },
+        "esBusca": {
+          "type": "string",
+          "description": "Què avalua o què s'espera observar en l'aspirant"
+        },
+        "resposta": {
+          "type": "string",
+          "description": "Resposta model, pautes clau o criteris d'avaluació"
+        },
+        "etiquetes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Etiquetes associades (ex: Primer dia Biodata, Competències, Casos pràctics)"
+        },
+        "actiu": {
+          "type": "boolean",
+          "description": "Indica si la pregunta està activa per a la selecció"
+        },
+        "creatEl": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Data de creació de la pregunta"
+        },
+        "actualitzatEl": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Data de la darrera actualització"
+        }
+      },
+      "required": ["pregunta", "esBusca", "resposta", "etiquetes", "creatEl"]
+    },
+    "PreparacioEntrevistaAlumne": {
+      "title": "Guió i Preparació d'Entrevista de l'Alumne",
+      "description": "Guió de preguntes, pautes docents i objectius pedagògics preparats per a la sessió d'entrevista d'un alumne.",
+      "type": "object",
+      "properties": {
+        "alumneId": {
+          "type": "string",
+          "description": "Identificador únic de l'alumne"
+        },
+        "alumneNom": {
+          "type": "string",
+          "description": "Nom de l'alumne"
+        },
+        "alumneEmail": {
+          "type": "string",
+          "description": "Correu electrònic de l'alumne"
+        },
+        "professorId": {
+          "type": "string",
+          "description": "Identificador del professor que ha preparat el guió"
+        },
+        "professorNom": {
+          "type": "string",
+          "description": "Nom del professor responsable"
+        },
+        "objectiusSessio": {
+          "type": "string",
+          "description": "Objectius pedagògics a incidir durant la sessió"
+        },
+        "preguntes": {
+          "type": "array",
+          "description": "Llista de preguntes preparades amb ordre, pautes i criteris"
+        },
+        "textGuioComplet": {
+          "type": "string",
+          "description": "Text complet compilat del guió de la sessió"
+        },
+        "numPreguntes": {
+          "type": "integer",
+          "description": "Total de preguntes preparades"
+        },
+        "actualitzatEl": {
+          "type": "string",
+          "description": "Data i hora de l'última modificació"
+        }
+      },
+      "required": ["alumneId", "alumneNom", "preguntes", "textGuioComplet"]
+    },
+    "PresetPreguntaAlumne": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador únic de la pregunta de l'alumne"
+        },
+        "alumneId": {
+          "type": "string",
+          "description": "Identificador de l'alumne al qual va adreçada la pregunta"
+        },
+        "alumneNom": {
+          "type": "string",
+          "description": "Nom de l'alumne destinatari"
+        },
+        "alumneEmail": {
+          "type": "string",
+          "description": "Email de l'alumne"
+        },
+        "pregunta": {
+          "type": "string",
+          "description": "Enunciat de la pregunta concreta"
+        },
+        "esBusca": {
+          "type": "string",
+          "description": "Objectiu pedagògic i què s'avalua"
+        },
+        "resposta": {
+          "type": "string",
+          "description": "Pautes de resposta model i criteris d'avaluació"
+        },
+        "etiquetes": {
+          "type": "array",
+          "description": "Etiquetes personalitzades de l'alumne i categories"
+        },
+        "ordre": {
+          "type": "integer",
+          "description": "Ordre numèric dins del llistat"
+        },
+        "actiu": {
+          "type": "boolean",
+          "description": "Indica si la pregunta està activa per a les sessions"
+        },
+        "creatEl": {
+          "type": "string",
+          "description": "Data de creació"
+        },
+        "actualitzatEl": {
+          "type": "string",
+          "description": "Data d'última actualització"
+        }
+      },
+      "required": ["alumneId", "pregunta", "esBusca", "resposta", "etiquetes"]
+    },
+    "NotaHistorialDocent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador únic de la nota pedagògica"
+        },
+        "alumneId": {
+          "type": "string",
+          "description": "Identificador de l'alumne objecte de la nota"
+        },
+        "alumneNom": {
+          "type": "string",
+          "description": "Nom de l'alumne"
+        },
+        "alumneEmail": {
+          "type": "string",
+          "description": "Email de l'alumne"
+        },
+        "professorId": {
+          "type": "string",
+          "description": "Identificador del professor autor"
+        },
+        "professorNom": {
+          "type": "string",
+          "description": "Nom del professor autor"
+        },
+        "professorEmail": {
+          "type": "string",
+          "description": "Email del professor autor"
+        },
+        "titol": {
+          "type": "string",
+          "description": "Títol breu o resum de la nota"
+        },
+        "contingut": {
+          "type": "string",
+          "description": "Text complet de l'anotació pedagògica per a la resta de professors"
+        },
+        "etiqueta": {
+          "type": "string",
+          "description": "Categoria o etiqueta de la nota (Seguiment, Línies Vermelles, Consells, etc.)"
+        },
+        "creatEl": {
+          "type": "string",
+          "description": "Data de creació de la nota"
+        },
+        "actualitzatEl": {
+          "type": "string",
+          "description": "Data d'actualització de la nota"
+        }
+      },
+      "required": ["alumneId", "professorNom", "titol", "contingut", "creatEl"]
+    },
+    "PreguntaPLTremp": {
+      "title": "Pregunta de la Policia Local de Tremp",
+      "description": "Banc de preguntes oficials i de simulacres per a la convocatòria de la Policia Local de Tremp.",
+      "type": "object",
+      "properties": {
+        "enunciat": {
+          "type": "string",
+          "description": "Enunciat de la pregunta de test"
+        },
+        "opcions": {
+          "type": "array",
+          "description": "Llista amb les 4 opcions de resposta (A, B, C, D)"
+        },
+        "indexCorrecta": {
+          "type": "integer",
+          "description": "Índex de l'opció correcta (0=A, 1=B, 2=C, 3=D)"
+        },
+        "tema": {
+          "type": "string",
+          "description": "Tema o matèria de la pregunta (ex: Ordenances Tremp, Policia Local, etc.)"
+        },
+        "explicacio": {
+          "type": "string",
+          "description": "Explicació o article normatiu justificatiu"
+        },
+        "creadaPer": {
+          "type": "string",
+          "description": "Correu electrònic o usuari que ha registrat la pregunta"
+        },
+        "dataCreacio": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Instant en què s'ha creat la pregunta"
+        }
+      },
+      "required": ["enunciat", "opcions", "indexCorrecta", "tema"]
     }
   },
   "firestore": {
+    "presets_preguntes_alumnes/{docId}": {
+      "schema": "PresetPreguntaAlumne",
+      "description": "Col·lecció de preguntes i presets específics personalitzats per a cada alumne"
+    },
+    "notes_historial_docent/{docId}": {
+      "schema": "NotaHistorialDocent",
+      "description": "Col·lecció de notes i seguiment docent compartit entre professors per a cada alumne"
+    },
+    "preparacions_entrevistes/{alumneId}": {
+      "schema": "PreparacioEntrevistaAlumne",
+      "description": "Col·lecció de guions i preparacions prèvies de les entrevistes personals per a cada alumne"
+    },
+    "banc_preguntes_entrevistes/{preguntaId}": {
+      "schema": "PreguntaBancEntrevista",
+      "description": "Banc general de preguntes d'entrevista i psicotècnics amb etiquetes temàtiques"
+    },
+    "entrevistes_personals/{entrevistaId}": {
+      "schema": "EntrevistaPersonal",
+      "description": "Col·lecció global d'historial de totes les entrevistes personals fetes pels professors als opositors"
+    },
+    "presets_entrevistes_generics/{presetId}": {
+      "schema": "PresetEntrevista",
+      "description": "Col·lecció de plantilles i presets genèrics per a les entrevistes"
+    },
     "gimnasos/{gimnasId}": {
       "schema": "Gimnas",
       "description": "Col·lecció de gimnasos o centres col·laboradors publicats oficialment"
@@ -660,6 +1038,10 @@
       "schema": "ResumEstudiant",
       "description": "Notes redactades a mode de resum per l'opositor d'un tema/subtema"
     },
+    "usuaris/{userId}/respostes_questionari_biografic/{preguntaId}": {
+      "schema": "RespostaQuestionariBiografic",
+      "description": "Subcol·lecció de respostes privades i xuletes de l'alumne per a les preguntes del qüestionari biogràfic"
+    },
     "fcm_tokens/{tokenId}": {
       "schema": "TokensDispositiuGlobal",
       "description": "Col·lecció global de registre de claus físics FCM d'opositors per fer enviaments directes i multilaterals des de l'administració"
@@ -691,6 +1073,10 @@
     "mossos_plans_entrenament/{plaId}": {
       "schema": "PlaEntrenament",
       "description": "Col·lecció de tots els plans d'entrenament setmanals de Mossos"
+    },
+    "preguntes_pl_tremp/{preguntaId}": {
+      "schema": "PreguntaPLTremp",
+      "description": "Col·lecció de preguntes oficials i simulacres d'examen per a la Policia Local de Tremp (17 de Setembre)"
     }
   }
 }

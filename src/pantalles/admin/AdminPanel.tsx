@@ -86,7 +86,9 @@ import {
   Shield,
   Apple,
   Layers,
-  Power
+  Power,
+  PanelLeftClose,
+  PanelLeftOpen
 } from "lucide-react";
 import { TEMARI_DETALL } from "../../constants/temari";
 import { motion, AnimatePresence } from "motion/react";
@@ -189,9 +191,20 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
     return localStorage.getItem("adminDarkMode") === "true";
   });
 
+  // Comentari planer per a no-programadors:
+  // Guardem l'estat de si el menú lateral està amagat/comprimit a la memòria del navegador (localStorage).
+  // D'aquesta manera, en dispositius com tauletes o portàtils, l'administrador pot amagar el menú per treballar amb màxim espai.
+  const [sidebarComprimit, setSidebarComprimit] = useState<boolean>(() => {
+    return localStorage.getItem("adminSidebarComprimit") === "true";
+  });
+
   useEffect(() => {
     localStorage.setItem("adminDarkMode", darkMode.toString());
   }, [darkMode]);
+
+  useEffect(() => {
+    localStorage.setItem("adminSidebarComprimit", sidebarComprimit.toString());
+  }, [sidebarComprimit]);
 
   // Lògica d'animació de colors (Sirenes)
   useEffect(() => {
@@ -1581,17 +1594,198 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
   return (
     <div className={`fixed inset-0 flex overflow-hidden z-[100] transition-colors duration-300 ${darkMode ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'}`}>
       
-      {/* SIDEBAR D'ESCRIPTORI */}
-      <aside className={`w-72 flex flex-col shrink-0 border-r shadow-2xl transition-colors duration-300 ${darkMode ? 'bg-[#000d1a] border-white/5' : 'bg-[#001a33] border-white/5'} text-white`}>
-        <div className="p-8">
-          <div className="flex items-center gap-2 mb-2">
-             <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center">
-                <Settings className="text-[#001a33]" size={20} />
-             </div>
-             <h2 className="text-2xl font-black italic uppercase text-white tracking-tighter">Back<span className="text-yellow-400">office</span></h2>
+      {/* SIDEBAR D'ESCRIPTORI I TABLET */}
+      {/* Explicació per a no-programadors: Barra lateral de navegació amb capacitat de comprimir-se amb botó groc per adaptar-se a pantalles més petites com tauletes */}
+      <aside className={`${
+        sidebarComprimit ? 'w-16 md:w-16' : 'w-72'
+      } flex flex-col shrink-0 border-r shadow-2xl transition-all duration-300 ease-in-out ${
+        darkMode ? 'bg-[#000d1a] border-white/5' : 'bg-[#001a33] border-white/5'
+      } text-white relative z-50`}>
+        {sidebarComprimit ? (
+          /* =========================================================================
+             MODE COMPRIMIT (ICON-ONLY): Barra estreta d'accés ràpid amb botó groc d'expandir
+             ========================================================================= */
+          <div className="flex flex-col items-center py-4 space-y-4 h-full justify-between select-none">
+            
+            {/* Part Superior: Logotip compacte i Accessos Directes */}
+            <div className="flex flex-col items-center space-y-3 w-full px-2">
+              
+              {/* Logotip compacte Backoffice */}
+              <button
+                type="button"
+                onClick={() => navigate('/admin')}
+                title="Inici Backoffice"
+                className="w-10 h-10 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-[#001a33] font-black text-xs cursor-pointer flex items-center justify-center tracking-wider transition-all shadow-md shadow-amber-500/20 active:scale-95"
+              >
+                <Settings size={20} />
+              </button>
+
+              <div className="w-8 h-[1px] bg-white/10 my-1" />
+
+              {/* Accés ràpid amb icones a les seccions principals */}
+              <div className="flex flex-col items-center space-y-2 w-full">
+                
+                {/* Dashboard */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin')}
+                  title="Dashboard"
+                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
+                    activeTab === 'admin' || activeTab === 'dashboard'
+                      ? 'bg-yellow-400 text-[#001a33] shadow-md shadow-amber-500/20'
+                      : 'text-white/40 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <LayoutDashboard size={18} />
+                </button>
+
+                {/* Prova Teòrica */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/prova-teorica')}
+                  title="Prova Teòrica"
+                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
+                    activeTab === 'prova-teorica'
+                      ? 'bg-yellow-400 text-[#001a33] shadow-md shadow-amber-500/20'
+                      : 'text-white/40 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <FileText size={18} />
+                </button>
+
+                {/* Prova Física */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/prova-fisica')}
+                  title="Prova Física"
+                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
+                    activeTab === 'prova-fisica'
+                      ? 'bg-yellow-400 text-[#001a33] shadow-md shadow-amber-500/20'
+                      : 'text-white/40 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Dumbbell size={18} />
+                </button>
+
+                {/* Prova Psicològica / Entrevistes */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/usuaris-psicotecnica')}
+                  title="Psicotècnics & Entrevistes"
+                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
+                    activeTab === 'usuaris-psicotecnica' || activeTab === 'prova-psicotecnica'
+                      ? 'bg-yellow-400 text-[#001a33] shadow-md shadow-amber-500/20'
+                      : 'text-white/40 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Brain size={18} />
+                </button>
+
+                {/* Usuaris */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/usuaris')}
+                  title="Gestió d'Usuaris"
+                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
+                    activeTab === 'usuaris'
+                      ? 'bg-yellow-400 text-[#001a33] shadow-md shadow-amber-500/20'
+                      : 'text-white/40 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Users size={18} />
+                </button>
+
+                {/* Centre de Notificacions */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/notificacions')}
+                  title="Centre de Notificacions"
+                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
+                    activeTab === 'notificacions'
+                      ? 'bg-yellow-400 text-[#001a33] shadow-md shadow-amber-500/20'
+                      : 'text-white/40 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Bell size={18} />
+                </button>
+
+                {/* Estadístiques */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/estadistiques')}
+                  title="Anàlisi i Dades"
+                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
+                    activeTab === 'estadistiques'
+                      ? 'bg-yellow-400 text-[#001a33] shadow-md shadow-amber-500/20'
+                      : 'text-white/40 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <BarChart3 size={18} />
+                </button>
+
+                {/* Manteniment */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/manteniment')}
+                  title="Manteniment BBDD"
+                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
+                    activeTab === 'manteniment'
+                      ? 'bg-yellow-400 text-[#001a33] shadow-md shadow-amber-500/20'
+                      : 'text-white/40 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Database size={18} />
+                </button>
+              </div>
+
+            </div>
+
+            {/* Part Inferior Comprimida: Avatar, Surt al portal i Botó Groc d'expandir */}
+            <div className="flex flex-col items-center space-y-3 w-full px-2 pb-2">
+              <div 
+                className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
+                title={auth.currentUser?.email || "Admin"}
+              >
+                XP
+              </div>
+
+              {/* Botó: Surt al Portal compacte */}
+              <button
+                type="button"
+                onClick={onExit}
+                title="Surt al Portal"
+                className="p-2 rounded-xl text-red-400 hover:bg-red-400/10 transition-all cursor-pointer active:scale-95"
+              >
+                <LogOut size={18} />
+              </button>
+
+              {/* Botó Groc d'expandir menú (símbol groc com a la web) */}
+              <button
+                type="button"
+                id="btn-expandir-menu-admin"
+                onClick={() => setSidebarComprimit(false)}
+                title="Expandir menú lateral"
+                className="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-850 border border-amber-400/60 hover:border-amber-400 text-[#FFDF00] transition-all cursor-pointer shadow-md shadow-amber-500/10 hover:scale-105 active:scale-95"
+              >
+                <PanelLeftOpen className="w-5 h-5 text-[#FFDF00] stroke-[2.5]" />
+              </button>
+            </div>
+
           </div>
-          <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/40">OposiCAT Management v2.0</p>
-        </div>
+        ) : (
+          /* =========================================================================
+             MODE EXPANDIT (COMPLET): Menú lateral complet amb selector d'APP i seccions
+             ========================================================================= */
+          <>
+            <div className="p-8">
+              <div className="flex items-center gap-2 mb-2">
+                 <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center">
+                    <Settings className="text-[#001a33]" size={20} />
+                 </div>
+                 <h2 className="text-2xl font-black italic uppercase text-white tracking-tighter">Back<span className="text-yellow-400">office</span></h2>
+              </div>
+              <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-white/40">OposiCAT Management v2.0</p>
+            </div>
 
         {/* SELECTOR D'APP - Més compacte com els botons del menú */}
         <div className="px-6 mb-6">
@@ -1857,7 +2051,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
         </nav>
 
         <div className="p-6 mt-auto">
-          <div className="bg-white/5 rounded-2xl p-4 mb-4">
+          <div className="bg-white/5 rounded-2xl p-4 mb-3">
              <div className="flex items-center gap-3 mb-1">
                 <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-[10px] font-bold">XP</div>
                 <div className="flex flex-col">
@@ -1866,6 +2060,21 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                 </div>
              </div>
           </div>
+
+          {/* BOTÓ GROC: AMAGAR MENÚ (Just damunt de "Surt al portal") */}
+          {/* Explicació per a no-programadors: Botó d'acció groc idèntic al del portal web per amagar i comprimir el menú lateral i guanyar el màxim espai de pantalla a tauletes i pantalles petites */}
+          <button
+            type="button"
+            id="btn-amagar-menu-admin"
+            onClick={() => setSidebarComprimit(true)}
+            className="w-full bg-[#FFDF00] hover:bg-[#fff066] text-slate-950 font-black text-xs uppercase tracking-wider py-2.5 px-4 rounded-xl transition-all duration-200 text-center cursor-pointer shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20 active:scale-95 flex items-center justify-center gap-2 border border-amber-300/60 mb-2.5"
+            title="Amagar menú lateral per guanyar espai"
+          >
+            <PanelLeftClose className="w-4 h-4 text-slate-950 stroke-[2.5]" />
+            <span>Amagar menú</span>
+          </button>
+
+          {/* BOTÓ: SURT AL PORTAL */}
           <button 
             onClick={onExit}
             className="w-full flex items-center justify-between p-3 rounded-xl text-red-400 hover:bg-red-400/10 transition-all group"
@@ -1877,6 +2086,8 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
             <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
           </button>
         </div>
+          </>
+        )}
       </aside>
 
       {/* MAIN VIEWPORT */}
@@ -1889,18 +2100,20 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
             boxShadow: animationState !== 'base' ? `0 10px 40px ${animationState === 'color1' ? colors.c1 : colors.c2}44` : "none",
           }}
           transition={{ duration: 0.4 }}
-          className={`h-20 border-b flex items-center justify-between px-10 shrink-0 relative z-50 ${
+          className={`h-20 border-b flex items-center justify-between px-4 sm:px-6 md:px-10 shrink-0 relative z-40 ${
             darkMode ? 'border-slate-700' : 'border-slate-200'
           }`}
         >
-           <div className={`flex items-center gap-4 px-4 py-2 rounded-xl w-96 transition-colors ${
-             animationState !== 'base' ? 'bg-white/10' : (darkMode ? 'bg-slate-700' : 'bg-slate-100')
+           {/* CERCADOR COMPACTE D'ADMINISTRACIÓ */}
+           {/* Comentari per a no-programadors: Hem reduït l'amplada del cercador perquè sigui discret, compacte i no s'encavalqui mai amb el títol central 'Gestió activa' fins i tot en pantalles mitjanes o tauletes */}
+           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl w-36 sm:w-44 md:w-52 max-w-[210px] shrink-0 transition-colors ${
+             animationState !== 'base' ? 'bg-white/10' : (darkMode ? 'bg-slate-800/80 border border-slate-700' : 'bg-slate-100 border border-slate-200')
            }`}>
-              <Search className={animationState !== 'base' ? (useContrastText ? 'text-slate-900/60' : 'text-white/60') : 'text-slate-400'} size={18} />
+              <Search className={`${animationState !== 'base' ? (useContrastText ? 'text-slate-900/60' : 'text-white/60') : 'text-slate-400'} shrink-0`} size={15} />
               <input 
                 type="text" 
                 placeholder="Cerca global..." 
-                className={`bg-transparent border-none outline-none text-sm font-medium w-full placeholder:text-slate-500 ${
+                className={`bg-transparent border-none outline-none text-xs font-medium w-full placeholder:text-slate-400 ${
                   animationState !== 'base' ? (useContrastText ? 'text-slate-900' : 'text-white') : (darkMode ? 'text-white' : 'text-slate-900')
                 }`}
                 value={searchTerm}
@@ -1960,7 +2173,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
         </motion.header>
 
         {/* CONTENT AREA */}
-        <div className={`flex-1 overflow-y-auto p-10 transition-colors duration-300 ${darkMode ? 'bg-slate-900' : 'bg-[#f8fafc]'}`}>
+        <div className={`flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 lg:p-10 transition-colors duration-300 ${darkMode ? 'bg-slate-900' : 'bg-[#f8fafc]'}`}>
           {!appType ? (
             /* PANTALLA DE BENVINGUDA QUAN NO HI HA APP SELECCIONADA */
             <WelcomeView darkMode={darkMode} />

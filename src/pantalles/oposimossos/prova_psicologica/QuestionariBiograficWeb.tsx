@@ -1,10 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { 
   User, Briefcase, Shield, Search, ChevronDown, CheckCircle2, ChevronLeft, 
-  BookOpen, HelpCircle, AlertCircle, Sparkles, Filter, FileText
+  BookOpen, HelpCircle, AlertCircle, Sparkles, Filter, FileText,
+  Eye, EyeOff, Save, Check, Clock, Bookmark, PenTool, RotateCcw
 } from 'lucide-react';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
+import { collection, getDocs, query, orderBy, doc, setDoc } from 'firebase/firestore';
+import { db, auth } from '../../../lib/firebase';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+
+/* =============================================================================
+ * LLISTA OFICIAL DE LES 10 COMPETÈNCIES CLAU DE L'ISPC PER A MOSSOS D'ESQUADRA
+ * -----------------------------------------------------------------------------
+ * Comentari planer per a no-programadors:
+ * Aquestes són les 10 competències que els psicòlegs del tribunal avaluen
+ * durant tot el procés selectiu (tant al Biodata com a l'entrevista oral).
+ * En cada pregunta del qüestionari, 3 d'aquestes competències estaran ressaltades
+ * en color verd com a claus avaluades.
+ * ============================================================================= */
+export const COMPETENCIES_OFICIALS_ISPC = [
+  "Habilitats socials i comunicatives",
+  "Orientació de servei a la ciutadania",
+  "Treball en equip i col·laboració",
+  "Adaptabilitat i flexibilitat",
+  "Autocontrol i gestió de l'estrès",
+  "Autogestió i creixement personal",
+  "Compromís amb l'organització",
+  "Eficiència i orientació a la qualitat",
+  "Resolució de problemes",
+  "Iniciativa i autonomia"
+] as const;
 
 /* =============================================================================
  * COMPONENT: QuestionariBiograficWeb
@@ -22,9 +46,10 @@ import { db } from '../../../lib/firebase';
  *    - Preguntes Laborals (Experiència i trajectòria)
  *    - Preguntes de PGME (Valors i cultura mosso)
  * 4. Barra d'eines: Cercador ràpid + Botó Plegar/Desplegar totes.
- * 5. Llistat interactiu de preguntes amb resposta orientativa i consells d'OposiCAT.
- * 6. Carrega automàtica des de Firestore si hi ha preguntes noves afegides.
- * 7. Targeta d'acció per practicar Biodata / Entrevista i botons de retorn.
+ * 5. Targetes de preguntes amb els 3 blocs requerits:
+ *    - "Resposta orientativa" (oculta per defecte, clic per desplegar)
+ *    - "Competències clau involucrades" (oculta per defecte, mostra les 10 amb les 3 claus en verd)
+ *    - "Resposta de l'alumne" (xuleta personal editable i desada a la base de dades)
  * ============================================================================= */
 
 export type BlocBiograficTipus = 'tots' | 'dades_personals' | 'personals' | 'laborals' | 'pgme';
@@ -46,6 +71,126 @@ interface QuestionariBiograficWebProps {
   onAnarEntrevista?: () => void;
   blocInicial?: BlocBiograficTipus;
 }
+
+/**
+ * Component auxiliar per formatar de manera elegant, clara i didàctica
+ * les respostes orientatives:
+ * - Subratlla els títols principals ("3 Virtuts" i "3 Defectes").
+ * - Presenta amb gran distinció visual les opcions condicionals ("Si és la primera vegada" / "Si ja s'hi ha presentat abans").
+ * - Ressalta cadascun dels conceptes i explicacions amb una estructura neta i còmoda de llegir.
+ */
+const FormatadorRespostaModel: React.FC<{ text: string }> = ({ text }) => {
+  if (!text) {
+    return (
+      <span className="text-slate-400 italic">
+        Elabora la teva resposta basant-te en fets reals, demostrant sinceritat, autocrítica i una sòlida vocació de servei públic.
+      </span>
+    );
+  }
+
+  // Dividim el text en paràgrafs per blocs de doble salt de línia
+  const paragrafs = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+
+  return (
+    <div className="space-y-3.5 text-xs sm:text-sm text-slate-200">
+      {paragrafs.map((paragraf, index) => {
+        const paragrafNet = paragraf.trim();
+
+        // 1. Encapçalament subratllat: "3 Virtuts"
+        if (paragrafNet.toLowerCase() === '3 virtuts' || paragrafNet.startsWith('3 Virtuts')) {
+          return (
+            <div key={index} className="pt-1.5 pb-1">
+              <div className="flex items-center gap-2.5">
+                <span className="text-emerald-300 font-black text-sm uppercase tracking-wider underline underline-offset-4 decoration-emerald-400 decoration-2">
+                  3 Virtuts
+                </span>
+                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                  Punts forts a destacar
+                </span>
+              </div>
+            </div>
+          );
+        }
+
+        // 2. Encapçalament subratllat: "3 Defectes"
+        if (paragrafNet.toLowerCase() === '3 defectes' || paragrafNet.startsWith('3 Defectes')) {
+          return (
+            <div key={index} className="pt-3.5 pb-1 border-t border-slate-800/80">
+              <div className="flex items-center gap-2.5">
+                <span className="text-amber-300 font-black text-sm uppercase tracking-wider underline underline-offset-4 decoration-amber-400 decoration-2">
+                  3 Defectes
+                </span>
+                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  Àrees de millora sota control
+                </span>
+              </div>
+            </div>
+          );
+        }
+
+        // 3. Cas bonic: "Si és la primera vegada"
+        if (paragrafNet.toLowerCase().includes('si és la primera vegada') || paragrafNet.toLowerCase().includes('si es la primera vegada')) {
+          return (
+            <div key={index} className="pt-2 pb-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-950/70 border border-cyan-500/40 text-cyan-200 shadow-sm">
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span className="font-black text-xs uppercase tracking-wider underline underline-offset-4 decoration-cyan-400 decoration-2">
+                  Si és la primera vegada
+                </span>
+                <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold">
+                  Opció A
+                </span>
+              </div>
+            </div>
+          );
+        }
+
+        // 4. Cas bonic: "Si ja s'hi ha presentat abans"
+        if (paragrafNet.toLowerCase().includes("si ja s'hi ha presentat abans") || paragrafNet.toLowerCase().includes("si ja s'ha presentat")) {
+          return (
+            <div key={index} className="pt-4 pb-1 border-t border-slate-800/80">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-950/70 border border-purple-500/40 text-purple-200 shadow-sm">
+                <RotateCcw className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                <span className="font-black text-xs uppercase tracking-wider underline underline-offset-4 decoration-purple-400 decoration-2">
+                  Si ja s'hi ha presentat abans
+                </span>
+                <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold">
+                  Opció B (Repetidor/a)
+                </span>
+              </div>
+            </div>
+          );
+        }
+
+        // 5. Paràgrafs amb estructura "Concepte: Explicació" (ex: "Vocació clara: ...", "Autocontrol: ...")
+        const dosPuntsIdx = paragrafNet.indexOf(':');
+        if (dosPuntsIdx > 0 && dosPuntsIdx < 45) {
+          const concepte = paragrafNet.substring(0, dosPuntsIdx).trim();
+          const explicacio = paragrafNet.substring(dosPuntsIdx + 1).trim();
+          return (
+            <div key={index} className="bg-slate-950/50 border border-slate-800/80 rounded-xl p-3 hover:border-slate-700 transition-colors">
+              <div className="leading-relaxed">
+                <strong className="text-white font-bold tracking-wide mr-1.5">
+                  {concepte}:
+                </strong>
+                <span className="text-slate-300">
+                  {explicacio}
+                </span>
+              </div>
+            </div>
+          );
+        }
+
+        // 6. Text normal/general
+        return (
+          <p key={index} className="leading-relaxed text-slate-300">
+            {paragrafNet}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
 
 export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = ({
   onTornar,
@@ -72,7 +217,7 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       pregunta: "Dades de filiació: Nom complet, edat, data de naixement i municipi actual de residència.",
       respostaModel: "Indiqueu de forma clara i directa el vostre nom complet, edat actual, data de naixement i el municipi on esteu empadronats i viviu habitualment.",
       consellOposicat: "Aquestes dades són purament informatives i administratives. No avaluen competències clau, però serveixen al tribunal per verificar el teu expedient administratiu i de residència.",
-      competenciesAvaluades: ["Dades de context i filiació"]
+      competenciesAvaluades: ["Habilitats socials i comunicatives", "Compromís amb l'organització", "Adaptabilitat i flexibilitat"]
     },
     {
       id: 'bio-dp-2',
@@ -80,7 +225,7 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       pregunta: "Situació de convivència: Amb qui vius actualment? Tens parella, fills o germans?",
       respostaModel: "Descriviu la vostra unitat familiar actual (per exemple: visc amb la meva parella / visc amb els meus pares i germà) amb total naturalitat i precisió.",
       consellOposicat: "Serveix per conèixer l'entorn de convivència i estabilitat de l'opositor. No té cap incidència negativa tenir fills, parella o viure de forma independent.",
-      competenciesAvaluades: ["Dades de context i filiació"]
+      competenciesAvaluades: ["Autogestió i creixement personal", "Autocontrol i gestió de l'estrès", "Habilitats socials i comunicatives"]
     },
     {
       id: 'bio-dp-3',
@@ -88,7 +233,7 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       pregunta: "Tens familiars directes o amics que treballin al cos de Mossos d'Esquadra o en altres cossos policials?",
       respostaModel: "Indiqueu si teniu o no familiars (per exemple: Sí, el meu oncle és caporal a Trànsit / No, no tinc cap familiar en cossos policials).",
       consellOposicat: "El tribunal ho pregunta per contextualitzar el teu coneixement directe del cos. Respondre que sí o que no no afegeix ni resta punts per aprovar.",
-      competenciesAvaluades: ["Dades de context i filiació"]
+      competenciesAvaluades: ["Compromís amb l'organització", "Orientació de servei a la ciutadania", "Habilitats socials i comunicatives"]
     },
     {
       id: 'bio-dp-4',
@@ -96,7 +241,7 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       pregunta: "Nivell d'estudis reglats i idiomes: Quina és la teva màxima titulació acadèmica i quines llengües domines?",
       respostaModel: "Exposeu els vostres estudis oficials finalitzats (Batxillerat, CFGS, Grau Universitari) i els idiomes que parleu o teniu certificats (català, castellà, anglès, etc.).",
       consellOposicat: "Sigueu fidels a la vostra documentació oficial. El coneixement d'idiomes estrangers o titulacions superiors és una dada valuosa per al vostre historial.",
-      competenciesAvaluades: ["Dades de context i filiació"]
+      competenciesAvaluades: ["Eficiència i orientació a la qualitat", "Autogestió i creixement personal", "Iniciativa i autonomia"]
     },
     {
       id: 'bio-dp-5',
@@ -104,7 +249,7 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       pregunta: "Permisos de conducció i mobilitat: Quins permisos de conduir tens i quina disponibilitat tens per desplaçar-te per Catalunya?",
       respostaModel: "Confirmeu la tinença del permís B (i altres si s'escau com A2 o C) i la disponibilitat plena per prestar servei a qualsevol Àrea Bàsica Policial del territori.",
       consellOposicat: "La mobilitat geogràfica és una característica inherent a la condició de mosso/a d'esquadra. Mostreu sempre total flexibilitat i predisposició.",
-      competenciesAvaluades: ["Dades de context i filiació"]
+      competenciesAvaluades: ["Adaptabilitat i flexibilitat", "Compromís amb l'organització", "Eficiència i orientació a la qualitat"]
     },
     {
       id: 'bio-dp-6',
@@ -112,7 +257,7 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       pregunta: "Has viscut, estudiat o treballat alguna temporada fora de Catalunya o a l'estranger?",
       respostaModel: "Detalleu breument estades per estudis (com beques Erasmus o idiomes), feines estacionals o voluntariats, o bé confirmeu la residència continuada a Catalunya.",
       consellOposicat: "Les experiències fora aporten context de maduresa i autonomia personal. Si no heu viscut fora, no té cap aspecte negatiu.",
-      competenciesAvaluades: ["Dades de context i filiació"]
+      competenciesAvaluades: ["Adaptabilitat i flexibilitat", "Iniciativa i autonomia", "Autogestió i creixement personal"]
     },
 
     // =========================================================================
@@ -122,15 +267,39 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       id: 'bio-per-1',
       bloc: 'personals',
       pregunta: "Digui'm els seus 3 majors defectes i 3 majors virtuts.",
-      respostaModel: "És fonamental seleccionar virtuts directament aplicables a la feina policial (constància, ordre, capacitat d'escolta i empatia) i defectes reals però no invalidants (perfeccionisme que requereix aprendre a delegar, autoexigència alta o tendència a analitzar en excés abans d'actuar), explicant sempre com els teniu sota control.",
+      respostaModel: `3 Virtuts
+
+Autocontrol: Mantinc la calma sota pressió, actuant amb racionalitat i criteri en situacions de conflicte.
+
+Empatia i fermesa: Capacitat per deescalar tensions amb la ciutadania mitjançant la comunicació assertiva.
+
+Treball en equip: Disposició total a la cooperació, la disciplina operativa i la coordinació amb els companys.
+
+3 Defectes
+
+Autoexigència alta: Em costa desconnectar quan un treball és millorable; aprenc a ajustar expectatives de manera realista.
+
+Incomoditat davant la imprevisió: M'agrada tenir les tasques estructurades i em requereix un esforç extra adaptar-me quan els plans canvien de cop.
+
+Rigidesa amb els terminis: Poso molta pressió en complir els temps marcats, la qual cosa m'obliga a treballar la paciència amb els ritmes externs.`,
       consellOposicat: "Eviteu clixés artificials com «sóc massa treballador». El tribunal vol veure maduresa i autocrítica real. Mai mencioneu defectes incompatibles amb la funció pública com la impulsivitat o el desordre.",
-      competenciesAvaluades: ["Autogestió i creixement personal", "Autocontrol i gestió de l'estrès", "Habilitats socials"]
+      competenciesAvaluades: ["Autocontrol i gestió de l'estrès", "Habilitats socials i comunicatives", "Treball en equip i col·laboració"]
     },
     {
       id: 'bio-per-2',
       bloc: 'personals',
       pregunta: "És el primer cop que es presenta? Si no ho és, per què es presenta un altre cop?",
-      respostaModel: "Si és el primer cop, emfatitzeu la preparació metòdica i exhaustiva prèvia. Si repetiu convocatòria, enfoqueu-ho com una prova fefaent de perseverança, compromís inamovible i vocació contrastada, explicant de quina manera heu reforçat les àrees de millora.",
+      respostaModel: `Si és la primera vegada
+
+Vocació clara: És la meva primera convocatòria perquè és ara quan he completat la meva preparació teòrica, física i personal per afrontar el procés amb garanties.
+
+Determinació: Reuneixo el perfil i les competències necessàries per assumir la responsabilitat del servei policial des del primer dia.
+
+Si ja s'hi ha presentat abans
+
+Perseverança i vocació: Em torno a presentar perquè la meva prioritat professional és ser policia; el no haver-ho aconseguit abans reafirma el meu compromís.
+
+Aprenentatge i millora: He analitzat els punts febles de la convocatòria anterior, he reforçat la meva preparació i em presento amb més maduresa i millor capacitat de resposta.`,
       consellOposicat: "Mai culpeu tercers ni el tribunal anterior si no vau aprovar. Assumiu el procés com una oportunitat d'evolució i demostreu constància i fermesa.",
       competenciesAvaluades: ["Compromís amb l'organització", "Autogestió i creixement personal", "Adaptabilitat i flexibilitat"]
     },
@@ -146,7 +315,11 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       id: 'bio-per-4',
       bloc: 'personals',
       pregunta: "Descrigui breument la situació que més por ha passat a la seva vida.",
-      respostaModel: "Exposeu una situació d'emergència real (un accident de trànsit, un ensurt mèdic familiar o un imprevist greu) on vau sentir por o angoixa però vau mantenir el cap fred per actuar de forma ordenada, avisar els serveis d'emergència i protegir les persones.",
+      respostaModel: `Situació: Conduint de nit de la ciutat cap al poble a uns 80 km/h, em va irrompre de cop un porc senglar a la calçada.
+
+Reacció i control: Gràcies a circular a una velocitat moderada i atenta, vaig poder fer una maniobra d'esquiva segura sense perdre el control del vehicle.
+
+Gestió posterior: Em vaig aturar un moment al voral per assimilar l'impacte emocional de l'ensurt, em vaig recuperar i vaig reprendre la marxa amb normalitat.`,
       consellOposicat: "La por és una emoció humana natural. Negar-la denota immaduresa o manca de sinceritat. El tribunal vol avaluar que la por no us paralitza i que sabeu mantenir el control sota pressió.",
       competenciesAvaluades: ["Autocontrol i gestió de l'estrès", "Resolució de problemes", "Iniciativa i autonomia"]
     },
@@ -154,17 +327,25 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       id: 'bio-per-5',
       bloc: 'personals',
       pregunta: "Expliqueu algun error personal important realitzat en el passat i quina conducta vau rectificar.",
-      respostaModel: "Cal assumir un error real del passat sense desviar culpes cap a tercers, detallant les conseqüències assumides amb responsabilitat i quins nous hàbits, mètodes o protocols personals vau establir per garantir que no es tornés a repetir.",
+      respostaModel: `Error d'assumpció: Voler resoldre una tasca complexa de manera individual per no carregar els altres, provocant un retard en el resultat final.
+
+Rectificació i aprenentatge: Vaig reconèixer la situació a temps, vaig demanar suport i vaig canviar el meu enfocament cap a una comunicació més fluida i una delegació eficient.
+
+Impacte actual: Ara m'asseguro de coordinar-me millor des del primer moment per optimitzar els recursos i l'equip.`,
       consellOposicat: "L'error no ha de constituir cap delicte ni falta ètica greu. El valor d'aquesta pregunta rau en la capacitat d'aprenentatge i la humilitat per rectificar.",
-      competenciesAvaluades: ["Autogestió i creixement personal", "Eficiència i orientació a la qualitat", "Adaptabilitat"]
+      competenciesAvaluades: ["Autogestió i creixement personal", "Eficiència i orientació a la qualitat", "Adaptabilitat i flexibilitat"]
     },
     {
       id: 'bio-per-6',
       bloc: 'personals',
       pregunta: "Parli'm de vostè. Quin tipus de persona és i com el defineix el seu entorn familiar i d'amics?",
-      respostaModel: "Definiu-vos com una persona tranquil·la, resolutiva, compromesa amb la feina i de tracte proper. Destaqueu hàbits d'estil de vida saludable, constància en els objectius i capacitat per escoltar i ajudar l'entorn quan cal.",
+      respostaModel: `Definició personal: Em considero una persona equilibrada, treballadora, adaptable i amb un alt sentit de la responsabilitat.
+
+Visió de l'entorn: Els meus familiars i amics em defineixen com algú de confiança, serè davant els problemes i accessible quan cal ajudar.
+
+Relació social: Mantenir un entorn estable i sa demostra la meva capacitat de convivència, empatia i compromís amb les persones del meu voltant.`,
       consellOposicat: "Estructureu la resposta en tres eixos: formació/feina, estil de vida/valors i relacions humanes. Eviteu mostrar un perfil individualista o conflictiu.",
-      competenciesAvaluades: ["Habilitats socials i comunicatives", "Adaptabilitat i flexibilitat", "Treball en equip"]
+      competenciesAvaluades: ["Habilitats socials i comunicatives", "Adaptabilitat i flexibilitat", "Treball en equip i col·laboració"]
     },
 
     // =========================================================================
@@ -174,7 +355,11 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       id: 'bio-lab-1',
       bloc: 'laborals',
       pregunta: "Quants anys ha treballat vostè i en quins sectors o empreses?",
-      respostaModel: "Resum cronològic clar i concís de la vostra vida laboral, destacant les competències adquirides en cadascuna de les feines: atenció al públic, treball sota pressió horària, coordinació en equip, ordre i compliment estricte de procediments.",
+      respostaModel: `Resum de trajectòria: [X] anys d'experiència laboral en sectors com [ex: serveis, atenció al públic, seguretat privada o administració].
+
+Transferència de competències: Cada experiència m'ha permès desenvolupar habilitats clau com el tracte amb la ciutadania, el treball sota pressió i la resolució d'incidències.
+
+Orientació al cos: Tota la meva trajectòria ha estat un camí d'aprenentatge constant per consolidar el meu perfil cap a la funció policial.`,
       consellOposicat: "Les dates i feines han de coincidir exactament amb el document escrit que vau lliurar i amb la vostra Vida Laboral oficial. No deixeu llacunes temporals sense justificació raonable.",
       competenciesAvaluades: ["Treball en equip i col·laboració", "Eficiència i orientació a la qualitat", "Adaptabilitat"]
     },
@@ -182,7 +367,11 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       id: 'bio-lab-2',
       bloc: 'laborals',
       pregunta: "Quin és el càrrec o responsabilitat més important que vostè ha desenvolupat?",
-      respostaModel: "Descriviu el lloc de treball on heu assumit major autonomia, gestió d'incidències, coordinació de companys o custodia de bens/valors, explicant com vau respondre a la confiança de l'empresa.",
+      respostaModel: `Càrrec i funcions: [Nom del lloc de treball, ex: Responsable d'equip / Atenció a incidències], on gestionava [gestió d'equips, atenció directa a clients, coordinació de tasques].
+
+Habilitats demostrades: Assumir aquesta responsabilitat em va exigir un alt nivell d'organització, presa de decisions ràpides i gestió de situacions complexes.
+
+Aprenentatge: Em va permetre comprovar la meva capacitat per liderar amb l'exemple i respondre amb rigor davant compromisos d'alta exigència.`,
       consellOposicat: "No cal haver estat director per tenir responsabilitat: haver estat encarregat de tancament, de caixa, de seguretat o de la formació de noves incorporacions és plenament vàlid.",
       competenciesAvaluades: ["Iniciativa i autonomia", "Resolució de problemes", "Compromís amb l'organització"]
     },
@@ -190,7 +379,11 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       id: 'bio-lab-3',
       bloc: 'laborals',
       pregunta: "Si tornés a néixer, estudiaria i treballaria en el mateix?",
-      respostaModel: "Exposeu satisfacció amb el camí vital i professional recorregut, indicant que cada feina i estudi us ha aportat eines de maduresa i resolució que ara poseu al servei de la vostra veritable vocació policial.",
+      respostaModel: `Valoració del camí: Sí, perquè les experiències acadèmiques i laborals que he tingut m'han format com a persona i m'han donat eines molt útils.
+
+Vocació clara: Tanmateix, hagués orientat la meva preparació cap a la professió policial de forma encara més primerenca per haver-hi accedit abans.
+
+Coherència: Estic satisfet del meu recorregut perquè m'ha aportat la maduresa necessària per afrontar aquest oposició amb garanties.`,
       consellOposicat: "Eviteu transmetre sensació de penediment o ressentiment cap a ocupacions passades. Demostreu que sabeu treure profit positiu de cada experiència.",
       competenciesAvaluades: ["Autogestió i creixement personal", "Adaptabilitat i flexibilitat", "Compromís organitzatiu"]
     },
@@ -198,7 +391,11 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       id: 'bio-lab-4',
       bloc: 'laborals',
       pregunta: "Ha tingut mai cap discrepància o conflicte amb un company o un superior? Com ho va resoldre?",
-      respostaModel: "Exposeu una discrepància professional de criteri tècnic resolta mitjançant el diàleg tranquil, l'assertivitat i, un cop presa la decisió final pel responsable, l'acatament i col·laboració lleial amb l'equip.",
+      respostaModel: `Discrepància professional: Sí, hem tingut diferències d'criteri puntuals sobre com abordar una tasca o organitzar un torn de treball.
+
+Resolució assertiva: Ho vaig resoldre parlant-ho directament de forma privada, escoltant la seva postura i buscant un punt d'entesa basat en el bé comú de l'equip.
+
+Respecte a la jerarquia: Si la diferència era amb un superior, vaig exposar el meu punt de vista amb respecte i vaig assumir i executar la seva decisió final sense dubtar.`,
       consellOposicat: "En cap cas mencioneu discussions agressives ni faltes de respecte. Mostreu habilitat per separar el debat constructiu de la disciplina professional.",
       competenciesAvaluades: ["Treball en equip i col·laboració", "Habilitats socials i comunicatives", "Compromís amb l'organització"]
     },
@@ -206,7 +403,11 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       id: 'bio-lab-5',
       bloc: 'laborals',
       pregunta: "Heu pres mai una decisió d'alta transcendència a la vostra feina sense aval directe de caps?",
-      respostaModel: "Exposeu una situació d'urgència sobrevinguda on calia actuar de forma immediata per evitar un perjudici greu o protegir persones, seguint sempre el marc dels protocols generals i informant tan aviat com va ser possible.",
+      respostaModel: `Alineació amb el protocol: En situacions operatives imprevistes i d'urgència on no hi havia temps de consultar, vaig actuar seguint estrictament els procediments marcats.
+
+Criteri i responsabilitat: Vaig prendre la decisió de forma racional, prioritzant la seguretat i el correcte funcionament del servei.
+
+Rendició de comptes: Immediatament després de resoldre la situació, vaig informar detalladament al meu superior sobre les accions preses i el motiu de la decisió.`,
       consellOposicat: "A la Policia la línia jeràrquica és sagrada. Remarqueu que en situacions ordinàries se segueixen estrictament les instruccions, i només en emergències extremes s'actua d'ofici.",
       competenciesAvaluades: ["Iniciativa i autonomia", "Resolució de problemes", "Compromís amb l'organització"]
     },
@@ -218,39 +419,59 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       id: 'bio-pg-1',
       bloc: 'pgme',
       pregunta: "Per què vostè vol ser policia / Mosso d'Esquadra?",
-      respostaModel: "Voldria ser Mosso d'Esquadra perquè considero que sóc una persona que vol ajudar la societat catalana de forma altruista, propera i professional. Desenvoluparé la feina amb gran responsabilitat i respecte als drets i llibertats, amb els peus a terra i sense creure'm un superheroi.",
+      respostaModel: `Vocació de servei: Per la voluntat d'ajudar i protegir la ciutadania de manera directa, garantint la seguretat i la convivència en la meva comunitat.
+
+Dinamisme i valors: Busco una professió on el treball en equip, la disciplina, la millora contínua i el sentit del deure siguin la base del dia a dia.
+
+Realització personal: Considero que el servei policial m'ofereix un projecte de vida professional ple i amb un impacte positiu real en la societat.`,
       consellOposicat: "Aquesta és una de les respostes fonamentals de tota la fase d'oposició. Fonamenteu-la en la vocació de servei públic, l'ajuda ciutadana i el compliment del deure.",
-      competenciesAvaluades: ["Orientació de servei a la ciutadania", "Compromís amb l'organització", "Habilitats socials"]
+      competenciesAvaluades: ["Orientació de servei a la ciutadania", "Compromís amb l'organització", "Habilitats socials i comunicatives"]
     },
     {
       id: 'bio-pg-2',
       bloc: 'pgme',
       pregunta: "Per què ha decidit ser Mosso d'Esquadra i no Policia Local, Guàrdia Civil o Policia Nacional?",
-      respostaModel: "Perquè m'identifico plenament amb la Policia de la Generalitat com a policia integral de Catalunya, que cobreix des de la seguretat ciutadana fins a la investigació criminal i el trànsit, arrelada a la societat i cultura catalana.",
+      respostaModel: `Competència integral: La Policia de la Generalitat - Mossos d'Esquadra és la policia integral de Catalunya, amb desplegament total en seguretat ciutadana, investigació i trànsit.
+
+Proximitat territorial: Em permet servir a la ciutadania del meu propi entorn des d'una organització moderna, arrelada al territori i d'alta proximitat.
+
+Desenvolupament professional: El cos m'ofereix un ventall d'especialitats i opcions de promoció interna molt ampli sense haver de canviar de model policial.`,
       consellOposicat: "Mai desqualifiqueu cap altre cos policial. Mostreu respecte unànime per tots ells, explicant amb estima i coherència el motiu de la vostra elecció per PG-ME.",
-      competenciesAvaluades: ["Compromís amb l'organització", "Habilitats socials i comunicatives"]
+      competenciesAvaluades: ["Compromís amb l'organització", "Habilitats socials i comunicatives", "Orientació de servei a la ciutadania"]
     },
     {
       id: 'bio-pg-3',
       bloc: 'pgme',
       pregunta: "Què espera de la feina de Mosso d'Esquadra durant el seu primer any de servei a comissaria?",
-      respostaModel: "Espero integrar-me ràpidament al servei de Seguretat Ciutadana (USC), aprendre amb humilitat dels companys veterans i comandaments, aplicar el rigor tècnic après a l'ISPC i oferir una atenció exemplar a cada ciutadà.",
+      respostaModel: `Aprenentatge i integració: Conèixer a fons el funcionament de la comissaria, la realitat del districte i integrar-me de forma disciplina i activa en el meu equip de treball.
+
+Seguretat ciutadana: Consolidar les competències bàsiques de patrullatge, atenció directa al ciutadà, resolució d'incidències i aplicació rigorosa dels procediments.
+
+Humilitat i rigor: Escoltar els companys més veterans, aprendre de la seva experiència i complir cada tasca assignada amb el màxim compromís.`,
       consellOposicat: "No mostreu ànsies per anar a unitats d'elit (GEI, BRIMO, helicòpters) el primer dia. La base essencial d'un bon agent és la patrulla de seguretat ciutadana.",
-      competenciesAvaluades: ["Eficiència i orientació a la qualitat", "Treball en equip i col·laboració", "Adaptabilitat"]
+      competenciesAvaluades: ["Eficiència i orientació a la qualitat", "Treball en equip i col·laboració", "Adaptabilitat i flexibilitat"]
     },
     {
       id: 'bio-pg-4',
       bloc: 'pgme',
       pregunta: "Què creu vostè que la ciutadania espera d'un agent de Mossos d'Esquadra?",
-      respostaModel: "La societat espera una policia de proximitat, justa, imparcial, ràpida en l'auxili, amb empatia absoluta cap a les víctimes i amb una autoritat exercida amb fermesa, serenitat i proporcionalitat.",
+      respostaModel: `Professionalitat i eficàcia: Una resposta ràpida, serena i resolutiva davant de qualsevol problema de seguretat o convivència.
+
+Tracte humà i empatia: Una actitud d'escolta, respecte, educació i fermesa, tractant les persones amb la consideració que mereixen en situacions vulnerables.
+
+Exemplaritat: Un comportament ètic impecable, tant de servei com fora d'ell, transmetent confiança i neutralitat.`,
       consellOposicat: "Recordeu que el Codi Ètic de la PGME estableix que la confiança ciutadana és el pilar indispensable de l'eficàcia policial.",
-      competenciesAvaluades: ["Orientació de servei a la ciutadania", "Habilitats socials i comunicatives", "Compromís organitzatiu"]
+      competenciesAvaluades: ["Orientació de servei a la ciutadania", "Habilitats socials i comunicatives", "Compromís amb l'organització"]
     },
     {
       id: 'bio-pg-5',
       bloc: 'pgme',
       pregunta: "Quina especialitat és la que més li agradaria treballar dins del cos a llarg termini?",
-      respostaModel: "Em crida especialment l'atenció l'àrea d'Investigació / Trànsit / Seguretat Ciutadana per la meva capacitat d'anàlisi i rigor, però la meva prioritat immediata és servir allà on el cos ho consideri més necessari per a la societat.",
+      respostaModel: `Prioritat actual: Ara mateix la meva prioritat absoluta és ser un bon agent de seguretat ciutadana i dominar el servei bàsic a comissaria.
+
+Especialitat futura: A llarg termini, m'atrau l'àrea d'Investigació / Trànsit / Seguretat Ciutadana de Proximitat (tria una segons el teu perfil) per la complexitat analítica i el seguiment dels casos.
+
+Evolució natural: Assumiré l'opció d'especialitzar-me quan tingui l'experiència de carrer necessària i hagi demostrat la meva solidesa en el cos.`,
       consellOposicat: "Demostreu interès per la progressió professional, però deixeu molt clar que esteu 100% compromesos amb la destinació que us assigni el cos.",
       competenciesAvaluades: ["Adaptabilitat i flexibilitat", "Compromís amb l'organització", "Iniciativa i autonomia"]
     },
@@ -258,9 +479,13 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       id: 'bio-pg-6',
       bloc: 'pgme',
       pregunta: "Què faria si patrullant en un binomi el seu company comet una irregularitat greu o un intent de suborn?",
-      respostaModel: "Aturaria immediatament l'acció antireglamentària del company i donaria compte oficial i immediat del fet als comandaments superiors. El deure legal i el Codi Deontològic de la PG-ME prevalen sempre per damunt de qualsevol malentès de companyonia.",
+      respostaModel: `Aturar l'acció: Intervenir immediatament de forma ferma per tallar la conducta il·legal o rebutjar de ple el suborn en el mateix moment.
+
+Imperatiu legal i ètic: Recordar que l'interès públic i el compliment de la llei estan per sobre de qualsevol camaderia o corporativisme.
+
+Rendició de comptes: Informar de forma immediata i detallada al superior jeràrquic del que ha succeït, complint amb el Codi Deontològic i el deure d'agent de l'autoritat.`,
       consellOposicat: "Davant d'una falta ètica o delicte flagrant, la lleialtat és cap a la institució, la ciutadania i la legalitat. Mai dubteu en aquesta resposta.",
-      competenciesAvaluades: ["Compromís amb l'organització", "Autogestió i creixement personal", "Autocontrol"]
+      competenciesAvaluades: ["Compromís amb l'organització", "Autogestió i creixement personal", "Autocontrol i gestió de l'estrès"]
     }
   ];
 
@@ -354,7 +579,263 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
     carregarPreguntesBBDD();
   }, []);
 
-  // Comptadors per bloc
+  // =========================================================================
+  // ESTATS PER A LA GESTIÓ DELS 3 NOUS BLOCS DE CADA TARGETA
+  // =========================================================================
+  // Estat de l'usuari actual de Firebase Auth
+  const [usuari, setUsuari] = useState<FirebaseUser | null>(auth.currentUser);
+
+  // Control de visibilitat dels 2 blocs desplegables (ocults per defecte)
+  const [respostesOrientativesObertes, setRespostesOrientativesObertes] = useState<Record<string, boolean>>({});
+  const [competenciesObertes, setCompetenciesObertes] = useState<Record<string, boolean>>({});
+
+  // Estat de la resposta de l'alumne (la seva xuleta personal)
+  const [respostesAlumnes, setRespostesAlumnes] = useState<Record<string, string>>({});
+
+  // Estat de les competències seleccionades per l'alumne per a cada pregunta (interactiu i guardat a BBDD)
+  const [competenciesSeleccionades, setCompetenciesSeleccionades] = useState<Record<string, string[]>>({});
+
+  // Estat del procés de desat a la base de dades (Firestore) per a cada pregunta
+  const [estatsGuardat, setEstatsGuardat] = useState<Record<string, 'idle' | 'desant' | 'desat' | 'error'>>({});
+
+  // Carregar respostes personals i competències triades per l'alumne (primer del LocalStorage i després sincronitzat amb Firestore)
+  useEffect(() => {
+    // 1. Càrrega immediata des de la memòria local del navegador
+    const cacheLocal: Record<string, string> = {};
+    const cacheCompLocal: Record<string, string[]> = {};
+    preguntes.forEach(p => {
+      try {
+        const textLocal = localStorage.getItem(`oposicat_bio_resposta_${p.id}`);
+        if (textLocal) {
+          cacheLocal[p.id] = textLocal;
+        }
+        const compLocal = localStorage.getItem(`oposicat_bio_comp_${p.id}`);
+        if (compLocal) {
+          const parsed = JSON.parse(compLocal);
+          if (Array.isArray(parsed)) {
+            cacheCompLocal[p.id] = parsed;
+          }
+        }
+      } catch (e) {
+        // Ignorem fallades de memòria privada
+      }
+    });
+    if (Object.keys(cacheLocal).length > 0) {
+      setRespostesAlumnes(prev => ({ ...cacheLocal, ...prev }));
+    }
+    if (Object.keys(cacheCompLocal).length > 0) {
+      setCompetenciesSeleccionades(prev => ({ ...cacheCompLocal, ...prev }));
+    }
+
+    // 2. Sincronització amb la col·lecció privada de l'alumne a Firestore
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      setUsuari(u);
+      if (u) {
+        try {
+          const colRef = collection(db, 'usuaris', u.uid, 'respostes_questionari_biografic');
+          const snap = await getDocs(colRef);
+          const mapaBBDD: Record<string, string> = {};
+          const mapaCompBBDD: Record<string, string[]> = {};
+          snap.forEach(d => {
+            const data = d.data();
+            if (data && typeof data.respostaAlumne === 'string') {
+              mapaBBDD[d.id] = data.respostaAlumne;
+              try {
+                localStorage.setItem(`oposicat_bio_resposta_${d.id}`, data.respostaAlumne);
+              } catch (e) {
+                // Ignore
+              }
+            }
+            if (data && Array.isArray(data.competenciesSeleccionades)) {
+              mapaCompBBDD[d.id] = data.competenciesSeleccionades;
+              try {
+                localStorage.setItem(`oposicat_bio_comp_${d.id}`, JSON.stringify(data.competenciesSeleccionades));
+              } catch (e) {
+                // Ignore
+              }
+            }
+          });
+          if (Object.keys(mapaBBDD).length > 0) {
+            setRespostesAlumnes(prev => ({ ...prev, ...mapaBBDD }));
+          }
+          if (Object.keys(mapaCompBBDD).length > 0) {
+            setCompetenciesSeleccionades(prev => ({ ...prev, ...mapaCompBBDD }));
+          }
+        } catch (err) {
+          console.warn("Avís en carregar respostes i competències del qüestionari biogràfic des de Firestore:", err);
+        }
+      }
+    });
+
+    return () => unsub();
+  }, [preguntes.length]);
+
+  // Alternar desplegament de la resposta orientativa d'una targeta (oculta per defecte)
+  const toggleRespostaOrientativa = (id: string) => {
+    setRespostesOrientativesObertes(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  // Alternar desplegament de les competències clau involucrades (ocultes per defecte)
+  const toggleCompetencies = (id: string) => {
+    setCompetenciesObertes(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  // Actualitzar text de la resposta de l'alumne en temps real
+  const actualitzarTextResposta = (id: string, nouText: string) => {
+    setRespostesAlumnes(prev => ({
+      ...prev,
+      [id]: nouText
+    }));
+    try {
+      localStorage.setItem(`oposicat_bio_resposta_${id}`, nouText);
+    } catch (e) {
+      // Ignore
+    }
+  };
+
+  // Seleccionar o deseleccionar una competència clau per part de l'alumne
+  const toggleCompetenciaAlumne = async (preguntaId: string, competencia: string) => {
+    const llistaActual = competenciesSeleccionades[preguntaId] || [];
+    const jaExisteix = llistaActual.includes(competencia);
+    const novaLlista = jaExisteix
+      ? llistaActual.filter(c => c !== competencia)
+      : [...llistaActual, competencia];
+
+    setCompetenciesSeleccionades(prev => ({
+      ...prev,
+      [preguntaId]: novaLlista
+    }));
+
+    // Persistència immediata al navegador
+    try {
+      localStorage.setItem(`oposicat_bio_comp_${preguntaId}`, JSON.stringify(novaLlista));
+    } catch (e) {
+      // Ignore
+    }
+
+    // Persistència a Firestore automàtica al compte de l'alumne
+    const user = auth.currentUser || usuari;
+    if (user) {
+      try {
+        const docRef = doc(db, 'usuaris', user.uid, 'respostes_questionari_biografic', preguntaId);
+        await setDoc(docRef, {
+          preguntaId,
+          competenciesSeleccionades: novaLlista,
+          actualitzatEl: new Date().toISOString(),
+          userId: user.uid
+        }, { merge: true });
+      } catch (err) {
+        console.warn("Avís guardant selecció de competències a Firestore:", err);
+      }
+    }
+  };
+
+  // Desmarcar totes les competències seleccionades d'una pregunta
+  const netejarCompetenciesAlumne = async (preguntaId: string) => {
+    setCompetenciesSeleccionades(prev => ({
+      ...prev,
+      [preguntaId]: []
+    }));
+
+    try {
+      localStorage.setItem(`oposicat_bio_comp_${preguntaId}`, JSON.stringify([]));
+    } catch (e) {
+      // Ignore
+    }
+
+    const user = auth.currentUser || usuari;
+    if (user) {
+      try {
+        const docRef = doc(db, 'usuaris', user.uid, 'respostes_questionari_biografic', preguntaId);
+        await setDoc(docRef, {
+          preguntaId,
+          competenciesSeleccionades: [],
+          actualitzatEl: new Date().toISOString(),
+          userId: user.uid
+        }, { merge: true });
+      } catch (err) {
+        console.warn("Avís netejant competències a Firestore:", err);
+      }
+    }
+  };
+
+  // Desar la resposta a Firestore i actualitzar estat visual
+  const desarResposta = async (preguntaId: string) => {
+    const textADesar = respostesAlumnes[preguntaId] || '';
+    const compTriades = competenciesSeleccionades[preguntaId] || [];
+    setEstatsGuardat(prev => ({ ...prev, [preguntaId]: 'desant' }));
+
+    // Persistència local immediata de seguretat
+    try {
+      localStorage.setItem(`oposicat_bio_resposta_${preguntaId}`, textADesar);
+      localStorage.setItem(`oposicat_bio_comp_${preguntaId}`, JSON.stringify(compTriades));
+    } catch (e) {
+      // Ignore
+    }
+
+    try {
+      const user = auth.currentUser || usuari;
+      if (user) {
+        const docRef = doc(db, 'usuaris', user.uid, 'respostes_questionari_biografic', preguntaId);
+        await setDoc(docRef, {
+          preguntaId,
+          respostaAlumne: textADesar,
+          competenciesSeleccionades: compTriades,
+          actualitzatEl: new Date().toISOString(),
+          userId: user.uid
+        }, { merge: true });
+      }
+
+      setEstatsGuardat(prev => ({ ...prev, [preguntaId]: 'desat' }));
+      setTimeout(() => {
+        setEstatsGuardat(prev => ({ ...prev, [preguntaId]: 'idle' }));
+      }, 3500);
+    } catch (err) {
+      console.error("Error desant a Firestore:", err);
+      // Fins i tot si falla el servidor temporalment, confirmem l'èxit de la còpia local
+      setEstatsGuardat(prev => ({ ...prev, [preguntaId]: 'desat' }));
+      setTimeout(() => {
+        setEstatsGuardat(prev => ({ ...prev, [preguntaId]: 'idle' }));
+      }, 3500);
+    }
+  };
+
+  // Comprova si una competència de les 10 oficials està involucrada en la pregunta actual
+  const comprovarCompetenciaInvolucrada = (compOficial: string, llistaAvaluades?: string[]): boolean => {
+    if (!llistaAvaluades || llistaAvaluades.length === 0) return false;
+    const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    const cNorm = norm(compOficial);
+
+    return llistaAvaluades.some(av => {
+      const aNorm = norm(av);
+      if (cNorm === aNorm) return true;
+      if (cNorm.includes(aNorm) || aNorm.includes(cNorm)) return true;
+      if (cNorm.includes('social') && aNorm.includes('social')) return true;
+      if (cNorm.includes('ciutadania') && aNorm.includes('ciutadania')) return true;
+      if (cNorm.includes('equip') && aNorm.includes('equip')) return true;
+      if (cNorm.includes('adaptabilitat') && aNorm.includes('adaptabilitat')) return true;
+      if (cNorm.includes('autocontrol') && aNorm.includes('autocontrol')) return true;
+      if (cNorm.includes('autogestio') && aNorm.includes('autogestio')) return true;
+      if (cNorm.includes('compromis') && aNorm.includes('compromis')) return true;
+      if (cNorm.includes('eficiencia') && (aNorm.includes('eficiencia') || aNorm.includes('qualitat'))) return true;
+      if (cNorm.includes('resolucio') && aNorm.includes('resolucio')) return true;
+      if (cNorm.includes('iniciativa') && aNorm.includes('iniciativa')) return true;
+      return false;
+    });
+  };
+
+  // Auxiliar per comptar caràcters i paraules
+  const comptadorText = (text: string) => {
+    const caracters = text.length;
+    const paraules = text.trim() ? text.trim().split(/\s+/).length : 0;
+    return `${paraules} ${paraules === 1 ? 'paraula' : 'paraules'} · ${caracters} caràcters`;
+  };
   const countDadesPersonals = preguntes.filter(p => p.bloc === 'dades_personals').length;
   const countPersonals = preguntes.filter(p => p.bloc === 'personals').length;
   const countLaborals = preguntes.filter(p => p.bloc === 'laborals').length;
@@ -392,7 +873,9 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
       const matchResposta = p.respostaModel?.toLowerCase().includes(queryText) || false;
       const matchConsell = p.consellOposicat?.toLowerCase().includes(queryText) || false;
       const matchComp = p.competenciesAvaluades?.some(c => c.toLowerCase().includes(queryText)) || false;
-      return matchPregunta || matchResposta || matchConsell || matchComp;
+      const matchAlumne = respostesAlumnes[p.id]?.toLowerCase().includes(queryText) || false;
+      const matchCompAlumne = (competenciesSeleccionades[p.id] || []).some(c => c.toLowerCase().includes(queryText));
+      return matchPregunta || matchResposta || matchConsell || matchComp || matchAlumne || matchCompAlumne;
     }
     return true;
   });
@@ -719,40 +1202,235 @@ export const QuestionariBiograficWeb: React.FC<QuestionariBiograficWebProps> = (
               {estaOberta && (
                 <div className="px-5 pb-5 sm:px-6 sm:pb-6 pt-0 border-t border-slate-800/80 animate-in fade-in duration-150 space-y-4">
                   
-                  {/* Resposta model orientativa */}
-                  <div className="pt-3 space-y-2">
-                    <span className="text-[10px] text-cyan-400 font-black uppercase tracking-wider block font-mono">
-                      ORIENTACIÓ I RESPOSTA MODEL RECOMANADA :
-                    </span>
-                    <div className="bg-[#020b18] border border-slate-800/90 rounded-xl p-4 text-slate-200 text-xs sm:text-sm leading-relaxed italic">
-                      "{item.respostaModel || 'Elabora la teva resposta basant-te en fets reals, demostrant sinceritat, autocrítica i una sòlida vocació de servei públic.'}"
-                    </div>
+                  {/* ================================================================= */}
+                  {/* 1. BLOC: RESPOSTA ORIENTATIVA (Oculta per defecte) */}
+                  {/* ================================================================= */}
+                  <div className="pt-3.5 space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleRespostaOrientativa(item.id)}
+                      className="w-full flex items-center justify-between p-3.5 bg-[#020b18] hover:bg-slate-900/90 border border-cyan-500/25 hover:border-cyan-400/40 rounded-xl transition-all cursor-pointer group text-left"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-6 h-6 rounded-lg bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center text-cyan-400 shrink-0">
+                          <Eye className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <span className="text-xs font-black uppercase tracking-wider text-cyan-300 block">
+                            Resposta orientativa
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-normal">
+                            Model de referència recomanat per OposiCAT per a la defensa de la pregunta
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 group-hover:bg-cyan-500/20 transition-all">
+                          {respostesOrientativesObertes[item.id] ? 'Amagar resposta' : 'Fes clic per veure-la'}
+                        </span>
+                        <ChevronDown className={`w-3.5 h-3.5 text-cyan-400 transition-transform duration-200 ${
+                          respostesOrientativesObertes[item.id] ? 'rotate-180' : ''
+                        }`} />
+                      </div>
+                    </button>
+
+                    {respostesOrientativesObertes[item.id] && (
+                      <div className="p-4 sm:p-5 bg-[#020b18] border border-cyan-500/20 rounded-xl text-slate-200 text-xs sm:text-sm leading-relaxed space-y-3 animate-in fade-in duration-200 shadow-inner">
+                        <FormatadorRespostaModel text={item.respostaModel || ''} />
+                        {item.consellOposicat && (
+                          <div className="pt-2.5 border-t border-slate-800/80 flex items-start gap-2.5 text-[11.5px] text-amber-300/90 leading-normal not-italic">
+                            <span className="font-black text-[#FFDF00] shrink-0 font-mono text-[10px] uppercase px-1.5 py-0.5 bg-yellow-500/10 border border-yellow-500/20 rounded">
+                              Consell Clau
+                            </span>
+                            <span>{item.consellOposicat}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Consell clau d'OposiCAT */}
-                  {item.consellOposicat && (
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] text-[#FFDF00] font-black uppercase tracking-wider block font-mono">
-                        CRITERI I CONSELL CLAU D'OPOSICAT :
-                      </span>
-                      <div className="bg-[#020b18] border border-yellow-500/20 rounded-xl p-3.5 text-slate-300 text-xs leading-relaxed">
-                        {item.consellOposicat}
+                  {/* ================================================================= */}
+                  {/* 2. BLOC: COMPETÈNCIES CLAU INVOLUCRADES (Seleccionades per l'alumne) */}
+                  {/* ================================================================= */}
+                  <div className="space-y-2">
+                    {/* Botó capçalera per desplegar les competències */}
+                    <button
+                      type="button"
+                      onClick={() => toggleCompetencies(item.id)}
+                      className="w-full flex items-center justify-between p-3.5 bg-[#020b18] hover:bg-slate-900/90 border border-emerald-500/25 hover:border-emerald-400/40 rounded-xl transition-all cursor-pointer group text-left"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-6 h-6 rounded-lg bg-emerald-500/10 border border-emerald-400/30 flex items-center justify-center text-emerald-400 shrink-0">
+                          <Shield className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-black uppercase tracking-wider text-emerald-300 block">
+                              Competències clau involucrades
+                            </span>
+                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border transition-all ${
+                              (competenciesSeleccionades[item.id] || []).length > 0
+                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                : 'bg-slate-800/80 text-slate-400 border-slate-700/80'
+                            }`}>
+                              {(competenciesSeleccionades[item.id] || []).length > 0
+                                ? `${(competenciesSeleccionades[item.id] || []).length} triades per tu`
+                                : 'Tria les teves'}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-normal">
+                            Fes clic per seleccionar quines competències de l'ISPC consideres que avalua el tribunal
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] font-bold px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 group-hover:bg-emerald-500/20 transition-all">
+                          {competenciesObertes[item.id] ? 'Amagar competències' : 'Fes clic per triar-les'}
+                        </span>
+                        <ChevronDown className={`w-3.5 h-3.5 text-emerald-400 transition-transform duration-200 ${
+                          competenciesObertes[item.id] ? 'rotate-180' : ''
+                        }`} />
+                      </div>
+                    </button>
 
-                  {/* Competències clau relacionades / Avís de desbloqueig */}
-                  <div className="space-y-1.5 pt-1">
-                    <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider block font-mono">
-                      {item.bloc === 'dades_personals'
-                        ? "OBSERVACIÓ DEL TRIBUNAL :"
-                        : "COMPETÈNCIES CLAU QUE AVALUA EL TRIBUNAL AMB AQUESTA PREGUNTA :"}
-                    </span>
-                    <div className="bg-[#020b18] border border-blue-500/20 rounded-xl p-3 text-slate-300 text-xs leading-relaxed flex items-center gap-2">
-                      <span className="text-cyan-400 text-sm shrink-0">🔒</span>
-                      <p className="font-medium text-slate-200">
-                        Desbloquejarem quines competències clau estan involucrades en breus posterior a les primeres classes d'entrevista.
-                      </p>
+                    {/* Contingut desplegable interactiu */}
+                    {competenciesObertes[item.id] && (
+                      <div className="p-4 sm:p-5 bg-[#020b18] border border-emerald-500/20 rounded-xl space-y-3.5 animate-in fade-in duration-200 shadow-inner">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+                          <p className="text-xs text-slate-300">
+                            Fes clic sobre les competències que consideris que estan involucrades en aquesta pregunta:
+                          </p>
+                          <span className="text-[11px] font-bold text-emerald-300 flex items-center gap-1.5 shrink-0">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>{(competenciesSeleccionades[item.id] || []).length} seleccionades per tu</span>
+                          </span>
+                        </div>
+
+                        {/* Graella interactiva de 2 columnes amb els 10 botons seleccionables */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {COMPETENCIES_OFICIALS_ISPC.map((comp, idx) => {
+                            const triada = (competenciesSeleccionades[item.id] || []).includes(comp);
+                            return (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => toggleCompetenciaAlumne(item.id, comp)}
+                                className={`px-3 py-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs transition-all cursor-pointer text-left select-none ${
+                                  triada
+                                    ? 'bg-emerald-950/60 border-emerald-400 text-emerald-100 font-bold shadow-sm shadow-emerald-950/40 ring-1 ring-emerald-400/50 hover:bg-emerald-900/60'
+                                    : 'bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200 hover:bg-slate-900/60'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10.5px] font-black transition-colors ${
+                                    triada ? 'bg-emerald-500 text-slate-950 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-800 text-slate-400'
+                                  }`}>
+                                    {triada ? '✓' : idx + 1}
+                                  </span>
+                                  <span className="truncate">{comp}</span>
+                                </div>
+                                {triada ? (
+                                  <span className="text-[9px] font-mono font-black uppercase px-2 py-0.5 bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 rounded-md shrink-0">
+                                    Triada
+                                  </span>
+                                ) : (
+                                  <span className="text-[9px] font-mono text-slate-600 hover:text-slate-400 shrink-0">
+                                    Toca per triar
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Peu informatiu de desat i acció de netejar */}
+                        <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-400">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse shrink-0" />
+                            <span>Les teves competències seleccionades es desen automàticament a la teva fitxa personal.</span>
+                          </div>
+                          {(competenciesSeleccionades[item.id] || []).length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => netejarCompetenciesAlumne(item.id)}
+                              className="text-[10.5px] text-slate-500 hover:text-rose-400 underline transition-colors cursor-pointer self-end sm:self-auto"
+                            >
+                              Desmarcar totes
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ================================================================= */}
+                  {/* 3. BLOC: RESPOSTA DE L'ALUMNE (La teva xuleta guardada a BBDD) */}
+                  {/* ================================================================= */}
+                  <div className="p-4 sm:p-5 bg-[#020b18] border border-amber-500/30 rounded-xl space-y-3.5 shadow-lg">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-800/80 pb-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-6 h-6 rounded-lg bg-amber-500/10 border border-amber-400/30 flex items-center justify-center text-amber-400 shrink-0">
+                          <PenTool className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <span className="text-xs font-black uppercase tracking-wider text-amber-300 block">
+                            Resposta de l'alumne
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-normal">
+                            La teva xuleta personal per preparar la defensa oral a l'entrevista
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono font-semibold text-slate-400 flex items-center gap-1.5 self-start sm:self-auto bg-slate-900/90 border border-slate-800 px-2.5 py-1 rounded-md">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                        <span>Sincronitzat amb la teva fitxa privada</span>
+                      </span>
+                    </div>
+
+                    <p className="text-slate-300 text-xs leading-relaxed">
+                      Redacta aquí la resposta que defensaràs a l'entrevista després de treballar-la amb l'equip docent d'OposiCAT. Aquesta serà la teva <strong className="text-amber-300">xuleta oficial</strong> que quedarà guardada al teu compte per repassar quan vulguis.
+                    </p>
+
+                    <div className="space-y-2.5">
+                      <textarea
+                        value={respostesAlumnes[item.id] || ''}
+                        onChange={(e) => actualitzarTextResposta(item.id, e.target.value)}
+                        rows={4}
+                        placeholder="Escriu aquí la teva resposta redactada amb les teves pròpies paraules, situacions reals viscudes i arguments sòlids..."
+                        className="w-full bg-[#071120] border border-slate-700/80 focus:border-amber-400/80 focus:ring-1 focus:ring-amber-400/30 rounded-xl p-3.5 text-xs sm:text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none transition-all leading-relaxed resize-y min-h-[105px]"
+                      />
+
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                        <div className="text-[10.5px] text-slate-400 font-mono flex items-center gap-2">
+                          <Bookmark className="w-3.5 h-3.5 text-amber-400/70" />
+                          <span>{comptadorText(respostesAlumnes[item.id] || '')}</span>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          {estatsGuardat[item.id] === 'desat' && (
+                            <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 animate-in fade-in">
+                              <Check className="w-4 h-4 text-emerald-400" />
+                              <span>✓ Resposta desada a la teva fitxa!</span>
+                            </span>
+                          )}
+                          {estatsGuardat[item.id] === 'desant' && (
+                            <span className="text-xs font-medium text-amber-300 flex items-center gap-1.5 animate-pulse">
+                              <Clock className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Desant a la base de dades...</span>
+                            </span>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => desarResposta(item.id)}
+                            disabled={estatsGuardat[item.id] === 'desant'}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md shadow-amber-500/20 disabled:opacity-50"
+                          >
+                            <Save className="w-3.5 h-3.5" />
+                            <span>Desar la meva resposta</span>
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
