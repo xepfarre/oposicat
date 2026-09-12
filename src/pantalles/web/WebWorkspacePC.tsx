@@ -668,6 +668,23 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
   const [rolUsuari, setRolUsuari] = useState<string>('usuari_alpha');
   const esUsuariAlpha = rolUsuari === 'usuari_alpha';
 
+  // Comentari planer per a no-programadors:
+  // Verifiquem si l'usuari té permisos d'administració d'OposiCAT.
+  // Només els comptes d'administrador i docents autoritzats tenen accés al mòdul de la Policia Local de Tremp.
+  // Els alumnes i testers (rols com 'usuari_alpha', 'usuari_free_trial', 'opositor', etc.) NO poden veure aquest bloc.
+  const esAdmin = 
+    rolUsuari === 'admin' || 
+    rolUsuari === 'admin_master' || 
+    rolUsuari === 'treballador_nivell_1' || 
+    rolUsuari === 'treballador_nivell_2' || 
+    rolUsuari === 'treballador_nivell_3' || 
+    usuariActiu?.email === 'xepfarre@gmail.com' || 
+    usuariActiu?.email === 'xepfarre7@gmail.com' || 
+    usuariActiu?.email === 'sergivinu@gmail.com' ||
+    auth.currentUser?.email === 'xepfarre@gmail.com' ||
+    auth.currentUser?.email === 'xepfarre7@gmail.com' ||
+    auth.currentUser?.email === 'sergivinu@gmail.com';
+
   // Estats per a l'hora del PC i la sirena de colors de Mossos d'Esquadra (animació estil backoffice)
   // Explicació per a no-programadors: Guardem l'hora actual i l'estat de pampallugues (base/groc, color1/blau o color2/vermell).
   const [horaActual, setHoraActual] = useState(new Date());
@@ -728,8 +745,8 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
   }, []);
 
   // Explicació per a no-programadors:
-  // Blindatge de navegació per a usuaris Alpha (testers):
-  // Si estan navegant per un lloc no permès (teòrica o física), els redirigim automàticament a l'inici.
+  // Blindatge de navegació per a usuaris Alpha (testers) i alumnes:
+  // Si estan navegant per un lloc no permès (teòrica, física o la prova de Policia Local de Tremp), els redirigim automàticament a l'inici.
   useEffect(() => {
     if (esUsuariAlpha) {
       if (seccioActiva.startsWith('teorica_') || seccioActiva.startsWith('fisica_') || mostrantSubTeoria || mostrantSubFisica) {
@@ -738,7 +755,11 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
         setMostrantSubFisica(false);
       }
     }
-  }, [esUsuariAlpha, seccioActiva, mostrantSubTeoria, mostrantSubFisica]);
+    // Protecció d'accés: Si un no-administrador intenta obrir la prova de Policia Local, el redirigim a l'inici
+    if (!esAdmin && seccioActiva === 'pl_tremp_panell') {
+      setSeccioActiva('avui');
+    }
+  }, [esUsuariAlpha, esAdmin, seccioActiva, mostrantSubTeoria, mostrantSubFisica]);
 
   // Explicació per a no-programadors: Netegem qualsevol selecció quan l'estudiant canvia d'eina o la tanca.
   useEffect(() => {
@@ -1974,34 +1995,38 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
             </div>
 
             {/* ====== BLOC 4: PROVA PL TREMP (17 SETEMBRE) ====== */}
-            <div className="pt-2">
-              <button
-                type="button"
-                id="btn-sidebar-pl-tremp"
-                onClick={() => {
-                  setSeccioActiva('pl_tremp_panell');
-                  setMostrantSubTeoria(false);
-                  setMostrantSubFisica(false);
-                  setMostrantSubPsicologica(false);
-                  setMostrantSubBiodata(false);
-                  setMostrantSubTestCompetencial(false);
-                  setMostrantSubEntrevista(false);
-                }}
-                className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all cursor-pointer group border ${
-                  seccioActiva === 'pl_tremp_panell'
-                    ? 'bg-gradient-to-r from-amber-500/30 to-amber-600/20 border-amber-400 text-[#FFDF00] shadow-lg shadow-amber-500/10'
-                    : 'bg-slate-900/60 hover:bg-slate-800/80 border-amber-500/40 text-amber-300 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-2 font-black italic uppercase text-xs">
-                  <span className="text-sm">⭐</span>
-                  <span>4. Prova PL Tremp</span>
-                </div>
-                <span className="text-[9px] bg-red-600 text-white font-black uppercase px-2 py-0.5 rounded-full animate-pulse">
-                  17 Set
-                </span>
-              </button>
-            </div>
+            {/* Comentari planer per a no-programadors:
+                Aquest bloc és EXCLUSIU per a administradors. Els alumnes i testers NO el poden veure. */}
+            {esAdmin && (
+              <div className="pt-2">
+                <button
+                  type="button"
+                  id="btn-sidebar-pl-tremp"
+                  onClick={() => {
+                    setSeccioActiva('pl_tremp_panell');
+                    setMostrantSubTeoria(false);
+                    setMostrantSubFisica(false);
+                    setMostrantSubPsicologica(false);
+                    setMostrantSubBiodata(false);
+                    setMostrantSubTestCompetencial(false);
+                    setMostrantSubEntrevista(false);
+                  }}
+                  className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all cursor-pointer group border ${
+                    seccioActiva === 'pl_tremp_panell'
+                      ? 'bg-gradient-to-r from-amber-500/30 to-amber-600/20 border-amber-400 text-[#FFDF00] shadow-lg shadow-amber-500/10'
+                      : 'bg-slate-900/60 hover:bg-slate-800/80 border-amber-500/40 text-amber-300 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 font-black italic uppercase text-xs">
+                    <span className="text-sm">⭐</span>
+                    <span>4. Prova PL Tremp</span>
+                  </div>
+                  <span className="text-[9px] bg-red-600 text-white font-black uppercase px-2 py-0.5 rounded-full animate-pulse">
+                    17 Set
+                  </span>
+                </button>
+              </div>
+            )}
 
           </div>
 
@@ -2081,24 +2106,26 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
           <div ref={perfilContenidorRef} className="flex items-center gap-3 relative">
             
             {/* OPCIÓ B: ACCÉS DIRECTE PL TREMP A LA CAPÇALERA SUPERIOR */}
-            {/* Explicació per a no-programadors: Aquest botó és visible permanentment a dalt de tot a la dreta per accedir directament a Tremp amb 1 sol clic */}
-            <button
-              id="btn-header-directe-pl-tremp"
-              type="button"
-              onClick={() => {
-                setSeccioActiva('pl_tremp_panell');
-                setMostrantSubTeoria(false);
-                setMostrantSubFisica(false);
-                setMostrantSubPsicologica(false);
-                setMostrantSubBiodata(false);
-                setMostrantSubTestCompetencial(false);
-                setMostrantSubEntrevista(false);
-              }}
-              className="py-1.5 px-3 rounded-full text-[10.5px] font-black italic uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shrink-0 cursor-pointer flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20"
-            >
-              <span>⭐ PL Tremp</span>
-              <span className="bg-red-600 text-white text-[8.5px] font-black px-1.5 py-0.2 rounded-full">17 Set</span>
-            </button>
+            {/* Explicació per a no-programadors: Aquest botó només és visible per a administradors. Els alumnes i testers no l'han de veure. */}
+            {esAdmin && (
+              <button
+                id="btn-header-directe-pl-tremp"
+                type="button"
+                onClick={() => {
+                  setSeccioActiva('pl_tremp_panell');
+                  setMostrantSubTeoria(false);
+                  setMostrantSubFisica(false);
+                  setMostrantSubPsicologica(false);
+                  setMostrantSubBiodata(false);
+                  setMostrantSubTestCompetencial(false);
+                  setMostrantSubEntrevista(false);
+                }}
+                className="py-1.5 px-3 rounded-full text-[10.5px] font-black italic uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shrink-0 cursor-pointer flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20"
+              >
+                <span>⭐ PL Tremp</span>
+                <span className="bg-red-600 text-white text-[8.5px] font-black px-1.5 py-0.2 rounded-full">17 Set</span>
+              </button>
+            )}
 
             {/* Explicació per a no-programadors: Aquest botó obre o tanca un menú flotant d'opcions personals (perfil de l'estudiant). Mostra en temps real el nom de l'usuari/estudiant llegit des de la base de dades. */}
             <button 
@@ -2361,22 +2388,24 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
                   </button>
 
                   {/* Botó 4: Prova PL Tremp (Mòdul específic convocatòria 17 de Setembre) */}
-                  {/* Explicació per a no-programadors: Aquest botó apareix just a sota de Prova Psicològica al centre de la pantalla d'inici per poder entrar al temari i banc de preguntes de Tremp directament. */}
-                  <button
-                    id="btn-index-prova-pl-tremp"
-                    onClick={() => {
-                      setSeccioActiva('pl_tremp_panell');
-                      setMostrantSubTeoria(false);
-                      setMostrantSubFisica(false);
-                      setMostrantSubPsicologica(false);
-                    }}
-                    className="group relative w-full bg-gradient-to-r from-amber-400 via-amber-300 to-[#FFDF00] hover:from-amber-300 hover:to-yellow-200 text-slate-950 font-black italic uppercase tracking-[0.22em] py-5 px-10 rounded-full shadow-2xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] active:translate-y-0 active:scale-98 cursor-pointer text-center text-sm border-2 border-amber-500/50 flex items-center justify-center gap-2"
-                  >
-                    <span>⭐ Prova PL Tremp</span>
-                    <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full animate-pulse">
-                      17 Set
-                    </span>
-                  </button>
+                  {/* Explicació per a no-programadors: Aquest botó és visible exclusivament per a administradors. Els alumnes i testers no el poden veure. */}
+                  {esAdmin && (
+                    <button
+                      id="btn-index-prova-pl-tremp"
+                      onClick={() => {
+                        setSeccioActiva('pl_tremp_panell');
+                        setMostrantSubTeoria(false);
+                        setMostrantSubFisica(false);
+                        setMostrantSubPsicologica(false);
+                      }}
+                      className="group relative w-full bg-gradient-to-r from-amber-400 via-amber-300 to-[#FFDF00] hover:from-amber-300 hover:to-yellow-200 text-slate-950 font-black italic uppercase tracking-[0.22em] py-5 px-10 rounded-full shadow-2xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] active:translate-y-0 active:scale-98 cursor-pointer text-center text-sm border-2 border-amber-500/50 flex items-center justify-center gap-2"
+                    >
+                      <span>⭐ Prova PL Tremp</span>
+                      <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full animate-pulse">
+                        17 Set
+                      </span>
+                    </button>
+                  )}
  
                 </div>
  
@@ -3731,22 +3760,35 @@ export default function WebWorkspacePC({ progresOriginal, onTornarLanding, onObr
         )}
 
         {/* ========================================================================= */}
-        {/* D. CONVOCATÒRIA POLICIA LOCAL DE TREMP (17 DE SETEMBRE)                  */}
+        {/* D. CONVOCATÒRIA POLICIA LOCAL DE TREMP (17 DE SETEMBRE) - NOMÉS ADMINS    */}
         {/* ========================================================================= */}
         {/* Explicació per a no-programadors:
             Aquest bloc mostra el banc complet de preguntes, creació de noves qüestions i 
             simulacres de test tipus oficials per a l'examen del 17 de setembre de Tremp.
-            S'obre quan l'alumne fa clic a "PL Tremp" des de qualsevol punt de la pantalla. */}
+            Accés restringit exclusivament a administradors. */}
         {seccioActiva === 'pl_tremp_panell' && (
-          <ProvaPLTrempWeb
-            onTornar={() => {
-              setSeccioActiva('avui');
-              setMostrantSubTeoria(false);
-              setMostrantSubFisica(false);
-              setMostrantSubPsicologica(false);
-            }}
-            usuariEmail={auth.currentUser?.email || 'xepfarre@gmail.com'}
-          />
+          esAdmin ? (
+            <ProvaPLTrempWeb
+              onTornar={() => {
+                setSeccioActiva('avui');
+                setMostrantSubTeoria(false);
+                setMostrantSubFisica(false);
+                setMostrantSubPsicologica(false);
+              }}
+              usuariEmail={auth.currentUser?.email || 'xepfarre@gmail.com'}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <p className="text-white/60 text-base">Aquesta secció és exclusiva per a l'equip docent i administració.</p>
+              <button
+                type="button"
+                onClick={() => setSeccioActiva('avui')}
+                className="mt-4 px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold cursor-pointer"
+              >
+                Tornar a l'inici
+              </button>
+            </div>
+          )
         )}
 
       </div>

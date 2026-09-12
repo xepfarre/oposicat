@@ -542,10 +542,9 @@ service cloud.firestore {
     }
 
     // 35. Banc de Preguntes Oficials i Simulacres de la Policia Local de Tremp (17 Setembre)
-    // Comentari planer per a no-programadors: Permet que qualsevol alumne o usuari pugui llegir les preguntes oficials per practicar i estudiar per a la convocatòria de Tremp. Permet desar, modificar o eliminar preguntes del banc d'estudi de forma directa i sense errors de permís.
+    // Comentari planer per a no-programadors: Protecció estricta d'accés docent. Només els administradors i l'equip docent d'OposiCAT poden llegir, crear o gestionar les preguntes d'aquesta convocatòria. Els alumnes i testers no hi tenen accés.
     match /preguntes_pl_tremp/{preguntaId} {
-      allow read: if true;
-      allow create, update, delete: if true;
+      allow read, write: if isAdmin();
     }
   }
 }
