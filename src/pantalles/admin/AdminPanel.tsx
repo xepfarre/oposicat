@@ -20,6 +20,8 @@ import {
 import AdminLogin from "./AdminLogin";
 import GestioRols from "./GestioRols";
 import CentreNotificacions from "./CentreNotificacions";
+import BotoExportarExcelPreguntes from "./BotoExportarExcelPreguntes";
+import RevisarNoticiesView from "./RevisarNoticiesView";
 import { DATA_CATALUNYA } from "../../data/municipis";
 import SearchableSelect from "../../components/SearchableSelect";
 import { 
@@ -2292,6 +2294,12 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
                 userRol={userRol}
               />
             } />
+            <Route path="revisar-noticies" element={
+              <RevisarNoticiesView
+                darkMode={darkMode}
+                userEmail={auth.currentUser?.email || ""}
+              />
+            } />
             <Route path="psicotecnica-tipus" element={
               <PsicotecnicsTipusView 
                 tipus={psicotecnicsTipus}
@@ -2836,6 +2844,7 @@ function ProvaTeoricaView({ darkMode }: { darkMode: boolean }) {
           <div className="flex flex-col gap-4">
             <MenuActionLink to="/admin/actualitat" label="Banc de preguntes d'actualitat" icon={<Newspaper size={18} />} darkMode={darkMode} />
             <MenuActionLink to="/admin/actualitat-preguntes" label="Afegir notícia d'actualitat" icon={<Plus size={18} />} darkMode={darkMode} />
+            <MenuActionLink to="/admin/revisar-noticies" label="Revisar notícies" icon={<CheckCheck size={18} />} darkMode={darkMode} />
           </div>
         </div>
 
@@ -3573,7 +3582,18 @@ function PreguntesView({ preguntes, novaPregunta, setNovaPregunta, onSubmit, onD
               </div>
            </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Explicació per a no-programadors:
+              Botó de NOMÉS LECTURA per descarregar totes les preguntes de la teoria
+              en un fitxer de full de càlcul Excel (.xlsx) amb recompte de comprovació.
+              Només és visible per als rols d'administració. */}
+          <BotoExportarExcelPreguntes 
+            userRol={userRol}
+            userPermisos={userPermisos}
+            preguntesCarregades={preguntes}
+            darkMode={darkMode}
+          />
+
           <button
             onClick={onRecalcularComptadors}
             disabled={loading}

@@ -546,5 +546,26 @@ service cloud.firestore {
     match /preguntes_pl_tremp/{preguntaId} {
       allow read, write: if isAdmin();
     }
+
+    // 36. Notícies d'Actualitat per a la vista mòbil (noticies_actualitat)
+    // Comentari planer per a no-programadors: Només els usuaris que hagin iniciat sessió poden llegir les notícies. Només els administradors d'OposiCAT poden crear, modificar o esborrar documents en aquesta col·lecció.
+    match /noticies_actualitat/{noticiaId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 37. Bústia d'entrada de notícies automatitzades (noticies_entrada)
+    // Comentari planer per a no-programadors: Només el compte tècnic autoritzat amb l'UID fjCNjXTR1KUAsY2ztNNbKga3jCH3 pot crear documents nous en aquesta col·lecció. Ningú més hi pot escriure o modificar dades. Només els administradors poden llegir o esborrar els documents.
+    match /noticies_entrada/{docId} {
+      allow read, delete: if isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == "fjCNjXTR1KUAsY2ztNNbKga3jCH3";
+      allow update: if false;
+    }
+
+    // 38. Registre de correccions de criteri d'actualitat (correccions_noticies)
+    // Comentari planer per a no-programadors: Només els administradors poden llegir i desar les correccions de colors i motius perquè Gemini aprengui el criteri editorial.
+    match /correccions_noticies/{correccioId} {
+      allow read, write: if isAdmin();
+    }
   }
 }
